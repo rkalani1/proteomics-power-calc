@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { PowerFormula, MinHRFormula } from './components/MathEquation';
+import { PowerFormula } from './components/MathEquation';
 import PowerChart from './components/PowerChart';
 import PowerByProteinsChart from './components/PowerByProteinsChart';
 import ResultsTable from './components/ResultsTable';
@@ -381,11 +381,6 @@ function App() {
                  calculations.powerAtInputMulti >= 0.5 ? '⚠ Marginally powered' : '✗ Underpowered'}
               </p>
             </div>
-          </div>
-
-          {/* Min HR Formula */}
-          <div className="mt-6">
-            <MinHRFormula />
           </div>
 
           {/* Events needed */}

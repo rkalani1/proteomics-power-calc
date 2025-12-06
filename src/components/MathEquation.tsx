@@ -43,7 +43,7 @@ const MathEquation: React.FC<MathEquationProps> = ({
  * PowerFormula Component
  *
  * Displays the complete power formula for Cox regression
- * with all variable definitions.
+ * with all variable definitions, plus the minimum detectable effect size formula.
  */
 export const PowerFormula: React.FC = () => {
   const mainFormula = String.raw`
@@ -59,22 +59,40 @@ export const PowerFormula: React.FC = () => {
     \end{aligned}
   `;
 
+  const minHRFormula = String.raw`
+    \text{HR}_{\min} = \exp\left( (z_{1-\alpha/2} + z_{\beta}) \cdot \sigma \right)
+  `;
+
   return (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100 shadow-sm">
       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
         <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
         </svg>
-        Power Formula (Cox Proportional Hazards)
+        Statistical Formulas (Cox Proportional Hazards)
       </h3>
 
       <div className="overflow-x-auto">
         <div className="min-w-fit">
-          <MathEquation
-            latex={mainFormula}
-            className="text-center mb-6 py-2"
-          />
+          {/* Power Formula */}
+          <div className="mb-6">
+            <p className="text-sm text-gray-700 mb-2 font-medium">Power Formula:</p>
+            <MathEquation
+              latex={mainFormula}
+              className="text-center py-2"
+            />
+          </div>
 
+          {/* Minimum Detectable Effect Size */}
+          <div className="mb-6 bg-amber-50/50 rounded-lg p-4 border border-amber-100">
+            <p className="text-sm text-gray-700 mb-2 font-medium">Minimum Detectable Effect Size:</p>
+            <MathEquation latex={minHRFormula} className="text-center" />
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              where z<sub>β</sub> = Φ<sup>-1</sup>(target power)
+            </p>
+          </div>
+
+          {/* Variable Definitions */}
           <div className="border-t border-blue-200 pt-4">
             <p className="text-sm text-gray-600 mb-3 font-medium">Where:</p>
             <MathEquation
@@ -96,6 +114,7 @@ export const PowerFormula: React.FC = () => {
  * MinHRFormula Component
  *
  * Displays the formula for minimum detectable hazard ratio.
+ * @deprecated Use PowerFormula which now includes this formula
  */
 export const MinHRFormula: React.FC = () => {
   const formula = String.raw`
