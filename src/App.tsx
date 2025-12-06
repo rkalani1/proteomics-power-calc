@@ -127,7 +127,7 @@ function App() {
             className="w-24 px-2 py-1 text-right text-sm font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
-        <div className="relative pt-1">
+        <div className="slider-container">
           <input
             type="range"
             min={min}
@@ -135,12 +135,10 @@ function App() {
             step={step}
             value={value}
             onChange={(e) => onChange(Number(e.target.value))}
-            className="slider-improved w-full h-3 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          />
-          {/* Progress fill indicator */}
-          <div
-            className="absolute top-1 left-0 h-3 bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full pointer-events-none"
-            style={{ width: `${((value - min) / (max - min)) * 100}%` }}
+            className="slider-input"
+            style={{
+              background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((value - min) / (max - min)) * 100}%, #e2e8f0 ${((value - min) / (max - min)) * 100}%, #e2e8f0 100%)`
+            }}
           />
         </div>
         <div className="flex justify-between text-xs text-gray-400">
