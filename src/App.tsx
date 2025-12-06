@@ -27,7 +27,7 @@ function App() {
   // Input parameters
   const [sampleSize, setSampleSize] = useState(1000);
   const [events, setEvents] = useState(70);
-  const [numTests, setNumTests] = useState(3000);
+  const [numTests, setNumTests] = useState(5000);
   const [fdrQ, setFdrQ] = useState(0.05);
   const [targetPower, setTargetPower] = useState(0.80);
   const [inputHR, setInputHR] = useState(1.2);
