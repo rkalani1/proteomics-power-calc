@@ -8,7 +8,6 @@ import {
   Legend,
   ResponsiveContainer,
   ReferenceLine,
-  ReferenceArea,
 } from 'recharts';
 import { calculatePower, calculateEffectiveAlpha } from '../utils/statistics';
 
@@ -54,10 +53,10 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     2.0: '#2563eb', // blue
   };
 
-  // Generate data for linear chart (focus on 1-500 range)
+  // Generate data for linear chart (1-1000 range)
   const generateLinearChartData = () => {
     const counts: number[] = [];
-    for (let i = 1; i <= 500; i += 1) {
+    for (let i = 1; i <= 1000; i += 1) {
       counts.push(i);
     }
     return counts.map((numProteins) => {
@@ -156,9 +155,6 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     );
   };
 
-  // Critical zone boundaries
-  const criticalZoneEnd = 100;
-
   return (
     <div className="space-y-6">
       {/* Sensitivity Table */}
@@ -198,15 +194,10 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
               {sensitivityTableData.map((row, idx) => (
                 <tr
                   key={row.proteins}
-                  className={`border-b border-gray-100 ${
-                    row.proteins <= criticalZoneEnd ? 'bg-amber-50/30' : ''
-                  } ${idx % 2 === 0 ? '' : 'bg-gray-50/50'}`}
+                  className={`border-b border-gray-100 ${idx % 2 === 0 ? '' : 'bg-gray-50/50'}`}
                 >
                   <td className="px-2 py-2 font-medium text-gray-800 bg-gray-50 sticky left-0">
                     {row.proteins.toLocaleString()}
-                    {row.proteins <= criticalZoneEnd && (
-                      <span className="ml-1 text-amber-600 text-xs">★</span>
-                    )}
                   </td>
                   {hazardRatios.map((hr) => (
                     <td key={hr} className="px-2 py-2 text-center">
@@ -220,10 +211,6 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
         </div>
 
         <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500">
-          <div className="flex items-center gap-1">
-            <span className="text-amber-600">★</span>
-            <span>Critical zone (steepest power decline)</span>
-          </div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">≥80%</span>
             <span>Adequate</span>
@@ -239,17 +226,17 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
         </div>
       </div>
 
-      {/* Linear Scale Chart (1-500 proteins) */}
+      {/* Linear Scale Chart (1-1000 proteins) */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
             <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
             </svg>
-            Power vs Number of Proteins (Linear Scale, 1-500)
+            Power vs Number of Proteins (Linear Scale, 1-1,000)
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            Emphasizes the critical zone where power drops most rapidly
+            Shows how power decreases as the number of proteins tested increases
           </p>
         </div>
 
@@ -260,18 +247,11 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
 
-            {/* Highlight critical zone */}
-            <ReferenceArea
-              x1={1}
-              x2={criticalZoneEnd}
-              fill="#fef3c7"
-              fillOpacity={0.5}
-            />
-
             <XAxis
               dataKey="proteins"
               type="number"
-              domain={[1, 500]}
+              domain={[1, 1000]}
+              ticks={[1, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]}
               tickFormatter={(value) => value.toLocaleString()}
               label={{
                 value: 'Number of Proteins Tested',
@@ -332,10 +312,6 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
 
         <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-500">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-3 bg-amber-100 border border-amber-300 rounded"></div>
-            <span>Critical zone (1-100 proteins)</span>
-          </div>
-          <div className="flex items-center gap-2">
             <div className="w-6 h-0.5 bg-purple-500" style={{ borderStyle: 'dashed', borderWidth: '1px 0 0 0', borderColor: '#8b5cf6' }}></div>
             <span>Target power ({(targetPower * 100).toFixed(0)}%)</span>
           </div>
@@ -362,14 +338,6 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
             margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-
-            {/* Highlight critical zone */}
-            <ReferenceArea
-              x1={1}
-              x2={criticalZoneEnd}
-              fill="#fef3c7"
-              fillOpacity={0.5}
-            />
 
             <XAxis
               dataKey="proteins"
@@ -436,10 +404,6 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
         </ResponsiveContainer>
 
         <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-500">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-3 bg-amber-100 border border-amber-300 rounded"></div>
-            <span>Critical zone (1-100 proteins)</span>
-          </div>
           <div className="flex items-center gap-2">
             <div className="w-6 h-0.5 bg-purple-500" style={{ borderStyle: 'dashed', borderWidth: '1px 0 0 0', borderColor: '#8b5cf6' }}></div>
             <span>Target power ({(targetPower * 100).toFixed(0)}%)</span>
