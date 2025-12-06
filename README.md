@@ -4,7 +4,7 @@ Interactive web application for power calculations in proteome-wide association 
 
 ## Live Demo
 
-🔗 **[https://kalaniresearch.github.io/proteomics-power-calc](https://kalaniresearch.github.io/proteomics-power-calc)**
+🔗 **[https://rkalani1.github.io/proteomics-power-calc](https://rkalani1.github.io/proteomics-power-calc)**
 
 ## Features
 
@@ -51,7 +51,7 @@ Defaults are configured for a UK Biobank endometriosis cohort study:
 
 ```bash
 # Clone the repository
-git clone https://github.com/kalaniresearch/proteomics-power-calc.git
+git clone https://github.com/rkalani1/proteomics-power-calc.git
 cd proteomics-power-calc
 
 # Install dependencies
