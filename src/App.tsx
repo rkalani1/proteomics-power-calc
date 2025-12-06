@@ -199,7 +199,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Proteome-Wide Cox Power Calculator
+              Proteomics Cox Regression Power Calculator
             </h1>
           </div>
         </div>
