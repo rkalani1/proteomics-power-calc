@@ -224,9 +224,6 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
               </svg>
               Advanced Visualizations
             </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Additional perspectives on power analysis results
-            </p>
           </div>
 
           {/* Visualization type selector */}
@@ -360,12 +357,6 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                 ))}
               </LineChart>
             </ResponsiveContainer>
-
-            <div className="mt-4 text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
-              <strong>Interpretation:</strong> This curve shows the {isCox ? 'number of events' : 'sample size'} needed
-              to achieve each power level. Higher power requires exponentially more {isCox ? 'events' : 'participants'}.
-              The steep rise beyond 90% power illustrates the "diminishing returns" of pushing for very high power.
-            </div>
           </div>
         )}
 

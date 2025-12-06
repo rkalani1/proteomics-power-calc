@@ -195,9 +195,6 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
             </svg>
             Sensitivity Analysis
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Explore how power changes as you vary study parameters
-          </p>
         </div>
 
         {/* Variable selector */}
@@ -328,17 +325,6 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
           )}
         </LineChart>
       </ResponsiveContainer>
-
-      <div className="mt-4 text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
-        <strong>Interpretation:</strong> This chart shows how statistical power changes as you vary the{' '}
-        {selectedVariable === 'sampleSize' && 'sample size'}
-        {selectedVariable === 'events' && 'number of events'}
-        {selectedVariable === 'effectSize' && 'effect size'}
-        {selectedVariable === 'proteinCount' && 'number of proteins tested'}
-        . The dashed horizontal line indicates your target power ({(targetPower * 100).toFixed(0)}%),
-        and the vertical line shows your current parameter value. Points above the target line indicate
-        adequate statistical power.
-      </div>
     </section>
   );
 };

@@ -325,10 +325,6 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
         } overflow-hidden`}
       >
         <div className="px-6 pb-6">
-          <p className="text-sm text-gray-500 mb-4">
-            Download your power analysis results for documentation, sharing, or further analysis.
-          </p>
-
           <div className="flex flex-wrap gap-3">
             <button
               onClick={downloadCSV}

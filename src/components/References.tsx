@@ -211,70 +211,6 @@ const References: React.FC<ReferencesProps> = ({ analysisType, studyDesign }) =>
     return matchesAnalysis && matchesDesign;
   });
 
-  // Get analysis-specific methodology description
-  const getMethodologyDescription = () => {
-    switch (analysisType) {
-      case 'cox':
-        return {
-          model: 'Cox Proportional Hazards Model',
-          description: 'Semi-parametric survival model for time-to-event outcomes. Estimates hazard ratios (HR) comparing instantaneous event rates between groups.',
-          effectSize: 'The hazard ratio represents the relative change in the instantaneous risk of the event per one standard deviation increase in the protein level.',
-          powerBasis: 'Power is based on Schoenfeld\'s formula using the expected number of events (d), not total sample size. SE(log HR) ≈ 1/√d for a standardized predictor.',
-          assumptions: 'The proportional hazards assumption must hold (constant HR over time). The predictor variable (protein level) is assumed to be standardized with unit variance.',
-        };
-      case 'linear':
-        return {
-          model: 'Linear Regression',
-          description: 'Models continuous outcomes as a linear function of predictors. Estimates standardized regression coefficients (β).',
-          effectSize: 'The standardized beta coefficient represents the change in outcome (in SD units) per one standard deviation increase in the protein level.',
-          powerBasis: 'Power is based on the t-test for the regression coefficient with (n-2) degrees of freedom. SE(β) depends on sample size and residual variance.',
-          assumptions: 'Residuals are normally distributed with constant variance (homoscedasticity). The predictor variable is standardized with unit variance.',
-        };
-      case 'logistic':
-        return {
-          model: 'Logistic Regression',
-          description: 'Models binary outcomes via log-odds. Estimates odds ratios (OR) for the predictor-outcome association.',
-          effectSize: 'The odds ratio represents the multiplicative change in odds of the outcome per one standard deviation increase in the protein level.',
-          powerBasis: 'Power is based on the Wald test with standard error derived from Fisher information. For case-control designs, SE = √(1/n₁ + 1/n₀).',
-          assumptions: 'The log-odds are linear in the predictor. Note that OR ≈ RR only when outcome prevalence is low (<10%). For common outcomes, consider Modified Poisson regression.',
-        };
-      case 'poisson':
-        return {
-          model: 'Modified Poisson Regression',
-          description: 'Log-linear model with robust variance for binary outcomes. Directly estimates relative risk (RR) rather than odds ratio.',
-          effectSize: 'The relative risk represents the multiplicative change in the probability of the outcome per one standard deviation increase in the protein level.',
-          powerBasis: 'Power is based on the Wald test with robust (sandwich) variance estimator. SE = √(1/(n·p)) where p is outcome prevalence.',
-          assumptions: 'Appropriate when outcome prevalence >10% or when relative risk interpretation is preferred over odds ratio. Uses robust variance to correct for binary outcome.',
-        };
-      case 'gee':
-        return {
-          model: 'GEE/Mixed Effects Model',
-          description: 'Generalized Estimating Equations or Mixed Effects models for clustered/longitudinal data. Accounts for within-cluster correlation via the intraclass correlation coefficient (ICC).',
-          effectSize: 'The standardized beta coefficient represents the change in outcome per one SD increase in protein level, adjusted for clustering.',
-          powerBasis: 'Power incorporates the design effect DE = 1 + (m-1)×ICC, which inflates variance proportional to cluster size and correlation. Effective sample size n_eff = n/DE.',
-          assumptions: 'Observations within clusters are correlated with constant ICC. The working correlation structure is correctly specified. Large sample approximation requires adequate number of clusters (≥30-50).',
-        };
-    }
-  };
-
-  // Get study design-specific description
-  const getStudyDesignDescription = () => {
-    switch (studyDesign) {
-      case 'cohort':
-        return 'Prospective or retrospective follow-up design where participants are classified by exposure (protein levels) and followed for outcomes. Can calculate incidence rates with temporal sequence established.';
-      case 'case-control':
-        return 'Participants selected based on outcome status. Compares exposure (protein levels) between cases and controls. Cannot directly estimate prevalence or incidence; odds ratio is the estimable effect measure.';
-      case 'cross-sectional':
-        return 'Exposure and outcome measured simultaneously. Prevalence-based analysis. Cannot establish temporal sequence; associations may reflect reverse causation.';
-      case 'case-cohort':
-        return 'All cases plus a random subcohort from the full cohort. Efficient for expensive biomarker measurements. Analysis uses weighted Cox regression with variance inflation factor √(1 + (1-f)/f) where f is the subcohort fraction.';
-      case 'nested-case-control':
-        return 'Cases matched to controls from the risk set at time of case occurrence. Preserves cohort sampling frame. Variance inflation factor √(1 + 1/m) where m is the matching ratio. Analysis uses conditional logistic regression or stratified Cox model.';
-    }
-  };
-
-  const methodology = getMethodologyDescription();
-
   return (
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <button
@@ -303,37 +239,8 @@ const References: React.FC<ReferencesProps> = ({ analysisType, studyDesign }) =>
         } overflow-hidden`}
       >
         <div className="px-6 pb-6">
-          {/* Analysis Type Methodology */}
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-indigo-700 mb-2">{methodology.model}</h3>
-            <div className="text-sm text-gray-600 space-y-2">
-              <p>{methodology.description}</p>
-              <p><strong>Effect Size Interpretation:</strong> {methodology.effectSize}</p>
-              <p><strong>Power Calculation:</strong> {methodology.powerBasis}</p>
-              <p><strong>Assumptions:</strong> {methodology.assumptions}</p>
-            </div>
-          </div>
-
-          {/* Study Design Description */}
-          <div className="mb-6 pt-4 border-t border-gray-200">
-            <h3 className="text-sm font-semibold text-purple-700 mb-2">
-              {studyDesign.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Design
-            </h3>
-            <p className="text-sm text-gray-600">{getStudyDesignDescription()}</p>
-          </div>
-
-          {/* Multiple Testing Correction */}
-          <div className="mb-6 pt-4 border-t border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Multiple Testing Correction</h3>
-            <p className="text-sm text-gray-600">
-              The Benjamini-Hochberg FDR procedure controls the expected proportion of false discoveries among significant findings.
-              The effective per-test α level is approximated as α<sub>eff</sub> ≈ q × π<sub>0</sub> / m, where q is the FDR threshold,
-              π<sub>0</sub> is the proportion of true nulls (assumed ≈1), and m is the number of tests.
-            </p>
-          </div>
-
           {/* References */}
-          <div className="pt-4 border-t border-gray-200">
+          <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Key References</h3>
             <div className="space-y-3">
               {relevantReferences.map((ref, index) => (

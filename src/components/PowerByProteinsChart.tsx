@@ -298,15 +298,12 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
         <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500">
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">≥80%</span>
-            <span>Adequate</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">50-79%</span>
-            <span>Marginal</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded bg-red-100 text-red-800 text-xs">&lt;50%</span>
-            <span>Underpowered</span>
           </div>
         </div>
       </div>

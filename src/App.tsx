@@ -6,7 +6,6 @@ import PowerByProteinsChart from './components/PowerByProteinsChart';
 import SensitivityAnalysis from './components/SensitivityAnalysis';
 import ExportPanel from './components/ExportPanel';
 import References from './components/References';
-import TwoStagePanel from './components/TwoStagePanel';
 import AdvancedVisualizations from './components/AdvancedVisualizations';
 import {
   calculateEffectiveAlpha,
@@ -105,7 +104,7 @@ const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
     default: 1.2,
     step: 0.01,
     inputLabel: 'Target Hazard Ratio (HR)',
-    inputDescription: 'HR per 1-SD increase in protein level. HR=1.2 means 20% higher hazard rate.',
+    inputDescription: '',
   },
   linear: {
     label: 'Standardized Beta',
@@ -115,7 +114,7 @@ const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
     default: 0.2,
     step: 0.01,
     inputLabel: 'Target Beta (β)',
-    inputDescription: 'SD change in outcome per 1-SD increase in protein. β=0.2 is a small-moderate effect.',
+    inputDescription: '',
   },
   logistic: {
     label: 'Odds Ratio',
@@ -125,7 +124,7 @@ const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
     default: 1.3,
     step: 0.01,
     inputLabel: 'Target Odds Ratio (OR)',
-    inputDescription: 'OR per 1-SD increase in protein level. OR=1.3 means 30% higher odds.',
+    inputDescription: '',
   },
   poisson: {
     label: 'Relative Risk',
@@ -135,7 +134,7 @@ const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
     default: 1.2,
     step: 0.01,
     inputLabel: 'Target Relative Risk (RR)',
-    inputDescription: 'RR per 1-SD increase in protein level. RR=1.2 means 20% higher risk.',
+    inputDescription: '',
   },
   gee: {
     label: 'Standardized Beta',
@@ -145,7 +144,7 @@ const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
     default: 0.2,
     step: 0.01,
     inputLabel: 'Target Beta (β)',
-    inputDescription: 'SD change in outcome per 1-SD increase in protein (clustering-adjusted).',
+    inputDescription: '',
   },
 };
 
@@ -205,16 +204,6 @@ function App() {
   // GEE/Mixed Effects parameters
   const [clusterSize, setClusterSize] = useState(5); // Observations per cluster/subject
   const [icc, setICC] = useState(0.05); // Intraclass correlation coefficient
-
-  // Two-Stage Design parameters
-  const [twoStageEnabled, setTwoStageEnabled] = useState(false);
-  const [stage1Proteins, setStage1Proteins] = useState(5000);
-  const [stage1SampleSize, setStage1SampleSize] = useState(500);
-  const [stage2SampleSize, setStage2SampleSize] = useState(1000);
-  const [stage1FDR, setStage1FDR] = useState(0.10);
-  const [stage2Alpha, setStage2Alpha] = useState(0.05);
-  const [expectedHits, setExpectedHits] = useState(10);
-  const [sampleOverlap, setSampleOverlap] = useState(0);
 
   // Effect size (dynamic based on analysis type)
   const [effectSize, setEffectSize] = useState(1.2);
@@ -522,7 +511,6 @@ function App() {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
                   Proteomics Power Calculator
                 </h1>
-                <p className="text-xs text-gray-500 hidden sm:block">Statistical power analysis for high-throughput proteomics studies</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -1153,38 +1141,6 @@ function App() {
           totalCohort={totalCohort}
           effectSymbol={effectConfig.symbol}
           correctionMethod={correctionMethod}
-        />
-
-        {/* Two-Stage Design Analysis */}
-        <TwoStagePanel
-          enabled={twoStageEnabled}
-          onToggle={setTwoStageEnabled}
-          analysisType={analysisType}
-          effectSize={effectSize}
-          stage1Proteins={stage1Proteins}
-          onStage1ProteinsChange={setStage1Proteins}
-          stage1SampleSize={stage1SampleSize}
-          onStage1SampleSizeChange={setStage1SampleSize}
-          stage2SampleSize={stage2SampleSize}
-          onStage2SampleSizeChange={setStage2SampleSize}
-          stage1FDR={stage1FDR}
-          onStage1FDRChange={setStage1FDR}
-          stage2Alpha={stage2Alpha}
-          onStage2AlphaChange={setStage2Alpha}
-          expectedHits={expectedHits}
-          onExpectedHitsChange={setExpectedHits}
-          sampleOverlap={sampleOverlap}
-          onSampleOverlapChange={setSampleOverlap}
-          studyParams={{
-            studyDesign,
-            events,
-            residualSD,
-            prevalence,
-            cases: numCases,
-            controls: numControls,
-            clusterSize,
-            icc,
-          }}
         />
 
         {/* Sensitivity Analysis */}
