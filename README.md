@@ -1,6 +1,6 @@
-# Proteome-Wide Cox Power Calculator
+# Proteomics Power Calculator
 
-Interactive web application for power calculations in proteome-wide association studies (PWAS) using Cox proportional hazards models. Compares statistical power between single-protein tests (α=0.05) and proteome-wide scans with Benjamini-Hochberg FDR correction.
+Interactive web application for power calculations in proteome-wide association studies (PWAS). Supports multiple regression models including Cox proportional hazards, linear, logistic, modified Poisson, and GEE/mixed effects models with Benjamini-Hochberg FDR or Bonferroni correction for multiple testing.
 
 ## Live Demo
 
@@ -8,15 +8,40 @@ Interactive web application for power calculations in proteome-wide association 
 
 ## Features
 
-- **Interactive Controls**: Adjustable sliders for sample size, events, number of tests, FDR threshold, target power, and hazard ratio
-- **Mathematical Display**: Power formula rendered in textbook-style LaTeX notation using KaTeX
-- **Power Visualization**: Interactive chart comparing power curves for single vs. multi-test scenarios
-- **Results Table**: Sortable/filterable table of power values across hazard ratios
-- **Real-time Calculations**: Instant updates as parameters change
+- **Multiple Analysis Types**:
+  - Cox Proportional Hazards (time-to-event outcomes)
+  - Linear Regression (continuous outcomes)
+  - Logistic Regression (binary outcomes)
+  - Modified Poisson Regression (binary outcomes with prevalence >10%)
+  - GEE/Mixed Effects (clustered/longitudinal data)
+
+- **Flexible Study Designs**:
+  - Cohort studies
+  - Case-Cohort designs
+  - Nested Case-Control studies
+
+- **Multiple Testing Correction**:
+  - Benjamini-Hochberg FDR (False Discovery Rate)
+  - Bonferroni correction (Family-Wise Error Rate)
+
+- **Interactive Controls**: Adjustable inputs for sample size, events/prevalence, number of proteins, FDR/FWER threshold, target power, and effect sizes
+
+- **Mathematical Display**: Power formulas rendered in textbook-style LaTeX notation using KaTeX
+
+- **Rich Visualizations**:
+  - Power vs Effect Size curves
+  - Power vs Number of Proteins charts
+  - Sensitivity analysis plots
+  - Required events/sample size curves
+  - Forest plots and power grids
+
+- **Results Tables**: Sortable/filterable power comparison tables
+
+- **Export Options**: CSV download, PDF printing, and summary copying
 
 ## Key Calculations
 
-For Cox proportional hazards regression with a standardized continuous predictor (Var(X) = 1):
+### Cox Proportional Hazards (Schoenfeld, 1983)
 
 ```
 Power = Φ(|log(HR)|/σ - z_{1-α/2}) + Φ(-|log(HR)|/σ - z_{1-α/2})
@@ -28,17 +53,68 @@ where:
   z_{1-α/2} = critical value for two-sided test
 ```
 
-**Multiple Testing Correction:**
-- Uses Benjamini-Hochberg FDR procedure
-- Conservative approximation: α_effective ≈ q/m
+### Linear Regression
 
-## Default Context
+```
+Power = Φ(|β|/SE - z_{1-α/2}) + Φ(-|β|/SE - z_{1-α/2})
 
-Defaults are configured for a UK Biobank endometriosis cohort study:
-- n = 3,000 women with endometriosis
-- d = 70 incident CVD events
-- m = 3,000 Olink proteins tested
-- FDR q = 0.05
+where:
+  SE = σ_y / √(n × R²_x)
+  σ_y = residual standard deviation
+  R²_x = variance explained by predictor
+```
+
+### Logistic Regression
+
+```
+Power = Φ(|log(OR)|/SE - z_{1-α/2}) + Φ(-|log(OR)|/SE - z_{1-α/2})
+
+where:
+  SE = 1/√(n × p × (1-p))
+  p = case prevalence
+```
+
+### Modified Poisson Regression
+
+```
+Power = Φ(|log(RR)|/SE - z_{1-α/2}) + Φ(-|log(RR)|/SE - z_{1-α/2})
+
+where:
+  SE = √(1/(n × p))
+  p = outcome prevalence
+```
+
+### Multiple Testing Correction
+
+- **FDR (Benjamini-Hochberg)**: α_effective ≈ q/m
+- **Bonferroni**: α_effective = α/m
+
+## Validation
+
+The calculator has been comprehensively validated against standard statistical formulas:
+
+| Analysis Type | Formula Reference | Validation Status |
+|---------------|-------------------|-------------------|
+| Cox PH | Schoenfeld (1983) | ✓ Verified |
+| Linear | Wald test | ✓ Verified |
+| Logistic | Wald test | ✓ Verified |
+| Poisson | Wald test | ✓ Verified |
+| GEE | Design effect adjusted | ✓ Verified |
+| FDR Correction | Benjamini-Hochberg (1995) | ✓ Verified |
+| Bonferroni | FWER control | ✓ Verified |
+
+### Cox Model Validation Details
+
+The Cox proportional hazards calculator implements the **Schoenfeld (1983) formula**, which is the standard reference used by major statistical software (PASS, nQuery, Stata). Example validation:
+
+| Test Case | Parameters | Calculated Events |
+|-----------|------------|-------------------|
+| Strong signal | α=0.05, HR=2.0, 80% power | 17 events |
+| Moderate signal | α=0.05, HR=1.3, 80% power | 115 events |
+| FDR-corrected strong | α=0.001, HR=2.0, 80% power | 36 events |
+| FDR-corrected moderate | α=0.001, HR=1.3, 80% power | 249 events |
+
+**Note**: Some alternative formulas (e.g., Freedman 1982) produce ~2x higher event requirements due to different variance assumptions. Both approaches are valid; this calculator uses the more commonly cited Schoenfeld formula.
 
 ## Local Development
 
@@ -86,14 +162,21 @@ The app automatically deploys to GitHub Pages on push to `main` branch via GitHu
 
 1. **Standardized Predictor**: Protein levels are standardized (Var(X) = 1), which is standard practice in proteomics
 2. **Large Sample Approximation**: Wald test-based power approximation is valid
-3. **Proportional Hazards**: Cox PH model assumptions are satisfied
+3. **Model Assumptions**: Respective model assumptions (proportional hazards, linearity, etc.) are satisfied
 4. **Two-sided Tests**: All hypothesis tests are two-sided
-5. **BH-FDR**: Conservative α ≈ q/m approximation for the Benjamini-Hochberg procedure
+5. **Independence**: For FDR/Bonferroni, tests are assumed approximately independent
 
 ## References
 
-- Schoenfeld, D. (1983). Sample-size formula for the proportional-hazards regression model. *Biometrics*, 39(2), 499-503.
-- Benjamini, Y., & Hochberg, Y. (1995). Controlling the false discovery rate. *JRSS-B*, 57(1), 289-300.
+1. Schoenfeld, D. A. (1983). Sample-size formula for the proportional-hazards regression model. *Biometrics*, 39(2), 499-503. [DOI: 10.2307/2531021](https://doi.org/10.2307/2531021)
+
+2. Benjamini, Y., & Hochberg, Y. (1995). Controlling the false discovery rate: a practical and powerful approach to multiple testing. *JRSS-B*, 57(1), 289-300. [DOI: 10.1111/j.2517-6161.1995.tb02031.x](https://doi.org/10.1111/j.2517-6161.1995.tb02031.x)
+
+3. Storey, J. D. (2002). A direct approach to false discovery rates. *JRSS-B*, 64(3), 479-498. [DOI: 10.1111/1467-9868.00346](https://doi.org/10.1111/1467-9868.00346)
+
+4. Vittinghoff, E., & McCulloch, C. E. (2007). Relaxing the rule of ten events per variable in logistic and Cox regression. *American Journal of Epidemiology*, 165(6), 710-718. [DOI: 10.1093/aje/kwk052](https://doi.org/10.1093/aje/kwk052)
+
+5. Goeman, J. J., & Solari, A. (2014). Multiple hypothesis testing in genomics. *Statistics in Medicine*, 33(11), 1946-1978. [DOI: 10.1002/sim.6082](https://doi.org/10.1002/sim.6082)
 
 ## License
 
