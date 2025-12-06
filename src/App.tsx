@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { PowerFormula, MinHRFormula } from './components/MathEquation';
 import PowerChart from './components/PowerChart';
+import PowerByProteinsChart from './components/PowerByProteinsChart';
 import ResultsTable from './components/ResultsTable';
 import {
   calculateStandardError,
@@ -400,6 +401,13 @@ function App() {
           alphaMulti={calculations.alphaMulti}
         />
 
+        {/* Power by Number of Proteins */}
+        <PowerByProteinsChart
+          events={events}
+          fdrQ={fdrQ}
+          targetPower={targetPower}
+        />
+
         {/* Methodology & Assumptions */}
         <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -444,18 +452,6 @@ function App() {
           </div>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="text-center text-sm text-gray-500">
-            <p>Proteome-Wide Cox Power Calculator</p>
-            <p className="mt-1">
-              For research and educational purposes. Always consult a biostatistician for study design.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
