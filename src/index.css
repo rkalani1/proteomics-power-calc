@@ -37,48 +37,54 @@ body {
   background: #94a3b8;
 }
 
-/* Simple, reliable range slider */
+/* Range slider - maximum browser compatibility */
 .range-slider {
   -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
   width: 100%;
-  height: 10px;
-  border-radius: 5px;
+  height: 8px;
+  border-radius: 4px;
   outline: none;
-  cursor: pointer;
+  border: none;
+  margin: 10px 0;
 }
 
-/* Chrome, Safari, Edge - Thumb */
+/* WebKit browsers (Chrome, Safari, Edge, Comet, etc.) */
 .range-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #6366f1;
-  border: 2px solid white;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
   cursor: pointer;
+  margin-top: -7px;
 }
 
-.range-slider::-webkit-slider-thumb:hover {
-  background: #4f46e5;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+.range-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background: inherit;
 }
 
-/* Firefox - Thumb */
+/* Firefox */
 .range-slider::-moz-range-thumb {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #6366f1;
-  border: 2px solid white;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
   cursor: pointer;
 }
 
-.range-slider::-moz-range-thumb:hover {
-  background: #4f46e5;
+.range-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #e2e8f0;
 }
 
 /* Number input - hide spinners */

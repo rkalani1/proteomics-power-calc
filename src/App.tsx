@@ -273,7 +273,7 @@ function App() {
               value={inputHR}
               onChange={setInputHR}
               min={1.0}
-              max={3.0}
+              max={2.5}
               step={0.01}
               decimals={2}
               description="Effect size to evaluate"
