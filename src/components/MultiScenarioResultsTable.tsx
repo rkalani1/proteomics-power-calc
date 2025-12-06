@@ -1,32 +1,46 @@
 import { useState, useMemo } from 'react';
 
-interface TableRow {
-  hr: number;
-  powerSingle: number;
-  powerMulti: number;
+type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
+
+interface ScenarioInfo {
+  proteinCount: number;
+  alpha: number;
+  color: {
+    bg: string;
+    text: string;
+    light: string;
+    border: string;
+    hex: string;
+  };
 }
 
-interface ResultsTableProps {
-  data: TableRow[];
-  alphaSingle: number;
-  alphaMulti: number;
+interface MultiScenarioResultsTableProps {
+  /** Table data with effect sizes and power values for each scenario */
+  data: Array<Record<string, number>>;
+  /** Information about each scenario (protein count, alpha, color) */
+  scenarios: ScenarioInfo[];
+  /** Effect size label (e.g., "Hazard Ratio") */
+  effectLabel?: string;
+  /** Analysis type for formatting */
+  analysisType?: AnalysisType;
 }
 
-type SortField = 'hr' | 'powerSingle' | 'powerMulti';
 type SortDirection = 'asc' | 'desc';
 
 /**
- * ResultsTable Component
+ * MultiScenarioResultsTable Component
  *
- * Displays a sortable, filterable table comparing power values
- * across different hazard ratios for single-protein vs. proteome-wide testing.
+ * Displays a sortable, filterable table showing power values
+ * across different effect sizes for each protein count scenario.
  */
-const ResultsTable: React.FC<ResultsTableProps> = ({
+const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
   data,
-  alphaSingle,
-  alphaMulti,
+  scenarios,
+  effectLabel = 'Hazard Ratio',
+  analysisType = 'cox',
 }) => {
-  const [sortField, setSortField] = useState<SortField>('hr');
+  const decimals = analysisType === 'linear' ? 3 : 2;
+  const [sortField, setSortField] = useState<string>('effect');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [filterMinPower, setFilterMinPower] = useState<number>(0);
 
@@ -34,27 +48,26 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   const processedData = useMemo(() => {
     let result = [...data];
 
-    // Filter by minimum power (either column)
+    // Filter by minimum power (any column)
     if (filterMinPower > 0) {
-      result = result.filter(
-        (row) =>
-          row.powerSingle >= filterMinPower || row.powerMulti >= filterMinPower
+      result = result.filter((row) =>
+        scenarios.some(s => row[`power_${s.proteinCount}`] >= filterMinPower)
       );
     }
 
     // Sort
     result.sort((a, b) => {
-      const aVal = a[sortField];
-      const bVal = b[sortField];
+      const aVal = a[sortField] ?? 0;
+      const bVal = b[sortField] ?? 0;
       const multiplier = sortDirection === 'asc' ? 1 : -1;
       return (aVal - bVal) * multiplier;
     });
 
     return result;
-  }, [data, sortField, sortDirection, filterMinPower]);
+  }, [data, scenarios, sortField, sortDirection, filterMinPower]);
 
   // Handle column header click for sorting
-  const handleSort = (field: SortField) => {
+  const handleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -64,7 +77,7 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   };
 
   // Sort indicator component
-  const SortIndicator = ({ field }: { field: SortField }) => {
+  const SortIndicator = ({ field }: { field: string }) => {
     if (sortField !== field) {
       return (
         <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,11 +99,15 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   // Format power as percentage with color coding
   const formatPower = (power: number) => {
     const percentage = (power * 100).toFixed(1);
-    let colorClass = 'text-red-600';
-    if (power >= 0.8) colorClass = 'text-green-600 font-semibold';
-    else if (power >= 0.5) colorClass = 'text-amber-600';
+    let statusClass = 'text-red-600';
+    if (power >= 0.8) statusClass = 'text-green-600 font-semibold';
+    else if (power >= 0.5) statusClass = 'text-amber-600';
 
-    return <span className={colorClass}>{percentage}%</span>;
+    return (
+      <span className={statusClass}>
+        {percentage}%
+      </span>
+    );
   };
 
   return (
@@ -131,68 +148,77 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
           <thead className="bg-gray-50">
             <tr>
               <th
-                onClick={() => handleSort('hr')}
+                onClick={() => handleSort('effect')}
                 className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  Hazard Ratio
-                  <SortIndicator field="hr" />
+                  {effectLabel}
+                  <SortIndicator field="effect" />
                 </div>
               </th>
-              <th
-                onClick={() => handleSort('powerSingle')}
-                className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    Power (Single)
-                  </span>
-                  <SortIndicator field="powerSingle" />
-                </div>
-                <div className="text-xs font-normal text-gray-500">α={alphaSingle}</div>
-              </th>
-              <th
-                onClick={() => handleSort('powerMulti')}
-                className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                    Power (Multi)
-                  </span>
-                  <SortIndicator field="powerMulti" />
-                </div>
-                <div className="text-xs font-normal text-gray-500">α≈{alphaMulti.toExponential(2)}</div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                Power Loss
-              </th>
+              {scenarios.map((scenario) => (
+                <th
+                  key={scenario.proteinCount}
+                  onClick={() => handleSort(`power_${scenario.proteinCount}`)}
+                  className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1">
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: scenario.color.hex }}
+                      ></span>
+                      {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
+                    </span>
+                    <SortIndicator field={`power_${scenario.proteinCount}`} />
+                  </div>
+                  <div className="text-xs font-normal text-gray-500">
+                    α≈{scenario.alpha.toExponential(1)}
+                  </div>
+                </th>
+              ))}
+              {scenarios.length >= 2 && (
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                  Power Loss
+                  <div className="text-xs font-normal text-gray-500">
+                    (first → last)
+                  </div>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {processedData.map((row, index) => {
-              const powerLoss = row.powerSingle > 0
-                ? ((row.powerSingle - row.powerMulti) / row.powerSingle * 100).toFixed(1)
+              // Calculate power loss (first scenario vs last scenario)
+              const firstPower = row[`power_${scenarios[0].proteinCount}`] ?? 0;
+              const lastPower = row[`power_${scenarios[scenarios.length - 1].proteinCount}`] ?? 0;
+              const powerLoss = firstPower > 0
+                ? ((firstPower - lastPower) / firstPower * 100).toFixed(1)
                 : '0.0';
+
+              // Determine if we should show power loss (when effect is above baseline)
+              const showPowerLoss = analysisType === 'linear'
+                ? row.effect > 0
+                : row.effect > 1;
 
               return (
                 <tr
-                  key={row.hr}
+                  key={row.effect}
                   className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-indigo-50/50 transition-colors`}
                 >
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                    {row.hr.toFixed(2)}
+                    {row.effect.toFixed(decimals)}
                   </td>
-                  <td className="px-4 py-3 text-sm">
-                    {formatPower(row.powerSingle)}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {formatPower(row.powerMulti)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {row.hr > 1 ? `-${powerLoss}%` : '—'}
-                  </td>
+                  {scenarios.map((scenario) => (
+                    <td key={scenario.proteinCount} className="px-4 py-3 text-sm">
+                      {formatPower(row[`power_${scenario.proteinCount}`] ?? 0)}
+                    </td>
+                  ))}
+                  {scenarios.length >= 2 && (
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {showPowerLoss ? `-${powerLoss}%` : '—'}
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -216,4 +242,4 @@ const ResultsTable: React.FC<ResultsTableProps> = ({
   );
 };
 
-export default ResultsTable;
+export default MultiScenarioResultsTable;

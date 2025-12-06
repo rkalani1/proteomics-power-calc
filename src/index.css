@@ -118,3 +118,222 @@ input[type="number"] {
 .recharts-brush-traveller rect {
   fill: #6366f1;
 }
+
+/* Mobile responsiveness improvements */
+@media (max-width: 640px) {
+  /* Better touch targets for sliders */
+  .range-slider::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+  }
+
+  .range-slider::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* Ensure charts don't overflow */
+  .recharts-responsive-container {
+    min-height: 280px;
+  }
+
+  /* Better tooltip positioning on mobile */
+  .tooltip-content {
+    max-width: calc(100vw - 2rem);
+    font-size: 0.75rem;
+  }
+
+  /* Ensure tables scroll horizontally */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Prevent text selection on interactive elements */
+button, .range-slider {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Improve focus visibility for accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Enhanced UI Aesthetics
+   ============================================ */
+
+/* Smooth transitions for all interactive elements */
+button, a, input, select, .card {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Card hover effects */
+section, .bg-white {
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+section:hover, .card:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08),
+              0 8px 10px -6px rgba(0, 0, 0, 0.04);
+}
+
+/* Enhanced header gradient */
+.header-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Glassmorphism effect for tooltips */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Animated gradient background */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animated-gradient {
+  background: linear-gradient(-45deg, #f0f9ff, #e0f2fe, #f5f3ff, #fdf4ff);
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+/* Subtle pulse animation for important values */
+@keyframes subtle-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.pulse-attention {
+  animation: subtle-pulse 2s ease-in-out infinite;
+}
+
+/* Better button hover states */
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+button:not(:disabled):active {
+  transform: translateY(0px);
+}
+
+/* Enhanced input focus states */
+input:focus, select:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* Smooth checkbox/toggle transitions */
+input[type="checkbox"] {
+  transition: all 0.15s ease-in-out;
+}
+
+/* Power status colors with subtle glow */
+.power-adequate {
+  color: #059669;
+  text-shadow: 0 0 10px rgba(5, 150, 105, 0.2);
+}
+
+.power-marginal {
+  color: #d97706;
+  text-shadow: 0 0 10px rgba(217, 119, 6, 0.2);
+}
+
+.power-underpowered {
+  color: #dc2626;
+  text-shadow: 0 0 10px rgba(220, 38, 38, 0.2);
+}
+
+/* Collapsible section animation */
+.collapsible-content {
+  transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+  overflow: hidden;
+}
+
+/* Table row hover effect */
+table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+table tbody tr:hover {
+  background-color: rgba(99, 102, 241, 0.04) !important;
+}
+
+/* Chart container subtle border */
+.chart-container {
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Skeleton loading animation */
+@keyframes skeleton-loading {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 0px, #f8f8f8 40px, #f0f0f0 80px);
+  background-size: 200px 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+/* Floating label effect for inputs */
+.floating-label {
+  transition: all 0.2s ease;
+}
+
+/* Better scrollbar for dark sections */
+.dark-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  section {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  .recharts-brush {
+    display: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .border-gray-200 {
+    border-color: #000 !important;
+  }
+
+  .text-gray-500 {
+    color: #000 !important;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
