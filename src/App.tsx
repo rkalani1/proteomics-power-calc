@@ -113,6 +113,8 @@ function App() {
       }
     };
 
+    const percentage = ((value - min) / (max - min)) * 100;
+
     return (
       <div className="space-y-3">
         <div className="flex justify-between items-center">
@@ -127,20 +129,18 @@ function App() {
             className="w-24 px-2 py-1 text-right text-sm font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
-        <div className="slider-container">
-          <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            onChange={(e) => onChange(Number(e.target.value))}
-            className="slider-input"
-            style={{
-              background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((value - min) / (max - min)) * 100}%, #e2e8f0 ${((value - min) / (max - min)) * 100}%, #e2e8f0 100%)`
-            }}
-          />
-        </div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="range-slider"
+          style={{
+            background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${percentage}%, #e2e8f0 ${percentage}%, #e2e8f0 100%)`
+          }}
+        />
         <div className="flex justify-between text-xs text-gray-400">
           <span>{decimals > 0 ? min.toFixed(decimals) : min.toLocaleString()}{unit}</span>
           <span>{decimals > 0 ? max.toFixed(decimals) : max.toLocaleString()}{unit}</span>
