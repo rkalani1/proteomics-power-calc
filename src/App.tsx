@@ -254,9 +254,6 @@ function App() {
           </div>
         </section>
 
-        {/* Power Formula Display */}
-        <PowerFormula />
-
         {/* Key Results Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <ResultCard
@@ -408,49 +405,8 @@ function App() {
           targetPower={targetPower}
         />
 
-        {/* Methodology & Assumptions */}
-        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-            Methodology & Assumptions
-          </h3>
-
-          <div className="prose prose-sm max-w-none text-gray-600 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-gray-800">Statistical Model</h4>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Cox proportional hazards regression</li>
-                  <li>Continuous exposure (protein level)</li>
-                  <li>Time-to-event outcome (incident CVD)</li>
-                  <li>Wald test-based power approximation</li>
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-gray-800">Key Assumptions</h4>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Predictor standardized (Var(X) = 1)</li>
-                  <li>Large sample approximation valid</li>
-                  <li>Proportional hazards satisfied</li>
-                  <li>Two-sided hypothesis tests</li>
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-gray-800">Multiple Testing Correction</h4>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Benjamini-Hochberg FDR procedure</li>
-                  <li>Conservative α ≈ q/m approximation</li>
-                  <li>Assumes independent or PRDS tests</li>
-                </ul>
-              </div>
-
-            </div>
-          </div>
-        </section>
+        {/* Power Formula Display - at the very bottom */}
+        <PowerFormula />
       </main>
     </div>
   );
