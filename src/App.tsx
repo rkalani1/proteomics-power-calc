@@ -23,8 +23,8 @@ import {
  * using Benjamini-Hochberg FDR correction.
  */
 function App() {
-  // Input parameters with defaults matching UK Biobank endometriosis cohort
-  const [sampleSize, setSampleSize] = useState(3000);
+  // Input parameters
+  const [sampleSize, setSampleSize] = useState(1000);
   const [events, setEvents] = useState(70);
   const [numTests, setNumTests] = useState(3000);
   const [fdrQ, setFdrQ] = useState(0.05);
@@ -172,20 +172,9 @@ function App() {
       <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Proteome-Wide Cox Power Calculator
-              </h1>
-              <p className="text-sm text-gray-500">
-                Power analysis for Cox PH models with Benjamini-Hochberg FDR correction
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              UK Biobank Endometriosis Cohort Defaults
-            </div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Proteome-Wide Cox Power Calculator
+            </h1>
           </div>
         </div>
       </header>
@@ -216,7 +205,7 @@ function App() {
               value={events}
               onChange={setEvents}
               min={10}
-              max={200}
+              max={1000}
               step={5}
               description="CVD events observed"
             />
@@ -451,15 +440,6 @@ function App() {
                 </ul>
               </div>
 
-              <div>
-                <h4 className="font-semibold text-gray-800">Default Context</h4>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>UK Biobank endometriosis cohort</li>
-                  <li>n ≈ 3,000 women with endometriosis</li>
-                  <li>~70 incident CVD events</li>
-                  <li>~3,000 Olink proteins measured</li>
-                </ul>
-              </div>
             </div>
           </div>
         </section>

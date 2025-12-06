@@ -86,8 +86,7 @@ export const PowerFormula: React.FC = () => {
       </div>
 
       <div className="mt-4 text-xs text-gray-500 bg-white/50 rounded-lg p-3">
-        <strong>Assumption:</strong> Predictor variable (protein level) is standardized with variance = 1,
-        which is standard practice in proteomics biostatistics.
+        <strong>Assumption:</strong> Predictor variable (protein level) is standardized with variance = 1.
       </div>
     </div>
   );
