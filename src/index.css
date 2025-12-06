@@ -37,50 +37,93 @@ body {
   background: #94a3b8;
 }
 
-/* Range slider custom styles */
+/* Range slider custom styles - large, easy-to-use sliders */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
   cursor: pointer;
+  position: relative;
+  z-index: 10;
 }
 
+/* Hide the default track since we're using a custom progress fill */
 input[type="range"]::-webkit-slider-runnable-track {
-  background: #e2e8f0;
-  height: 8px;
-  border-radius: 4px;
+  background: transparent;
+  height: 12px;
+  border-radius: 6px;
 }
 
+/* Large, easy-to-grab thumb for WebKit browsers (Chrome, Safari, Edge) */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  margin-top: -4px;
-  background-color: #6366f1;
-  height: 16px;
-  width: 16px;
+  margin-top: -6px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  height: 24px;
+  width: 24px;
   border-radius: 50%;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: transform 0.15s ease;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4), 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5), 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
+input[type="range"]::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.6), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Firefox styles */
 input[type="range"]::-moz-range-track {
-  background: #e2e8f0;
-  height: 8px;
-  border-radius: 4px;
+  background: transparent;
+  height: 12px;
+  border-radius: 6px;
 }
 
 input[type="range"]::-moz-range-thumb {
-  background-color: #6366f1;
-  height: 16px;
-  width: 16px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  height: 24px;
+  width: 24px;
   border-radius: 50%;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4), 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Focus state for accessibility */
+input[type="range"]:focus {
+  outline: none;
+}
+
+input[type="range"]:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3), 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+input[type="range"]:focus::-moz-range-thumb {
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3), 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+/* Number input styling for direct value entry */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* KaTeX overrides for better display */

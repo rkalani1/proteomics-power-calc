@@ -81,7 +81,7 @@ function App() {
     };
   }, [sampleSize, events, numTests, fdrQ, targetPower, inputHR]);
 
-  // Slider component for consistent styling
+  // Slider component with improved UX
   const Slider = ({
     label,
     value,
@@ -91,6 +91,7 @@ function App() {
     step,
     unit = '',
     description = '',
+    decimals = 0,
   }: {
     label: string;
     value: number;
@@ -100,30 +101,56 @@ function App() {
     step: number;
     unit?: string;
     description?: string;
-  }) => (
-    <div className="space-y-2">
-      <div className="flex justify-between items-baseline">
-        <label className="text-sm font-medium text-gray-700">{label}</label>
-        <span className="text-sm font-semibold text-indigo-600">
-          {value.toLocaleString()}{unit}
-        </span>
+    decimals?: number;
+  }) => {
+    // Handle direct input changes
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = parseFloat(e.target.value);
+      if (!isNaN(newValue)) {
+        // Clamp value to valid range
+        const clampedValue = Math.min(max, Math.max(min, newValue));
+        onChange(clampedValue);
+      }
+    };
+
+    return (
+      <div className="space-y-3">
+        <div className="flex justify-between items-center">
+          <label className="text-sm font-medium text-gray-700">{label}</label>
+          <input
+            type="number"
+            min={min}
+            max={max}
+            step={step}
+            value={decimals > 0 ? value.toFixed(decimals) : value}
+            onChange={handleInputChange}
+            className="w-24 px-2 py-1 text-right text-sm font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+        <div className="relative pt-1">
+          <input
+            type="range"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="slider-improved w-full h-3 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          />
+          {/* Progress fill indicator */}
+          <div
+            className="absolute top-1 left-0 h-3 bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full pointer-events-none"
+            style={{ width: `${((value - min) / (max - min)) * 100}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-xs text-gray-400">
+          <span>{decimals > 0 ? min.toFixed(decimals) : min.toLocaleString()}{unit}</span>
+          <span>{decimals > 0 ? max.toFixed(decimals) : max.toLocaleString()}{unit}</span>
+        </div>
+        {description && <p className="text-xs text-gray-500">{description}</p>}
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-      />
-      <div className="flex justify-between text-xs text-gray-400">
-        <span>{min.toLocaleString()}{unit}</span>
-        <span>{max.toLocaleString()}{unit}</span>
-      </div>
-      {description && <p className="text-xs text-gray-500">{description}</p>}
-    </div>
-  );
+    );
+  };
 
   // Result card component
   const ResultCard = ({
@@ -190,13 +217,13 @@ function App() {
             Study Parameters
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Slider
               label="Sample Size (n)"
               value={sampleSize}
               onChange={setSampleSize}
-              min={1000}
-              max={10000}
+              min={100}
+              max={50000}
               step={100}
               description="Total participants in cohort"
             />
@@ -207,7 +234,7 @@ function App() {
               onChange={setEvents}
               min={10}
               max={1000}
-              step={5}
+              step={1}
               description="CVD events observed"
             />
 
@@ -217,7 +244,7 @@ function App() {
               onChange={setNumTests}
               min={1}
               max={5000}
-              step={100}
+              step={1}
               description="Proteins/hypotheses tested"
             />
 
@@ -226,8 +253,9 @@ function App() {
               value={fdrQ}
               onChange={setFdrQ}
               min={0.01}
-              max={0.1}
+              max={0.20}
               step={0.01}
+              decimals={2}
               description="Benjamini-Hochberg FDR level"
             />
 
@@ -235,10 +263,10 @@ function App() {
               label="Target Power"
               value={targetPower}
               onChange={setTargetPower}
-              min={0.5}
-              max={0.95}
-              step={0.05}
-              unit=""
+              min={0.50}
+              max={0.99}
+              step={0.01}
+              decimals={2}
               description={`${(targetPower * 100).toFixed(0)}% probability of detecting true effect`}
             />
 
@@ -248,7 +276,8 @@ function App() {
               onChange={setInputHR}
               min={1.0}
               max={3.0}
-              step={0.05}
+              step={0.01}
+              decimals={2}
               description="Effect size to evaluate"
             />
           </div>
