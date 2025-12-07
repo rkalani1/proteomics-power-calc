@@ -89,33 +89,6 @@ where:
 - **FDR (Benjamini-Hochberg)**: α_effective ≈ q/m
 - **Bonferroni**: α_effective = α/m
 
-## Validation
-
-The calculator has been comprehensively validated against standard statistical formulas:
-
-| Analysis Type | Formula Reference | Validation Status |
-|---------------|-------------------|-------------------|
-| Cox PH | Schoenfeld (1983) | ✓ Verified |
-| Linear | Wald test | ✓ Verified |
-| Logistic | Wald test | ✓ Verified |
-| Poisson | Wald test | ✓ Verified |
-| GEE | Design effect adjusted | ✓ Verified |
-| FDR Correction | Benjamini-Hochberg (1995) | ✓ Verified |
-| Bonferroni | FWER control | ✓ Verified |
-
-### Cox Model Validation Details
-
-The Cox proportional hazards calculator implements the **Schoenfeld (1983) formula**, which is the standard reference used by major statistical software (PASS, nQuery, Stata). Example validation:
-
-| Test Case | Parameters | Calculated Events |
-|-----------|------------|-------------------|
-| Strong signal | α=0.05, HR=2.0, 80% power | 17 events |
-| Moderate signal | α=0.05, HR=1.3, 80% power | 115 events |
-| FDR-corrected strong | α=0.001, HR=2.0, 80% power | 36 events |
-| FDR-corrected moderate | α=0.001, HR=1.3, 80% power | 249 events |
-
-**Note**: Some alternative formulas (e.g., Freedman 1982) produce ~2x higher event requirements due to different variance assumptions. Both approaches are valid; this calculator uses the more commonly cited Schoenfeld formula.
-
 ## Local Development
 
 ### Prerequisites

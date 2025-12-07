@@ -439,12 +439,6 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
               </BarChart>
             </ResponsiveContainer>
 
-            <div className="mt-4 text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
-              <strong>Interpretation:</strong> This forest plot compares the minimum detectable effect across
-              different protein counts. Longer bars indicate you need larger effects to achieve adequate power.
-              The vertical dashed line shows your input {effectSymbol} = {currentEffectSize.toFixed(decimals)}.
-              Effects to the left of the null line would be protective.
-            </div>
           </div>
         )}
 
@@ -514,11 +508,6 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
               </div>
             </div>
 
-            <div className="mt-4 text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
-              <strong>Interpretation:</strong> This grid shows power for all combinations of {effectLabel} and
-              {isCox ? ' events' : ' sample size'}. Green cells indicate adequate power (≥80%).
-              Use this to identify the minimum {isCox ? 'events' : 'sample size'} needed for your target effect size.
-            </div>
           </div>
         )}
       </div>
