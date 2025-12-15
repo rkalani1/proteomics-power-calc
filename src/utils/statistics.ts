@@ -126,13 +126,37 @@ export type CorrectionMethod = 'fdr' | 'bonferroni';
 /**
  * Calculate the effective per-test alpha based on correction method
  *
- * FDR (Benjamini-Hochberg): Controls expected false discovery rate
- * - Conservative approximation: α_effective ≈ q / m
- * - More permissive, higher power, but allows some false positives among discoveries
+ * =============================================================================
+ * FDR (Benjamini-Hochberg) Approximation Details
+ * =============================================================================
  *
- * Bonferroni: Controls family-wise error rate (FWER)
- * - Exact: α_effective = α / m
- * - Most conservative, ensures P(any false positive) ≤ α
+ * For power calculations, we need a "per-test alpha" equivalent for FDR.
+ * The BH procedure doesn't have a fixed per-test threshold - it's data-adaptive.
+ *
+ * We use the CONSERVATIVE approximation: α_effective ≈ q / m
+ *
+ * This approximation is:
+ * - CONSERVATIVE: True FDR power is typically HIGHER than calculated
+ * - Assumes all tests are independent (worst case for correlated proteomics data)
+ * - Valid for planning purposes where conservative estimates are preferred
+ *
+ * The exact FDR threshold at rejection depends on the p-value distribution:
+ * - BH rejects all p-values ≤ k×q/m where k = max{i : p(i) ≤ i×q/m}
+ * - For proteomics with many true effects, actual threshold is often >> q/m
+ *
+ * References:
+ * - Benjamini & Hochberg (1995) J R Stat Soc B 57:289-300
+ * - Storey & Tibshirani (2003) PNAS 100:9440-9445 (π₀ estimation)
+ *
+ * =============================================================================
+ * Bonferroni Correction
+ * =============================================================================
+ *
+ * Controls family-wise error rate (FWER): P(≥1 false positive) ≤ α
+ * Exact formula: α_effective = α / m
+ * Most conservative approach, guaranteed to control FWER
+ *
+ * =============================================================================
  *
  * @param threshold - FDR q-value or FWER alpha depending on method
  * @param numTests - Number of tests (proteins)
@@ -148,7 +172,8 @@ export const calculateEffectiveAlpha = (
   // Both methods use the same formula: threshold / numTests
   // The difference is in interpretation:
   // - FDR: threshold is q (expected false discovery proportion)
-  // - Bonferroni: threshold is α (family-wise error rate)
+  //        Approximation α_eff ≈ q/m is conservative (actual power is higher)
+  // - Bonferroni: threshold is α (family-wise error rate), exact formula
   // The _method parameter is kept for API clarity and potential future differentiation
   void _method; // Explicitly mark as intentionally unused
   return threshold / numTests;
@@ -285,7 +310,9 @@ export const calculateCoxRequiredEvents = (
   alpha: number,
   covariateR2: number = 0
 ): number => {
-  if (hazardRatio <= 1 || targetPower <= 0 || targetPower >= 1 || alpha <= 0 || alpha >= 1) {
+  // HR = 1 is the null hypothesis (no effect), reject as invalid
+  // HR < 1 (protective) and HR > 1 (harmful) are both valid effect sizes
+  if (hazardRatio <= 0 || hazardRatio === 1 || targetPower <= 0 || targetPower >= 1 || alpha <= 0 || alpha >= 1) {
     return Infinity;
   }
   if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
@@ -567,7 +594,9 @@ export const calculateLogisticRequiredN = (
   alpha: number,
   covariateR2: number = 0
 ): number => {
-  if (oddsRatio <= 1 || prevalence <= 0 || prevalence >= 1 ||
+  // OR = 1 is the null hypothesis (no effect), reject as invalid
+  // OR < 1 (protective) and OR > 1 (harmful) are both valid effect sizes
+  if (oddsRatio <= 0 || oddsRatio === 1 || prevalence <= 0 || prevalence >= 1 ||
       targetPower <= 0 || targetPower >= 1 || alpha <= 0 || alpha >= 1) {
     return Infinity;
   }
@@ -680,7 +709,9 @@ export const calculatePoissonRequiredN = (
   alpha: number,
   covariateR2: number = 0
 ): number => {
-  if (relativeRisk <= 1 || prevalence <= 0 || prevalence >= 1 ||
+  // RR = 1 is the null hypothesis (no effect), reject as invalid
+  // RR < 1 (protective) and RR > 1 (harmful) are both valid effect sizes
+  if (relativeRisk <= 0 || relativeRisk === 1 || prevalence <= 0 || prevalence >= 1 ||
       targetPower <= 0 || targetPower >= 1 || alpha <= 0 || alpha >= 1) {
     return Infinity;
   }
@@ -1062,7 +1093,10 @@ export const calculateMinDetectableHR = (
 ): number => calculateCoxMinEffect(targetPower, events, alpha);
 
 export const calculateInflation = (hrSingle: number, hrMulti: number): number => {
-  if (hrSingle <= 1 || hrMulti <= 1) return 0;
+  // Both HRs must be on the same side of 1 (both > 1 or both < 1)
+  if (hrSingle <= 0 || hrMulti <= 0 || hrSingle === 1 || hrMulti === 1) return 0;
+  // Inflation only makes sense when comparing same direction effects
+  if ((hrSingle > 1) !== (hrMulti > 1)) return 0;
   return ((hrMulti / hrSingle) - 1) * 100;
 };
 
