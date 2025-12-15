@@ -59,8 +59,9 @@ const FORMULA_CONFIGS: Record<AnalysisType, {
     minEffectFormula: String.raw`\text{HR}_{\min} = \exp\left( (z_{1-\alpha/2} + z_{\beta}) \cdot \sigma \right)`,
     minEffectLabel: 'Minimum Detectable Hazard Ratio',
     definitions: String.raw`\begin{aligned}
-    \sigma &= \frac{1}{\sqrt{d}} \quad \text{(standard error of } \log(\text{HR}) \text{)} \\[0.5em]
+    \sigma &= \frac{1}{\sqrt{d \cdot (1 - R^2_x)}} \quad \text{(standard error of } \log(\text{HR}) \text{)} \\[0.5em]
     d &= \text{number of events} \\[0.5em]
+    R^2_x &= \text{proportion of protein variance explained by covariates} \\[0.5em]
     \Phi(z) &= P(Z \leq z) \text{ for } Z \sim N(0,1) \quad \text{(standard normal CDF)} \\[0.5em]
     z_{1-\alpha/2} &= \Phi^{-1}(1 - \alpha/2) \quad \text{(critical value)}
     \end{aligned}`,
@@ -71,9 +72,10 @@ const FORMULA_CONFIGS: Record<AnalysisType, {
     minEffectFormula: String.raw`\beta_{\min} = (z_{1-\alpha/2} + z_{\beta}) \cdot \sigma_\beta`,
     minEffectLabel: 'Minimum Detectable Beta',
     definitions: String.raw`\begin{aligned}
-    \sigma_\beta &= \frac{\sigma_{\text{residual}}}{\sqrt{n-2}} \quad \text{(standard error of } \beta \text{)} \\[0.5em]
+    \sigma_\beta &= \frac{\sigma_{\text{residual}}}{\sqrt{(n-2) \cdot (1 - R^2_x)}} \quad \text{(standard error of } \beta \text{)} \\[0.5em]
     n &= \text{sample size} \\[0.5em]
     \sigma_{\text{residual}} &= \text{residual standard deviation} \\[0.5em]
+    R^2_x &= \text{proportion of protein variance explained by covariates} \\[0.5em]
     \Phi(z) &= P(Z \leq z) \text{ for } Z \sim N(0,1) \quad \text{(standard normal CDF)}
     \end{aligned}`,
   },
@@ -83,9 +85,10 @@ const FORMULA_CONFIGS: Record<AnalysisType, {
     minEffectFormula: String.raw`\text{OR}_{\min} = \exp\left( (z_{1-\alpha/2} + z_{\beta}) \cdot \sigma \right)`,
     minEffectLabel: 'Minimum Detectable Odds Ratio',
     definitions: String.raw`\begin{aligned}
-    \sigma &= \frac{1}{\sqrt{n \cdot p \cdot (1-p)}} \quad \text{(Hsieh's formula)} \\[0.5em]
+    \sigma &= \frac{1}{\sqrt{n \cdot p \cdot (1-p) \cdot (1 - R^2_x)}} \quad \text{(Hsieh's formula with covariate adjustment)} \\[0.5em]
     n &= \text{sample size} \\[0.5em]
     p &= \text{outcome prevalence} \\[0.5em]
+    R^2_x &= \text{proportion of protein variance explained by covariates} \\[0.5em]
     \Phi(z) &= P(Z \leq z) \text{ for } Z \sim N(0,1) \quad \text{(standard normal CDF)}
     \end{aligned}`,
   },
@@ -95,9 +98,10 @@ const FORMULA_CONFIGS: Record<AnalysisType, {
     minEffectFormula: String.raw`\text{RR}_{\min} = \exp\left( (z_{1-\alpha/2} + z_{\beta}) \cdot \sigma \right)`,
     minEffectLabel: 'Minimum Detectable Relative Risk',
     definitions: String.raw`\begin{aligned}
-    \sigma &= \sqrt{\frac{1}{n \cdot p}} \quad \text{(robust variance)} \\[0.5em]
+    \sigma &= \sqrt{\frac{1}{n \cdot p \cdot (1 - R^2_x)}} \quad \text{(robust variance with covariate adjustment)} \\[0.5em]
     n &= \text{sample size} \\[0.5em]
     p &= \text{outcome prevalence} \\[0.5em]
+    R^2_x &= \text{proportion of protein variance explained by covariates} \\[0.5em]
     \Phi(z) &= P(Z \leq z) \text{ for } Z \sim N(0,1) \quad \text{(standard normal CDF)}
     \end{aligned}`,
   },
@@ -107,10 +111,11 @@ const FORMULA_CONFIGS: Record<AnalysisType, {
     minEffectFormula: String.raw`\beta_{\min} = (z_{1-\alpha/2} + z_{\beta}) \cdot \sigma_\beta`,
     minEffectLabel: 'Minimum Detectable Beta',
     definitions: String.raw`\begin{aligned}
-    \sigma_\beta &= \frac{\sigma_{\text{residual}} \cdot \sqrt{\text{DE}}}{\sqrt{n-2}} \quad \text{(clustering-adjusted SE)} \\[0.5em]
+    \sigma_\beta &= \frac{\sigma_{\text{residual}} \cdot \sqrt{\text{DE}}}{\sqrt{(n-2) \cdot (1 - R^2_x)}} \quad \text{(clustering-adjusted SE with covariate adjustment)} \\[0.5em]
     \text{DE} &= 1 + (m-1) \cdot \text{ICC} \quad \text{(design effect)} \\[0.5em]
     m &= \text{cluster size (observations per subject)} \\[0.5em]
     \text{ICC} &= \text{intraclass correlation coefficient} \\[0.5em]
+    R^2_x &= \text{proportion of protein variance explained by covariates} \\[0.5em]
     n_{\text{eff}} &= \frac{n}{\text{DE}} \quad \text{(effective sample size)} \\[0.5em]
     \Phi(z) &= P(Z \leq z) \text{ for } Z \sim N(0,1) \quad \text{(standard normal CDF)}
     \end{aligned}`,

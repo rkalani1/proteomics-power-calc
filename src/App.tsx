@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PowerFormula } from './components/MathEquation';
 import MultiScenarioPowerChart from './components/MultiScenarioPowerChart';
 import MultiScenarioResultsTable from './components/MultiScenarioResultsTable';
@@ -205,6 +205,10 @@ function App() {
   const [clusterSize, setClusterSize] = useState(5); // Observations per cluster/subject
   const [icc, setICC] = useState(0.05); // Intraclass correlation coefficient
 
+  // Covariate adjustment parameter (all models)
+  // R² of protein ~ covariates: proportion of variance in protein explained by adjustment covariates
+  const [covariateR2, setCovariateR2] = useState(0);
+
   // Effect size (dynamic based on analysis type)
   const [effectSize, setEffectSize] = useState(1.2);
 
@@ -243,18 +247,18 @@ function App() {
     switch (analysisType) {
       case 'cox':
         return studyDesign === 'case-cohort'
-          ? calculateCoxPower(effect, events, alpha, { subcohortSize, totalCohort })
-          : calculateCoxPower(effect, events, alpha);
+          ? calculateCoxPower(effect, events, alpha, { subcohortSize, totalCohort }, covariateR2)
+          : calculateCoxPower(effect, events, alpha, undefined, covariateR2);
       case 'linear':
-        return calculateLinearPower(effect, sampleSize, residualSD, alpha);
+        return calculateLinearPower(effect, sampleSize, residualSD, alpha, covariateR2);
       case 'logistic':
         return (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
-          ? calculateLogisticPower(effect, 0, 0, alpha, { cases: numCases, controls: numControls })
-          : calculateLogisticPower(effect, sampleSize, prevalence, alpha);
+          ? calculateLogisticPower(effect, 0, 0, alpha, { cases: numCases, controls: numControls }, covariateR2)
+          : calculateLogisticPower(effect, sampleSize, prevalence, alpha, undefined, covariateR2);
       case 'poisson':
-        return calculatePoissonPower(effect, sampleSize, prevalence, alpha);
+        return calculatePoissonPower(effect, sampleSize, prevalence, alpha, covariateR2);
       case 'gee':
-        return calculateGEE_Power(effect, sampleSize, clusterSize, icc, residualSD, alpha);
+        return calculateGEE_Power(effect, sampleSize, clusterSize, icc, residualSD, alpha, covariateR2);
       default:
         return 0;
     }
@@ -265,18 +269,18 @@ function App() {
     switch (analysisType) {
       case 'cox':
         return studyDesign === 'case-cohort'
-          ? calculateCoxMinEffect(targetPower, events, alpha, { subcohortSize, totalCohort })
-          : calculateCoxMinEffect(targetPower, events, alpha);
+          ? calculateCoxMinEffect(targetPower, events, alpha, { subcohortSize, totalCohort }, covariateR2)
+          : calculateCoxMinEffect(targetPower, events, alpha, undefined, covariateR2);
       case 'linear':
-        return calculateLinearMinEffect(targetPower, sampleSize, residualSD, alpha);
+        return calculateLinearMinEffect(targetPower, sampleSize, residualSD, alpha, covariateR2);
       case 'logistic':
         return (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
-          ? calculateLogisticMinEffect(targetPower, 0, 0, alpha, { cases: numCases, controls: numControls })
-          : calculateLogisticMinEffect(targetPower, sampleSize, prevalence, alpha);
+          ? calculateLogisticMinEffect(targetPower, 0, 0, alpha, { cases: numCases, controls: numControls }, covariateR2)
+          : calculateLogisticMinEffect(targetPower, sampleSize, prevalence, alpha, undefined, covariateR2);
       case 'poisson':
-        return calculatePoissonMinEffect(targetPower, sampleSize, prevalence, alpha);
+        return calculatePoissonMinEffect(targetPower, sampleSize, prevalence, alpha, covariateR2);
       case 'gee':
-        return calculateGEE_MinEffect(targetPower, sampleSize, clusterSize, icc, residualSD, alpha);
+        return calculateGEE_MinEffect(targetPower, sampleSize, clusterSize, icc, residualSD, alpha, covariateR2);
       default:
         return Infinity;
     }
@@ -286,17 +290,17 @@ function App() {
   const calculateRequiredSampleForAlpha = (alpha: number): number | string => {
     switch (analysisType) {
       case 'cox':
-        return calculateCoxRequiredEvents(effectSize, targetPower, alpha);
+        return calculateCoxRequiredEvents(effectSize, targetPower, alpha, covariateR2);
       case 'linear':
-        return calculateLinearRequiredN(effectSize, targetPower, residualSD, alpha);
+        return calculateLinearRequiredN(effectSize, targetPower, residualSD, alpha, covariateR2);
       case 'logistic':
         return (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
           ? `${numCases}:${numControls}`
-          : calculateLogisticRequiredN(effectSize, targetPower, prevalence, alpha);
+          : calculateLogisticRequiredN(effectSize, targetPower, prevalence, alpha, covariateR2);
       case 'poisson':
-        return calculatePoissonRequiredN(effectSize, targetPower, prevalence, alpha);
+        return calculatePoissonRequiredN(effectSize, targetPower, prevalence, alpha, covariateR2);
       case 'gee':
-        return calculateGEE_RequiredN(effectSize, targetPower, clusterSize, icc, residualSD, alpha);
+        return calculateGEE_RequiredN(effectSize, targetPower, clusterSize, icc, residualSD, alpha, covariateR2);
       default:
         return Infinity;
     }
@@ -307,41 +311,41 @@ function App() {
     switch (analysisType) {
       case 'cox':
         if (studyDesign === 'case-cohort') {
-          return calculateCoxCaseCohortSE(events, subcohortSize, totalCohort);
+          return calculateCoxCaseCohortSE(events, subcohortSize, totalCohort, covariateR2);
         } else if (studyDesign === 'nested-case-control') {
-          return calculateCoxSE(events) * Math.sqrt(1 + 1/matchingRatio);
+          return calculateCoxSE(events, covariateR2) * Math.sqrt(1 + 1/matchingRatio);
         }
-        return calculateCoxSE(events);
+        return calculateCoxSE(events, covariateR2);
       case 'linear':
-        return calculateLinearSE(sampleSize, residualSD);
+        return calculateLinearSE(sampleSize, residualSD, covariateR2);
       case 'logistic':
         return (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
-          ? calculateLogisticCaseControlSE(numCases, numControls)
-          : calculateLogisticSE(sampleSize, prevalence);
+          ? calculateLogisticCaseControlSE(numCases, numControls, covariateR2)
+          : calculateLogisticSE(sampleSize, prevalence, covariateR2);
       case 'poisson':
-        return calculatePoissonSE(sampleSize, prevalence);
+        return calculatePoissonSE(sampleSize, prevalence, covariateR2);
       case 'gee':
-        return calculateGEE_SE(sampleSize, clusterSize, icc, residualSD);
+        return calculateGEE_SE(sampleSize, clusterSize, icc, residualSD, covariateR2);
       default:
         return 0;
     }
-  }, [analysisType, studyDesign, sampleSize, events, subcohortSize, totalCohort, residualSD, prevalence, numCases, numControls, matchingRatio, clusterSize, icc]);
+  }, [analysisType, studyDesign, sampleSize, events, subcohortSize, totalCohort, residualSD, prevalence, numCases, numControls, matchingRatio, clusterSize, icc, covariateR2]);
 
   // Helper functions for AdvancedVisualizations
   const calculateRequiredEventsForViz = (effect: number, alpha: number, power: number): number => {
-    return calculateCoxRequiredEvents(effect, power, alpha);
+    return calculateCoxRequiredEvents(effect, power, alpha, covariateR2);
   };
 
   const calculateRequiredSampleSizeForViz = (effect: number, alpha: number, power: number): number => {
     switch (analysisType) {
       case 'linear':
-        return calculateLinearRequiredN(effect, power, residualSD, alpha);
+        return calculateLinearRequiredN(effect, power, residualSD, alpha, covariateR2);
       case 'logistic':
-        return calculateLogisticRequiredN(effect, power, prevalence, alpha);
+        return calculateLogisticRequiredN(effect, power, prevalence, alpha, covariateR2);
       case 'poisson':
-        return calculatePoissonRequiredN(effect, power, prevalence, alpha);
+        return calculatePoissonRequiredN(effect, power, prevalence, alpha, covariateR2);
       case 'gee':
-        return calculateGEE_RequiredN(effect, power, clusterSize, icc, residualSD, alpha);
+        return calculateGEE_RequiredN(effect, power, clusterSize, icc, residualSD, alpha, covariateR2);
       default:
         return Infinity;
     }
@@ -350,15 +354,15 @@ function App() {
   const calculatePowerForViz = (effect: number, alpha: number, n: number): number => {
     switch (analysisType) {
       case 'cox':
-        return calculateCoxPower(effect, n, alpha);
+        return calculateCoxPower(effect, n, alpha, undefined, covariateR2);
       case 'linear':
-        return calculateLinearPower(effect, n, residualSD, alpha);
+        return calculateLinearPower(effect, n, residualSD, alpha, covariateR2);
       case 'logistic':
-        return calculateLogisticPower(effect, n, prevalence, alpha);
+        return calculateLogisticPower(effect, n, prevalence, alpha, undefined, covariateR2);
       case 'poisson':
-        return calculatePoissonPower(effect, n, prevalence, alpha);
+        return calculatePoissonPower(effect, n, prevalence, alpha, covariateR2);
       case 'gee':
-        return calculateGEE_Power(effect, n, clusterSize, icc, residualSD, alpha);
+        return calculateGEE_Power(effect, n, clusterSize, icc, residualSD, alpha, covariateR2);
       default:
         return 0;
     }
@@ -382,7 +386,7 @@ function App() {
         color,
       };
     });
-  }, [effectiveProteinCounts, fdrQ, correctionMethod, targetPower, effectSize, analysisType, studyDesign, sampleSize, events, subcohortSize, totalCohort, residualSD, prevalence, numCases, numControls, clusterSize, icc]);
+  }, [effectiveProteinCounts, fdrQ, correctionMethod, targetPower, effectSize, analysisType, studyDesign, sampleSize, events, subcohortSize, totalCohort, residualSD, prevalence, numCases, numControls, clusterSize, icc, covariateR2]);
 
   // Generate power curves for all scenarios
   const powerCurves = useMemo(() => {
@@ -406,7 +410,7 @@ function App() {
     }
 
     return curveData;
-  }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, studyDesign, sampleSize, events, subcohortSize, totalCohort, residualSD, prevalence, numCases, numControls, clusterSize, icc]);
+  }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, studyDesign, sampleSize, events, subcohortSize, totalCohort, residualSD, prevalence, numCases, numControls, clusterSize, icc, covariateR2]);
 
   // Generate table data for all scenarios
   const tableData = useMemo(() => {
@@ -423,7 +427,7 @@ function App() {
       });
       return row;
     });
-  }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, studyDesign, sampleSize, events, subcohortSize, totalCohort, residualSD, prevalence, numCases, numControls, clusterSize, icc]);
+  }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, studyDesign, sampleSize, events, subcohortSize, totalCohort, residualSD, prevalence, numCases, numControls, clusterSize, icc, covariateR2]);
 
   // Slider component with improved UX
   const Slider = ({
@@ -447,14 +451,47 @@ function App() {
     description?: string;
     decimals?: number;
   }) => {
-    // Handle direct input changes
+    // Local state for text input to allow free typing
+    const [inputValue, setInputValue] = useState(
+      decimals > 0 ? value.toFixed(decimals) : String(value)
+    );
+    const [isFocused, setIsFocused] = useState(false);
+
+    // Sync input value when external value changes (but not while focused)
+    useEffect(() => {
+      if (!isFocused) {
+        setInputValue(decimals > 0 ? value.toFixed(decimals) : String(value));
+      }
+    }, [value, decimals, isFocused]);
+
+    // Handle text input changes - allow free typing
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = parseFloat(e.target.value);
+      setInputValue(e.target.value);
+    };
+
+    // Apply value on blur or Enter
+    const applyValue = () => {
+      const newValue = parseFloat(inputValue);
       if (!isNaN(newValue)) {
-        // Clamp value to valid range
         const clampedValue = Math.min(max, Math.max(min, newValue));
         onChange(clampedValue);
+        setInputValue(decimals > 0 ? clampedValue.toFixed(decimals) : String(clampedValue));
+      } else {
+        // Reset to current value if invalid
+        setInputValue(decimals > 0 ? value.toFixed(decimals) : String(value));
       }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        applyValue();
+        (e.target as HTMLInputElement).blur();
+      }
+    };
+
+    const handleBlur = () => {
+      setIsFocused(false);
+      applyValue();
     };
 
     const percentage = ((value - min) / (max - min)) * 100;
@@ -464,13 +501,14 @@ function App() {
         <div className="flex justify-between items-center">
           <label className="text-sm font-medium text-gray-700">{label}</label>
           <input
-            type="number"
-            min={min}
-            max={max}
-            step={step}
-            value={decimals > 0 ? value.toFixed(decimals) : value}
+            type="text"
+            inputMode="decimal"
+            value={inputValue}
             onChange={handleInputChange}
-            className="w-24 px-2 py-1 text-right text-sm font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            onFocus={() => setIsFocused(true)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            className="w-28 px-2 py-1.5 text-right text-sm font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
         <input
@@ -480,7 +518,7 @@ function App() {
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="range-slider"
+          className="w-full h-2 rounded-lg appearance-none cursor-pointer slider-thumb"
           style={{
             background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${percentage}%, #e2e8f0 ${percentage}%, #e2e8f0 100%)`
           }}
@@ -727,12 +765,29 @@ function App() {
 
         {/* Study Parameters */}
         <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
             </svg>
             Study Parameters
           </h2>
+
+          {/* Standardization Assumption Note */}
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-amber-800">Assumption: Standardized Protein Levels</p>
+                <p className="text-xs text-amber-700 mt-1">
+                  All calculations assume protein levels are <strong>standardized</strong> (mean = 0, variance = 1).
+                  Effect sizes are interpreted per 1 standard deviation increase in protein level.
+                  This is standard practice in proteomics association studies.
+                </p>
+              </div>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Sample Size - shown for most designs except case-control/nested-case-control */}
@@ -885,6 +940,18 @@ function App() {
                 />
               </>
             )}
+
+            {/* Covariate Adjustment R² - applies to all models */}
+            <Slider
+              label="Covariate R² (protein ~ covariates)"
+              value={covariateR2}
+              onChange={setCovariateR2}
+              min={0.00}
+              max={0.80}
+              step={0.01}
+              decimals={2}
+              description={`Proportion of protein variance explained by adjustment covariates (${(covariateR2 * 100).toFixed(0)}%)`}
+            />
 
             {/* Multiple Testing Correction */}
             <div className="space-y-4">

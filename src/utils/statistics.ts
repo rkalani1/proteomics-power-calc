@@ -1,22 +1,45 @@
 /**
  * Statistics utility functions for proteomics power calculations
  *
+ * =============================================================================
+ * IMPORTANT ASSUMPTION: STANDARDIZED PROTEIN LEVELS
+ * =============================================================================
+ * All calculations assume protein levels are STANDARDIZED (mean = 0, variance = 1).
+ * This is standard practice in proteomics association studies.
+ *
+ * Effect sizes are interpreted as:
+ *   - HR/OR/RR: per 1 standard deviation increase in protein level
+ *   - Beta: change in outcome per 1 SD increase in protein level
+ *
+ * If your proteins are not standardized, you should either:
+ *   1. Plan to standardize them before analysis (recommended), or
+ *   2. Adjust the effect sizes accordingly
+ * =============================================================================
+ *
  * Supports multiple regression frameworks:
  * - Cox Proportional Hazards (time-to-event outcomes)
  * - Linear Regression (continuous outcomes)
  * - Logistic Regression (binary outcomes, odds ratios)
  * - Modified Poisson/Log-binomial (binary outcomes, relative risks)
+ * - GEE/Mixed Effects (clustered/longitudinal data)
  *
  * Study designs supported:
  * - Cohort (prospective/retrospective)
  * - Case-Control
  * - Cross-sectional
  * - Case-Cohort
+ * - Nested Case-Control
  *
  * Key assumptions:
- * - Predictor variable (protein level) is standardized with variance = 1
+ * - Predictor variable (protein level) is standardized with Var(X) = 1
  * - Two-sided hypothesis tests
  * - Large sample approximations (Wald test based)
+ * - Optional adjustment for covariate correlation via R²_x parameter
+ *
+ * References:
+ * - Schoenfeld (1983) - Cox regression sample size
+ * - Hsieh & Lavori (2000) - Covariate adjustment in survival analysis
+ * - Benjamini & Hochberg (1995) - FDR correction
  */
 
 import jstat from 'jstat';
@@ -137,38 +160,69 @@ export const calculateEffectiveAlpha = (
 
 /**
  * Calculate SE for Cox regression with standardized predictor
- * SE(log(HR)) = 1/√d for Var(X) = 1
+ *
+ * Full formula: SE(log(HR)) = 1 / √(d × Var(X) × (1 - R²_x))
+ *
+ * Where:
+ *   d = number of events
+ *   Var(X) = variance of predictor (assumed = 1 for standardized proteins)
+ *   R²_x = proportion of variance in X explained by covariates in the model
+ *
+ * For standardized predictor (Var(X) = 1):
+ *   SE(log(HR)) = 1 / √(d × (1 - R²_x))
+ *
+ * When R²_x = 0 (protein uncorrelated with covariates), simplifies to: 1/√d
+ *
+ * Reference: Schoenfeld (1983), Hsieh & Lavori (2000)
+ *
+ * @param events - Number of outcome events (d)
+ * @param covariateR2 - R² of protein ~ covariates (default 0, range 0-1)
  */
-export const calculateCoxSE = (events: number): number => {
+export const calculateCoxSE = (events: number, covariateR2: number = 0): number => {
   if (events <= 0) return Infinity;
-  return 1 / Math.sqrt(events);
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0; // Sanitize
+  return 1 / Math.sqrt(events * (1 - covariateR2));
 };
 
 /**
  * Calculate SE for Cox regression in case-cohort design
  * Uses Barlow's weighted approach with sampling fraction
+ *
+ * @param events - Number of outcome events
+ * @param subcohortSize - Size of the random subcohort
+ * @param totalCohort - Total cohort size
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateCoxCaseCohortSE = (
   events: number,
   subcohortSize: number,
-  totalCohort: number
+  totalCohort: number,
+  covariateR2: number = 0
 ): number => {
   if (events <= 0 || subcohortSize <= 0) return Infinity;
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
   const samplingFraction = subcohortSize / totalCohort;
   // Variance inflation factor for case-cohort design
   const vif = 1 + (1 - samplingFraction) / samplingFraction;
-  return Math.sqrt(vif) / Math.sqrt(events);
+  return Math.sqrt(vif) / Math.sqrt(events * (1 - covariateR2));
 };
 
 /**
  * Calculate power for Cox regression (two-sided test)
  * Power = Φ(|log(HR)|/σ - z_{1-α/2}) + Φ(-|log(HR)|/σ - z_{1-α/2})
+ *
+ * @param hazardRatio - The hazard ratio to detect
+ * @param events - Number of outcome events
+ * @param alpha - Significance level (per-test alpha after any correction)
+ * @param caseCohort - Optional case-cohort design parameters
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateCoxPower = (
   hazardRatio: number,
   events: number,
   alpha: number,
-  caseCohort?: { subcohortSize: number; totalCohort: number }
+  caseCohort?: { subcohortSize: number; totalCohort: number },
+  covariateR2: number = 0
 ): number => {
   if (hazardRatio <= 0 || events <= 0 || alpha <= 0 || alpha >= 1) {
     return 0;
@@ -176,8 +230,8 @@ export const calculateCoxPower = (
 
   const logHR = Math.log(hazardRatio);
   const se = caseCohort
-    ? calculateCoxCaseCohortSE(events, caseCohort.subcohortSize, caseCohort.totalCohort)
-    : calculateCoxSE(events);
+    ? calculateCoxCaseCohortSE(events, caseCohort.subcohortSize, caseCohort.totalCohort, covariateR2)
+    : calculateCoxSE(events, covariateR2);
   const zAlpha = normalQuantile(1 - alpha / 2);
   const lambda = Math.abs(logHR) / se;
   const power = normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha);
@@ -187,20 +241,27 @@ export const calculateCoxPower = (
 
 /**
  * Calculate minimum detectable HR for Cox regression
+ *
+ * @param targetPower - Desired statistical power
+ * @param events - Number of outcome events
+ * @param alpha - Significance level
+ * @param caseCohort - Optional case-cohort design parameters
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateCoxMinEffect = (
   targetPower: number,
   events: number,
   alpha: number,
-  caseCohort?: { subcohortSize: number; totalCohort: number }
+  caseCohort?: { subcohortSize: number; totalCohort: number },
+  covariateR2: number = 0
 ): number => {
   if (events <= 0 || alpha <= 0 || alpha >= 1 || targetPower <= 0 || targetPower >= 1) {
     return Infinity;
   }
 
   const se = caseCohort
-    ? calculateCoxCaseCohortSE(events, caseCohort.subcohortSize, caseCohort.totalCohort)
-    : calculateCoxSE(events);
+    ? calculateCoxCaseCohortSE(events, caseCohort.subcohortSize, caseCohort.totalCohort, covariateR2)
+    : calculateCoxSE(events, covariateR2);
   const zAlpha = normalQuantile(1 - alpha / 2);
   const zBeta = normalQuantile(targetPower);
   const minLogHR = (zAlpha + zBeta) * se;
@@ -210,22 +271,32 @@ export const calculateCoxMinEffect = (
 
 /**
  * Calculate required events for Cox regression
+ *
+ * Formula: d = ((z_α + z_β) / |log(HR)|)² / (1 - R²_x)
+ *
+ * @param hazardRatio - Target hazard ratio to detect
+ * @param targetPower - Desired statistical power
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateCoxRequiredEvents = (
   hazardRatio: number,
   targetPower: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
   if (hazardRatio <= 1 || targetPower <= 0 || targetPower >= 1 || alpha <= 0 || alpha >= 1) {
     return Infinity;
   }
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
 
   const logHR = Math.log(hazardRatio);
   const zAlpha = normalQuantile(1 - alpha / 2);
   const zBeta = normalQuantile(targetPower);
   const sqrtD = (zAlpha + zBeta) / Math.abs(logHR);
 
-  return Math.ceil(sqrtD * sqrtD);
+  // Adjust for covariate correlation: need more events when protein correlates with covariates
+  return Math.ceil((sqrtD * sqrtD) / (1 - covariateR2));
 };
 
 // ============================================================================
@@ -234,34 +305,51 @@ export const calculateCoxRequiredEvents = (
 
 /**
  * Calculate SE for linear regression coefficient
- * SE(β) = σ_residual / (σ_x × √n) = σ_residual / √n for standardized X
  *
- * Using R² relationship: σ_residual = σ_y × √(1 - R²)
+ * Full formula: SE(β) = σ_residual / √(n × Var(X) × (1 - R²_x))
+ *
+ * For standardized predictor (Var(X) = 1):
+ *   SE(β) = σ_residual / √((n - 2) × (1 - R²_x))
+ *
+ * Where R²_x = proportion of variance in protein explained by other covariates
+ *
+ * @param sampleSize - Total sample size
+ * @param residualSD - Standard deviation of residuals
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateLinearSE = (
   sampleSize: number,
-  residualSD: number
+  residualSD: number,
+  covariateR2: number = 0
 ): number => {
   if (sampleSize <= 2) return Infinity;
-  // For standardized predictor, SE = residualSD / sqrt(n - 2)
-  return residualSD / Math.sqrt(sampleSize - 2);
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
+  // For standardized predictor, SE = residualSD / sqrt((n - 2) * (1 - R²_x))
+  return residualSD / Math.sqrt((sampleSize - 2) * (1 - covariateR2));
 };
 
 /**
  * Calculate power for linear regression (testing β ≠ 0)
  * Uses t-distribution approximation for large samples
+ *
+ * @param beta - Effect size (standardized regression coefficient)
+ * @param sampleSize - Total sample size
+ * @param residualSD - Standard deviation of residuals
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateLinearPower = (
   beta: number,
   sampleSize: number,
   residualSD: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
   if (sampleSize <= 2 || residualSD <= 0 || alpha <= 0 || alpha >= 1) {
     return 0;
   }
 
-  const se = calculateLinearSE(sampleSize, residualSD);
+  const se = calculateLinearSE(sampleSize, residualSD, covariateR2);
   const zAlpha = normalQuantile(1 - alpha / 2);
   const lambda = Math.abs(beta) / se;
   const power = normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha);
@@ -296,18 +384,25 @@ export const calculateLinearPowerFromR2 = (
 
 /**
  * Calculate minimum detectable β for linear regression
+ *
+ * @param targetPower - Desired statistical power
+ * @param sampleSize - Total sample size
+ * @param residualSD - Standard deviation of residuals
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateLinearMinEffect = (
   targetPower: number,
   sampleSize: number,
   residualSD: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
   if (sampleSize <= 2 || residualSD <= 0 || alpha <= 0 || alpha >= 1 || targetPower <= 0 || targetPower >= 1) {
     return Infinity;
   }
 
-  const se = calculateLinearSE(sampleSize, residualSD);
+  const se = calculateLinearSE(sampleSize, residualSD, covariateR2);
   const zAlpha = normalQuantile(1 - alpha / 2);
   const zBeta = normalQuantile(targetPower);
 
@@ -316,20 +411,29 @@ export const calculateLinearMinEffect = (
 
 /**
  * Calculate required sample size for linear regression
+ *
+ * @param beta - Target effect size
+ * @param targetPower - Desired statistical power
+ * @param residualSD - Standard deviation of residuals
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateLinearRequiredN = (
   beta: number,
   targetPower: number,
   residualSD: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
   if (beta === 0 || residualSD <= 0 || targetPower <= 0 || targetPower >= 1 || alpha <= 0 || alpha >= 1) {
     return Infinity;
   }
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
 
   const zAlpha = normalQuantile(1 - alpha / 2);
   const zBeta = normalQuantile(targetPower);
-  const n = Math.pow((zAlpha + zBeta) * residualSD / Math.abs(beta), 2) + 2;
+  // Adjust for covariate correlation
+  const n = Math.pow((zAlpha + zBeta) * residualSD / Math.abs(beta), 2) / (1 - covariateR2) + 2;
 
   return Math.ceil(n);
 };
@@ -341,37 +445,58 @@ export const calculateLinearRequiredN = (
 /**
  * Calculate SE for logistic regression log(OR)
  * Using Hsieh's formula for continuous predictor
- * Var(β) ≈ 1 / (n × p × (1-p)) for standardized X
+ *
+ * Full formula: Var(β) ≈ 1 / (n × p × (1-p) × (1 - R²_x)) for standardized X
+ *
+ * @param sampleSize - Total sample size
+ * @param prevalence - Outcome prevalence
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateLogisticSE = (
   sampleSize: number,
-  prevalence: number
+  prevalence: number,
+  covariateR2: number = 0
 ): number => {
   if (sampleSize <= 0 || prevalence <= 0 || prevalence >= 1) return Infinity;
-  return 1 / Math.sqrt(sampleSize * prevalence * (1 - prevalence));
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
+  return 1 / Math.sqrt(sampleSize * prevalence * (1 - prevalence) * (1 - covariateR2));
 };
 
 /**
  * Calculate SE for case-control logistic regression
+ *
+ * @param cases - Number of cases
+ * @param controls - Number of controls
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateLogisticCaseControlSE = (
   cases: number,
-  controls: number
+  controls: number,
+  covariateR2: number = 0
 ): number => {
   if (cases <= 0 || controls <= 0) return Infinity;
-  // For matched/unmatched case-control
-  return Math.sqrt(1/cases + 1/controls);
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
+  // For matched/unmatched case-control, adjusted for covariate correlation
+  return Math.sqrt((1/cases + 1/controls) / (1 - covariateR2));
 };
 
 /**
  * Calculate power for logistic regression
+ *
+ * @param oddsRatio - Target odds ratio to detect
+ * @param sampleSize - Total sample size (for cohort designs)
+ * @param prevalence - Outcome prevalence (for cohort designs)
+ * @param alpha - Significance level
+ * @param caseControl - Optional case-control design parameters
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateLogisticPower = (
   oddsRatio: number,
   sampleSize: number,
   prevalence: number,
   alpha: number,
-  caseControl?: { cases: number; controls: number }
+  caseControl?: { cases: number; controls: number },
+  covariateR2: number = 0
 ): number => {
   if (oddsRatio <= 0 || alpha <= 0 || alpha >= 1) {
     return 0;
@@ -379,8 +504,8 @@ export const calculateLogisticPower = (
 
   const logOR = Math.log(oddsRatio);
   const se = caseControl
-    ? calculateLogisticCaseControlSE(caseControl.cases, caseControl.controls)
-    : calculateLogisticSE(sampleSize, prevalence);
+    ? calculateLogisticCaseControlSE(caseControl.cases, caseControl.controls, covariateR2)
+    : calculateLogisticSE(sampleSize, prevalence, covariateR2);
 
   if (se === Infinity) return 0;
 
@@ -393,21 +518,29 @@ export const calculateLogisticPower = (
 
 /**
  * Calculate minimum detectable OR for logistic regression
+ *
+ * @param targetPower - Desired statistical power
+ * @param sampleSize - Total sample size (for cohort designs)
+ * @param prevalence - Outcome prevalence (for cohort designs)
+ * @param alpha - Significance level
+ * @param caseControl - Optional case-control design parameters
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateLogisticMinEffect = (
   targetPower: number,
   sampleSize: number,
   prevalence: number,
   alpha: number,
-  caseControl?: { cases: number; controls: number }
+  caseControl?: { cases: number; controls: number },
+  covariateR2: number = 0
 ): number => {
   if (alpha <= 0 || alpha >= 1 || targetPower <= 0 || targetPower >= 1) {
     return Infinity;
   }
 
   const se = caseControl
-    ? calculateLogisticCaseControlSE(caseControl.cases, caseControl.controls)
-    : calculateLogisticSE(sampleSize, prevalence);
+    ? calculateLogisticCaseControlSE(caseControl.cases, caseControl.controls, covariateR2)
+    : calculateLogisticSE(sampleSize, prevalence, covariateR2);
 
   if (se === Infinity) return Infinity;
 
@@ -420,22 +553,31 @@ export const calculateLogisticMinEffect = (
 
 /**
  * Calculate required sample size for logistic regression
+ *
+ * @param oddsRatio - Target odds ratio to detect
+ * @param targetPower - Desired statistical power
+ * @param prevalence - Outcome prevalence
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateLogisticRequiredN = (
   oddsRatio: number,
   targetPower: number,
   prevalence: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
   if (oddsRatio <= 1 || prevalence <= 0 || prevalence >= 1 ||
       targetPower <= 0 || targetPower >= 1 || alpha <= 0 || alpha >= 1) {
     return Infinity;
   }
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
 
   const logOR = Math.log(oddsRatio);
   const zAlpha = normalQuantile(1 - alpha / 2);
   const zBeta = normalQuantile(targetPower);
-  const n = Math.pow((zAlpha + zBeta) / Math.abs(logOR), 2) / (prevalence * (1 - prevalence));
+  // Adjust for covariate correlation
+  const n = Math.pow((zAlpha + zBeta) / Math.abs(logOR), 2) / (prevalence * (1 - prevalence) * (1 - covariateR2));
 
   return Math.ceil(n);
 };
@@ -447,24 +589,37 @@ export const calculateLogisticRequiredN = (
 /**
  * Calculate SE for Poisson regression log(RR)
  * For modified Poisson with robust variance
+ *
+ * @param sampleSize - Total sample size
+ * @param prevalence - Outcome prevalence
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculatePoissonSE = (
   sampleSize: number,
-  prevalence: number
+  prevalence: number,
+  covariateR2: number = 0
 ): number => {
   if (sampleSize <= 0 || prevalence <= 0 || prevalence >= 1) return Infinity;
-  // Robust SE approximation for modified Poisson
-  return Math.sqrt(1 / (sampleSize * prevalence));
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
+  // Robust SE approximation for modified Poisson, adjusted for covariate correlation
+  return Math.sqrt(1 / (sampleSize * prevalence * (1 - covariateR2)));
 };
 
 /**
  * Calculate power for Poisson/log-binomial regression
+ *
+ * @param relativeRisk - Target relative risk to detect
+ * @param sampleSize - Total sample size
+ * @param prevalence - Outcome prevalence
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculatePoissonPower = (
   relativeRisk: number,
   sampleSize: number,
   prevalence: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
   if (relativeRisk <= 0 || sampleSize <= 0 || prevalence <= 0 || prevalence >= 1 ||
       alpha <= 0 || alpha >= 1) {
@@ -472,7 +627,7 @@ export const calculatePoissonPower = (
   }
 
   const logRR = Math.log(relativeRisk);
-  const se = calculatePoissonSE(sampleSize, prevalence);
+  const se = calculatePoissonSE(sampleSize, prevalence, covariateR2);
   const zAlpha = normalQuantile(1 - alpha / 2);
   const lambda = Math.abs(logRR) / se;
   const power = normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha);
@@ -482,19 +637,26 @@ export const calculatePoissonPower = (
 
 /**
  * Calculate minimum detectable RR for Poisson regression
+ *
+ * @param targetPower - Desired statistical power
+ * @param sampleSize - Total sample size
+ * @param prevalence - Outcome prevalence
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculatePoissonMinEffect = (
   targetPower: number,
   sampleSize: number,
   prevalence: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
   if (sampleSize <= 0 || prevalence <= 0 || prevalence >= 1 ||
       alpha <= 0 || alpha >= 1 || targetPower <= 0 || targetPower >= 1) {
     return Infinity;
   }
 
-  const se = calculatePoissonSE(sampleSize, prevalence);
+  const se = calculatePoissonSE(sampleSize, prevalence, covariateR2);
   const zAlpha = normalQuantile(1 - alpha / 2);
   const zBeta = normalQuantile(targetPower);
   const minLogRR = (zAlpha + zBeta) * se;
@@ -504,22 +666,31 @@ export const calculatePoissonMinEffect = (
 
 /**
  * Calculate required sample size for Poisson regression
+ *
+ * @param relativeRisk - Target relative risk to detect
+ * @param targetPower - Desired statistical power
+ * @param prevalence - Outcome prevalence
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculatePoissonRequiredN = (
   relativeRisk: number,
   targetPower: number,
   prevalence: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
   if (relativeRisk <= 1 || prevalence <= 0 || prevalence >= 1 ||
       targetPower <= 0 || targetPower >= 1 || alpha <= 0 || alpha >= 1) {
     return Infinity;
   }
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
 
   const logRR = Math.log(relativeRisk);
   const zAlpha = normalQuantile(1 - alpha / 2);
   const zBeta = normalQuantile(targetPower);
-  const n = Math.pow((zAlpha + zBeta) / Math.abs(logRR), 2) / prevalence;
+  // Adjust for covariate correlation
+  const n = Math.pow((zAlpha + zBeta) / Math.abs(logRR), 2) / (prevalence * (1 - covariateR2));
 
   return Math.ceil(n);
 };
@@ -556,24 +727,40 @@ export const calculateEffectiveSampleSize = (
 
 /**
  * Calculate SE for GEE regression coefficient
- * SE(β) = σ_residual × √DE / √n = σ_residual / √n_eff
- * For standardized predictor: SE(β) = √DE / √(n - 2)
+ * SE(β) = σ_residual × √DE / √(n × (1 - R²_x))
+ * For standardized predictor: SE(β) = √DE / √((n - 2) × (1 - R²_x))
+ *
+ * @param totalObservations - Total number of observations
+ * @param clusterSize - Average observations per cluster
+ * @param icc - Intraclass correlation coefficient
+ * @param residualSD - Standard deviation of residuals
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateGEE_SE = (
   totalObservations: number,
   clusterSize: number,
   icc: number,
-  residualSD: number
+  residualSD: number,
+  covariateR2: number = 0
 ): number => {
   if (totalObservations <= 2 || clusterSize <= 0) return Infinity;
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
   const de = calculateDesignEffect(clusterSize, icc);
-  // SE for standardized predictor with clustering
-  return residualSD * Math.sqrt(de) / Math.sqrt(totalObservations - 2);
+  // SE for standardized predictor with clustering, adjusted for covariate correlation
+  return residualSD * Math.sqrt(de) / Math.sqrt((totalObservations - 2) * (1 - covariateR2));
 };
 
 /**
  * Calculate power for GEE/Mixed Effects regression
  * Accounts for clustering via design effect
+ *
+ * @param beta - Target effect size
+ * @param totalObservations - Total number of observations
+ * @param clusterSize - Average observations per cluster
+ * @param icc - Intraclass correlation coefficient
+ * @param residualSD - Standard deviation of residuals
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateGEE_Power = (
   beta: number,
@@ -581,14 +768,15 @@ export const calculateGEE_Power = (
   clusterSize: number,
   icc: number,
   residualSD: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
   if (totalObservations <= 2 || clusterSize <= 0 || residualSD <= 0 ||
       alpha <= 0 || alpha >= 1 || icc < 0 || icc > 1) {
     return 0;
   }
 
-  const se = calculateGEE_SE(totalObservations, clusterSize, icc, residualSD);
+  const se = calculateGEE_SE(totalObservations, clusterSize, icc, residualSD, covariateR2);
   if (se === Infinity) return 0;
 
   const zAlpha = normalQuantile(1 - alpha / 2);
@@ -600,6 +788,14 @@ export const calculateGEE_Power = (
 
 /**
  * Calculate minimum detectable β for GEE/Mixed Effects
+ *
+ * @param targetPower - Desired statistical power
+ * @param totalObservations - Total number of observations
+ * @param clusterSize - Average observations per cluster
+ * @param icc - Intraclass correlation coefficient
+ * @param residualSD - Standard deviation of residuals
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateGEE_MinEffect = (
   targetPower: number,
@@ -607,7 +803,8 @@ export const calculateGEE_MinEffect = (
   clusterSize: number,
   icc: number,
   residualSD: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
   if (totalObservations <= 2 || clusterSize <= 0 || residualSD <= 0 ||
       alpha <= 0 || alpha >= 1 || targetPower <= 0 || targetPower >= 1 ||
@@ -615,7 +812,7 @@ export const calculateGEE_MinEffect = (
     return Infinity;
   }
 
-  const se = calculateGEE_SE(totalObservations, clusterSize, icc, residualSD);
+  const se = calculateGEE_SE(totalObservations, clusterSize, icc, residualSD, covariateR2);
   if (se === Infinity) return Infinity;
 
   const zAlpha = normalQuantile(1 - alpha / 2);
@@ -626,6 +823,14 @@ export const calculateGEE_MinEffect = (
 
 /**
  * Calculate required sample size (total observations) for GEE
+ *
+ * @param beta - Target effect size
+ * @param targetPower - Desired statistical power
+ * @param clusterSize - Average observations per cluster
+ * @param icc - Intraclass correlation coefficient
+ * @param residualSD - Standard deviation of residuals
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateGEE_RequiredN = (
   beta: number,
@@ -633,21 +838,23 @@ export const calculateGEE_RequiredN = (
   clusterSize: number,
   icc: number,
   residualSD: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
   if (beta === 0 || clusterSize <= 0 || residualSD <= 0 ||
       targetPower <= 0 || targetPower >= 1 || alpha <= 0 || alpha >= 1 ||
       icc < 0 || icc > 1) {
     return Infinity;
   }
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
 
   const de = calculateDesignEffect(clusterSize, icc);
   const zAlpha = normalQuantile(1 - alpha / 2);
   const zBeta = normalQuantile(targetPower);
 
-  // n_eff = ((zα + zβ) × σ / |β|)² + 2
+  // n_eff = ((zα + zβ) × σ / |β|)² / (1 - R²_x) + 2
   // n = n_eff × DE
-  const nEff = Math.pow((zAlpha + zBeta) * residualSD / Math.abs(beta), 2) + 2;
+  const nEff = Math.pow((zAlpha + zBeta) * residualSD / Math.abs(beta), 2) / (1 - covariateR2) + 2;
   const n = nEff * de;
 
   return Math.ceil(n);
@@ -655,6 +862,14 @@ export const calculateGEE_RequiredN = (
 
 /**
  * Calculate required number of clusters for GEE
+ *
+ * @param beta - Target effect size
+ * @param targetPower - Desired statistical power
+ * @param clusterSize - Average observations per cluster
+ * @param icc - Intraclass correlation coefficient
+ * @param residualSD - Standard deviation of residuals
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateGEE_RequiredClusters = (
   beta: number,
@@ -662,9 +877,10 @@ export const calculateGEE_RequiredClusters = (
   clusterSize: number,
   icc: number,
   residualSD: number,
-  alpha: number
+  alpha: number,
+  covariateR2: number = 0
 ): number => {
-  const totalN = calculateGEE_RequiredN(beta, targetPower, clusterSize, icc, residualSD, alpha);
+  const totalN = calculateGEE_RequiredN(beta, targetPower, clusterSize, icc, residualSD, alpha, covariateR2);
   if (!isFinite(totalN)) return Infinity;
   return Math.ceil(totalN / clusterSize);
 };
@@ -694,13 +910,16 @@ export interface PowerParams {
   // GEE/Mixed Effects parameters
   clusterSize?: number;
   icc?: number;
+  // Covariate adjustment parameter (all models)
+  // R² of protein ~ covariates: proportion of variance in predictor explained by adjustment variables
+  covariateR2?: number;
 }
 
 /**
  * Unified power calculation function
  */
 export const calculatePower = (params: PowerParams): number => {
-  const { analysisType, studyDesign, effectSize, alpha } = params;
+  const { analysisType, studyDesign, effectSize, alpha, covariateR2 = 0 } = params;
 
   switch (analysisType) {
     case 'cox':
@@ -708,16 +927,17 @@ export const calculatePower = (params: PowerParams): number => {
         return calculateCoxPower(effectSize, params.events || 0, alpha, {
           subcohortSize: params.subcohortSize,
           totalCohort: params.totalCohort,
-        });
+        }, covariateR2);
       }
-      return calculateCoxPower(effectSize, params.events || 0, alpha);
+      return calculateCoxPower(effectSize, params.events || 0, alpha, undefined, covariateR2);
 
     case 'linear':
       return calculateLinearPower(
         effectSize,
         params.sampleSize || 0,
         params.residualSD || 1,
-        alpha
+        alpha,
+        covariateR2
       );
 
     case 'logistic':
@@ -725,13 +945,15 @@ export const calculatePower = (params: PowerParams): number => {
         return calculateLogisticPower(effectSize, 0, 0, alpha, {
           cases: params.cases,
           controls: params.controls,
-        });
+        }, covariateR2);
       }
       return calculateLogisticPower(
         effectSize,
         params.sampleSize || 0,
         params.prevalence || 0.1,
-        alpha
+        alpha,
+        undefined,
+        covariateR2
       );
 
     case 'poisson':
@@ -739,7 +961,8 @@ export const calculatePower = (params: PowerParams): number => {
         effectSize,
         params.sampleSize || 0,
         params.prevalence || 0.1,
-        alpha
+        alpha,
+        covariateR2
       );
 
     case 'gee':
@@ -749,7 +972,8 @@ export const calculatePower = (params: PowerParams): number => {
         params.clusterSize || 1,
         params.icc || 0,
         params.residualSD || 1,
-        alpha
+        alpha,
+        covariateR2
       );
 
     default:
@@ -763,7 +987,7 @@ export const calculatePower = (params: PowerParams): number => {
 export const calculateMinEffect = (
   params: Omit<PowerParams, 'effectSize'> & { targetPower: number }
 ): number => {
-  const { analysisType, studyDesign, targetPower, alpha } = params;
+  const { analysisType, studyDesign, targetPower, alpha, covariateR2 = 0 } = params;
 
   switch (analysisType) {
     case 'cox':
@@ -771,16 +995,17 @@ export const calculateMinEffect = (
         return calculateCoxMinEffect(targetPower, params.events || 0, alpha, {
           subcohortSize: params.subcohortSize,
           totalCohort: params.totalCohort,
-        });
+        }, covariateR2);
       }
-      return calculateCoxMinEffect(targetPower, params.events || 0, alpha);
+      return calculateCoxMinEffect(targetPower, params.events || 0, alpha, undefined, covariateR2);
 
     case 'linear':
       return calculateLinearMinEffect(
         targetPower,
         params.sampleSize || 0,
         params.residualSD || 1,
-        alpha
+        alpha,
+        covariateR2
       );
 
     case 'logistic':
@@ -788,13 +1013,15 @@ export const calculateMinEffect = (
         return calculateLogisticMinEffect(targetPower, 0, 0, alpha, {
           cases: params.cases,
           controls: params.controls,
-        });
+        }, covariateR2);
       }
       return calculateLogisticMinEffect(
         targetPower,
         params.sampleSize || 0,
         params.prevalence || 0.1,
-        alpha
+        alpha,
+        undefined,
+        covariateR2
       );
 
     case 'poisson':
@@ -802,7 +1029,8 @@ export const calculateMinEffect = (
         targetPower,
         params.sampleSize || 0,
         params.prevalence || 0.1,
-        alpha
+        alpha,
+        covariateR2
       );
 
     case 'gee':
@@ -812,7 +1040,8 @@ export const calculateMinEffect = (
         params.clusterSize || 1,
         params.icc || 0,
         params.residualSD || 1,
-        alpha
+        alpha,
+        covariateR2
       );
 
     default:
