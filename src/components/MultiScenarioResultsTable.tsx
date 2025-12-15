@@ -121,9 +121,6 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
               </svg>
               Power Comparison Table
             </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Click column headers to sort • Filter by minimum power threshold
-            </p>
           </div>
 
           <div className="flex items-center gap-2">

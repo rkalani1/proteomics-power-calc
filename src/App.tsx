@@ -783,7 +783,6 @@ function App() {
                 <p className="text-xs text-amber-700 mt-1">
                   All calculations assume protein levels are <strong>standardized</strong> (mean = 0, variance = 1).
                   Effect sizes are interpreted per 1 standard deviation increase in protein level.
-                  This is standard practice in proteomics association studies.
                 </p>
               </div>
             </div>

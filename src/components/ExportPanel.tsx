@@ -360,11 +360,6 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
             </button>
           </div>
 
-          <div className="mt-4 text-xs text-gray-500">
-            <strong>CSV:</strong> Full data for spreadsheet analysis |
-            <strong> Print/PDF:</strong> Formatted report for documentation |
-            <strong> Copy:</strong> Quick summary for notes or emails
-          </div>
         </div>
       </div>
     </section>
