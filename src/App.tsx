@@ -1275,6 +1275,14 @@ function App() {
 
         {/* Methodology & References */}
         <References analysisType={analysisType} studyDesign={studyDesign} />
+
+        <footer className="mt-8 pt-6 pb-6 text-center text-xs text-slate-500 border-t border-slate-200">
+          <p>This is a synthetic public demo site for educational and reference purposes only. Not for clinical decision-making or real patient care.</p>
+          <p className="mt-2 space-x-4">
+            <a href="https://www.washington.edu/online/terms/" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-600">UW Website Terms</a>
+            <a href="https://www.washington.edu/online/privacy/" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-600">UW Online Privacy Policy</a>
+          </p>
+        </footer>
       </main>
     </div>
   );
