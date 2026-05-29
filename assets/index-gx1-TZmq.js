@@ -60113,13 +60113,7 @@ function App() {
       ),
       /* @__PURE__ */ jsxRuntimeExports.jsx(PowerFormula, { analysisType }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(References, { analysisType, studyDesign }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("footer", { className: "mt-8 pt-6 pb-6 text-center text-xs text-slate-500 border-t border-slate-200", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "This is a synthetic public demo site for educational and reference purposes only. Not for clinical decision-making or real patient care." }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "mt-2 space-x-4", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("a", { href: "https://www.washington.edu/online/terms/", target: "_blank", rel: "noopener noreferrer", className: "underline hover:text-blue-600", children: "UW Website Terms" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("a", { href: "https://www.washington.edu/online/privacy/", target: "_blank", rel: "noopener noreferrer", className: "underline hover:text-blue-600", children: "UW Online Privacy Policy" })
-        ] })
-      ] })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("footer", { className: "mt-8 pt-6 pb-6 text-center text-xs text-slate-500 border-t border-slate-200", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "This is a synthetic public demo site for educational and reference purposes only. Not for clinical decision-making or real patient care." }) })
     ] })
   ] });
 }
