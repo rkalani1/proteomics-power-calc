@@ -42,6 +42,8 @@ interface AdvancedVisualizationsProps {
   calculateRequiredEvents: (effect: number, alpha: number, power: number) => number;
   calculateRequiredSampleSize: (effect: number, alpha: number, power: number) => number;
   calculatePower: (effect: number, alpha: number, n: number) => number;
+  /** Initial visualization shown (defaults to the events/sample-size curve). */
+  initialViz?: VisualizationType;
 }
 
 interface ForestDatum {
@@ -130,8 +132,9 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
   calculateRequiredEvents,
   calculateRequiredSampleSize,
   calculatePower,
+  initialViz = 'sample-size-curve',
 }) => {
-  const [activeViz, setActiveViz] = useState<VisualizationType>('sample-size-curve');
+  const [activeViz, setActiveViz] = useState<VisualizationType>(initialViz);
 
   // Linear and GEE estimate an additive coefficient β (null effect = 0); the
   // others estimate a multiplicative ratio (null effect = 1). This drives the
