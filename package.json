@@ -39,5 +39,5 @@
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"
   },
-  "homepage": " /proteomics-power-calc"
+  "homepage": "/proteomics-power-calc"
 }

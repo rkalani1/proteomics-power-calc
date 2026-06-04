@@ -10,10 +10,9 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
-import { calculateEffectiveAlpha, type CorrectionMethod } from '../utils/statistics';
+import { calculateEffectiveAlpha, type AnalysisType, type CorrectionMethod } from '../utils/statistics';
+import { normalizeSensitivityVariable, type SensitivityVariable } from '../utils/sensitivity';
 
-type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
-type SensitivityVariable = 'sampleSize' | 'events' | 'effectSize' | 'proteinCount';
 
 interface SensitivityAnalysisProps {
   analysisType: AnalysisType;
@@ -89,12 +88,13 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
   const [selectedVariable, setSelectedVariable] = useState<SensitivityVariable>(
     analysisType === 'cox' ? 'events' : 'sampleSize'
   );
+  const activeVariable = normalizeSensitivityVariable(analysisType, selectedVariable);
 
   // Generate sensitivity data based on selected variable
   const sensitivityData = useMemo(() => {
     const data: Array<Record<string, number>> = [];
 
-    switch (selectedVariable) {
+    switch (activeVariable) {
       case 'sampleSize': {
         // Vary sample size from 100 to 10000, recomputing the exact power at
         // each n with the same design-aware formula used for the headline result.
@@ -162,14 +162,14 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
     }
 
     return data;
-  }, [selectedVariable, proteinCounts, fdrQ, correctionMethod, currentEffectSize, analysisType, calculatePowerForEffect, calculatePowerAtSampleSize]);
+  }, [activeVariable, proteinCounts, fdrQ, correctionMethod, currentEffectSize, analysisType, calculatePowerForEffect, calculatePowerAtSampleSize]);
 
   // Color palette for lines
   const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f97316', '#ec4899', '#14b8a6'];
 
   // Get axis labels based on selected variable
   const getAxisLabel = (): string => {
-    switch (selectedVariable) {
+    switch (activeVariable) {
       case 'sampleSize': return 'Sample Size (n)';
       case 'events': return 'Number of Events (d)';
       case 'effectSize': return `${effectLabel} (${effectSymbol})`;
@@ -179,7 +179,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
 
   // Get current value for reference line
   const getCurrentValue = (): number => {
-    switch (selectedVariable) {
+    switch (activeVariable) {
       case 'sampleSize': return currentSampleSize;
       case 'events': return currentEvents;
       case 'effectSize': return currentEffectSize;
@@ -203,7 +203,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
         <div className="flex items-center gap-2">
           <label className="text-sm text-gray-600">Vary:</label>
           <select
-            value={selectedVariable}
+            value={activeVariable}
             onChange={(e) => setSelectedVariable(e.target.value as SensitivityVariable)}
             className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
@@ -226,10 +226,10 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
           <XAxis
             dataKey="x"
             type="number"
-            scale={selectedVariable === 'proteinCount' ? 'log' : 'linear'}
+            scale={activeVariable === 'proteinCount' ? 'log' : 'linear'}
             domain={['dataMin', 'dataMax']}
             tickFormatter={(value) =>
-              selectedVariable === 'effectSize'
+              activeVariable === 'effectSize'
                 ? value.toFixed(analysisType === 'linear' || analysisType === 'gee' ? 2 : 1)
                 : value.toLocaleString()
             }
@@ -255,7 +255,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
             tick={{ fill: '#6b7280', fontSize: 11 }}
           />
 
-          <Tooltip content={<SensitivityTooltip axisLabel={getAxisLabel()} selectedVariable={selectedVariable} />} />
+          <Tooltip content={<SensitivityTooltip axisLabel={getAxisLabel()} selectedVariable={activeVariable} />} />
 
           {/* Target power line */}
           <ReferenceLine
@@ -289,7 +289,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
             verticalAlign="top"
             height={36}
             formatter={(value: string) => {
-              if (selectedVariable === 'proteinCount') {
+              if (activeVariable === 'proteinCount') {
                 return <span className="text-sm text-gray-700">Power</span>;
               }
               const count = parseInt(value.split('_')[1]);
@@ -301,7 +301,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
             }}
           />
 
-          {selectedVariable === 'proteinCount' ? (
+          {activeVariable === 'proteinCount' ? (
             <Line
               type="monotone"
               dataKey="power"

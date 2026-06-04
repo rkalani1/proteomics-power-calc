@@ -15,10 +15,12 @@ const esbuild = require('esbuild');
 
 const appPath = JSON.stringify(path.join(__dirname, 'src', 'App.tsx'));
 const chartPath = JSON.stringify(path.join(__dirname, 'src', 'components', 'PowerByProteinsChart.tsx'));
+const sensitivityPath = JSON.stringify(path.join(__dirname, 'src', 'utils', 'sensitivity.ts'));
 const entry = path.join(os.tmpdir(), `app-entry.${process.pid}.tsx`);
 fs.writeFileSync(entry,
   `export { default as App } from ${appPath};\n` +
-  `export { default as PowerByProteinsChart } from ${chartPath};\n`);
+  `export { default as PowerByProteinsChart } from ${chartPath};\n` +
+  `export { normalizeSensitivityVariable } from ${sensitivityPath};\n`);
 
 const out = esbuild.buildSync({
   entryPoints: [entry],
@@ -42,7 +44,7 @@ process.on('exit', () => {
 
 const React = require('react');
 const { renderToString } = require('react-dom/server');
-const { App, PowerByProteinsChart } = require(bundlePath);
+const { App, PowerByProteinsChart, normalizeSensitivityVariable } = require(bundlePath);
 
 let failed = false;
 try {
@@ -62,6 +64,19 @@ try {
   console.error('  ✗ App threw during server render:');
   console.error(err && err.stack ? err.stack : err);
   failed = true;
+}
+
+const sensitivityVariableChecks = [
+  ['cox keeps events', normalizeSensitivityVariable('cox', 'events') === 'events'],
+  ['cox normalizes sampleSize to events', normalizeSensitivityVariable('cox', 'sampleSize') === 'events'],
+  ['logistic normalizes events to sampleSize', normalizeSensitivityVariable('logistic', 'events') === 'sampleSize'],
+  ['gee normalizes events to sampleSize', normalizeSensitivityVariable('gee', 'events') === 'sampleSize'],
+  ['non-Cox keeps effectSize', normalizeSensitivityVariable('linear', 'effectSize') === 'effectSize'],
+  ['non-Cox keeps proteinCount', normalizeSensitivityVariable('poisson', 'proteinCount') === 'proteinCount'],
+];
+for (const [name, cond] of sensitivityVariableChecks) {
+  console.log(`  ${cond ? '✓' : '✗'} SensitivityAnalysis ${name}`);
+  if (!cond) failed = true;
 }
 
 // Render the most-refactored component for every analysis type. Previously the
