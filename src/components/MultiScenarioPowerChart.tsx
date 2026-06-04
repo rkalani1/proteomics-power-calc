@@ -42,6 +42,52 @@ interface MultiScenarioPowerChartProps {
   analysisType?: AnalysisType;
 }
 
+// Tooltip for the power-vs-effect curves. Defined at module scope to keep a
+// stable component identity across re-renders.
+const PowerCurveTooltip: React.FC<{
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string; dataKey: string }>;
+  label?: number;
+  effectLabel: string;
+  decimals: number;
+  scenarios: ScenarioInfo[];
+}> = ({ active, payload, label, effectLabel, decimals, scenarios }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  return (
+    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
+      <p className="font-semibold text-gray-800 mb-2">
+        {effectLabel}: {Number(label).toFixed(decimals)}
+      </p>
+      {payload.map((entry, index) => {
+        // Extract protein count from dataKey (format: power_1000)
+        const proteinCount = parseInt(entry.dataKey.split('_')[1]);
+        const scenario = scenarios.find(s => s.proteinCount === proteinCount);
+
+        return (
+          <p key={index} className="text-sm flex items-center gap-2">
+            <span
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-gray-600">
+              {proteinCount.toLocaleString()} protein{proteinCount !== 1 ? 's' : ''}:
+            </span>
+            <span className="font-medium" style={{ color: entry.color }}>
+              {(entry.value * 100).toFixed(1)}%
+            </span>
+            {scenario && (
+              <span className="text-xs text-gray-400">
+                (α≈{scenario.alpha.toExponential(1)})
+              </span>
+            )}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 /**
  * MultiScenarioPowerChart Component
  *
@@ -59,49 +105,8 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
   analysisType = 'cox',
 }) => {
   // Determine decimal places based on analysis type
-  const decimals = analysisType === 'linear' ? 3 : 2;
-
-  // Custom tooltip formatter
-  const CustomTooltip = ({ active, payload, label }: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string; dataKey: string }>;
-    label?: number;
-  }) => {
-    if (!active || !payload || !payload.length) return null;
-
-    return (
-      <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
-        <p className="font-semibold text-gray-800 mb-2">
-          {effectLabel}: {Number(label).toFixed(decimals)}
-        </p>
-        {payload.map((entry, index) => {
-          // Extract protein count from dataKey (format: power_1000)
-          const proteinCount = parseInt(entry.dataKey.split('_')[1]);
-          const scenario = scenarios.find(s => s.proteinCount === proteinCount);
-
-          return (
-            <p key={index} className="text-sm flex items-center gap-2">
-              <span
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: entry.color }}
-              />
-              <span className="text-gray-600">
-                {proteinCount.toLocaleString()} protein{proteinCount !== 1 ? 's' : ''}:
-              </span>
-              <span className="font-medium" style={{ color: entry.color }}>
-                {(entry.value * 100).toFixed(1)}%
-              </span>
-              {scenario && (
-                <span className="text-xs text-gray-400">
-                  (α≈{scenario.alpha.toExponential(1)})
-                </span>
-              )}
-            </p>
-          );
-        })}
-      </div>
-    );
-  };
+  const isBetaEffect = analysisType === 'linear' || analysisType === 'gee';
+  const decimals = isBetaEffect ? 3 : 2;
 
   // Get x-axis domain based on data
   const xMin = data.length > 0 ? data[0].effect : 1;
@@ -135,7 +140,7 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
             type="number"
             domain={[xMin, xMax]}
             tickCount={11}
-            tickFormatter={(value) => value.toFixed(analysisType === 'linear' ? 2 : 1)}
+            tickFormatter={(value) => value.toFixed(isBetaEffect ? 2 : 1)}
             label={{
               value: `${effectLabel} (${effectSymbol})`,
               position: 'insideBottom',
@@ -158,7 +163,7 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
             tick={{ fill: '#6b7280', fontSize: 11 }}
           />
 
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<PowerCurveTooltip effectLabel={effectLabel} decimals={decimals} scenarios={scenarios} />} />
 
           <Legend
             verticalAlign="top"

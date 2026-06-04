@@ -487,13 +487,19 @@ assertApprox(power, 0.359, 0.01, 'Hand calculation: HR=1.5, d=100, α=1e-5');
 console.log('\n8.2 Known Published Results');
 console.log('-'.repeat(50));
 
-// From Schoenfeld (1983): For log-rank test equivalence
-// d = 4 * (z_alpha + z_beta)^2 / (log(HR))^2
-// For 80% power (z_beta=0.84), alpha=0.05 (z_alpha=1.96), HR=2
-// d = 4 * (1.96 + 0.84)^2 / (0.693)^2 = 4 * 7.84 / 0.48 = 65.3
-// So with d=65, HR=2, power should be ~80%
+// Schoenfeld (1983) for a STANDARDIZED continuous predictor (Var(X) = 1):
+//   d = (z_alpha + z_beta)^2 / (log(HR))^2     (NO factor of 4)
+// The factor of 4 in the classic log-rank formula applies to a *balanced binary*
+// covariate (allocation 0.5 -> variance 0.25 -> 1/0.25 = 4). It does not apply
+// here because the calculator standardizes the predictor to unit variance.
+// For 80% power (z_beta = 0.84), alpha = 0.05 (z_alpha = 1.96), HR = 2:
+//   d = (1.96 + 0.84)^2 / (0.693)^2 = 7.84 / 0.48 = 16.3  ->  d = 17
+power = calculateCoxPower(2.0, 17, 0.05);
+assertApprox(power, 0.80, 0.02, 'Schoenfeld (standardized predictor): d=17, HR=2 gives ~80% power');
+// A balanced binary covariate would instead need ~4x the events (d ~ 65), which
+// for the standardized model is far past the point of near-certain detection.
 power = calculateCoxPower(2.0, 65, 0.05);
-assertApprox(power, 0.80, 0.02, 'Schoenfeld formula: d=65, HR=2 gives ~80% power');
+assert(power > 0.999, 'Standardized predictor: d=65, HR=2 gives >99.9% power');
 
 // ============================================================================
 // TEST SUITE 9: SENSITIVITY MATRIX VALIDATION
@@ -571,9 +577,9 @@ power = calculateCoxPower(0.5, 100, 0.05);
 const powerHR2 = calculateCoxPower(2.0, 100, 0.05);
 assertApprox(power, powerHR2, 1e-10, 'HR=0.5 has same power as HR=2.0');
 
-power = calculateCoxPower(0.67, 100, 0.05);
+power = calculateCoxPower(1 / 1.5, 100, 0.05);
 const powerHR15 = calculateCoxPower(1.5, 100, 0.05);
-assertApprox(power, powerHR15, 0.001, 'HR=0.67 ≈ same power as HR=1.5');
+assertApprox(power, powerHR15, 1e-10, 'HR=1/1.5 has identical power to HR=1.5 (exact reciprocal symmetry)');
 
 console.log('\n10.3 Minimum Detectable Effect for Protective');
 console.log('-'.repeat(50));

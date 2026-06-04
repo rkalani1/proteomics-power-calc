@@ -23,9 +23,36 @@ interface MultiScenarioResultsTableProps {
   effectLabel?: string;
   /** Analysis type for formatting */
   analysisType?: AnalysisType;
+  /** Target power — the threshold for the green "meets target" coloring */
+  targetPower?: number;
 }
 
 type SortDirection = 'asc' | 'desc';
+
+// Sort direction indicator. Defined at module scope so it keeps a stable
+// component identity across re-renders.
+const SortIndicator: React.FC<{
+  field: string;
+  sortField: string;
+  sortDirection: SortDirection;
+}> = ({ field, sortField, sortDirection }) => {
+  if (sortField !== field) {
+    return (
+      <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+      </svg>
+    );
+  }
+  return sortDirection === 'asc' ? (
+    <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+    </svg>
+  ) : (
+    <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+};
 
 /**
  * MultiScenarioResultsTable Component
@@ -38,8 +65,12 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
   scenarios,
   effectLabel = 'Hazard Ratio',
   analysisType = 'cox',
+  targetPower = 0.8,
 }) => {
-  const decimals = analysisType === 'linear' ? 3 : 2;
+  // Linear and GEE use an additive β effect (null = 0); others use a ratio (null = 1).
+  const isBetaEffect = analysisType === 'linear' || analysisType === 'gee';
+  const decimals = isBetaEffect ? 3 : 2;
+  const targetPct = (targetPower * 100).toFixed(0);
   const [sortField, setSortField] = useState<string>('effect');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [filterMinPower, setFilterMinPower] = useState<number>(0);
@@ -76,31 +107,11 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
     }
   };
 
-  // Sort indicator component
-  const SortIndicator = ({ field }: { field: string }) => {
-    if (sortField !== field) {
-      return (
-        <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-        </svg>
-      );
-    }
-    return sortDirection === 'asc' ? (
-      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-      </svg>
-    ) : (
-      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
-    );
-  };
-
-  // Format power as percentage with color coding
+  // Format power as percentage with color coding (green = meets target power)
   const formatPower = (power: number) => {
     const percentage = (power * 100).toFixed(1);
     let statusClass = 'text-red-600';
-    if (power >= 0.8) statusClass = 'text-green-600 font-semibold';
+    if (power >= targetPower) statusClass = 'text-green-600 font-semibold';
     else if (power >= 0.5) statusClass = 'text-amber-600';
 
     return (
@@ -150,7 +161,7 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
               >
                 <div className="flex items-center gap-2">
                   {effectLabel}
-                  <SortIndicator field="effect" />
+                  <SortIndicator field="effect" sortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
               {scenarios.map((scenario) => (
@@ -167,7 +178,7 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
                       ></span>
                       {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
                     </span>
-                    <SortIndicator field={`power_${scenario.proteinCount}`} />
+                    <SortIndicator field={`power_${scenario.proteinCount}`} sortField={sortField} sortDirection={sortDirection} />
                   </div>
                   <div className="text-xs font-normal text-gray-500">
                     α≈{scenario.alpha.toExponential(1)}
@@ -194,7 +205,7 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
                 : '0.0';
 
               // Determine if we should show power loss (when effect is above baseline)
-              const showPowerLoss = analysisType === 'linear'
+              const showPowerLoss = isBetaEffect
                 ? row.effect > 0
                 : row.effect > 1;
 
@@ -231,8 +242,8 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
 
       <div className="p-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
         Showing {processedData.length} of {data.length} rows •
-        <span className="text-green-600 ml-2">≥80% adequate power</span> •
-        <span className="text-amber-600 ml-2">50-79% marginal</span> •
+        <span className="text-green-600 ml-2">≥{targetPct}% meets target</span> •
+        <span className="text-amber-600 ml-2">50%–{targetPct}% below target</span> •
         <span className="text-red-600 ml-2">&lt;50% underpowered</span>
       </div>
     </div>

@@ -11,7 +11,6 @@ import {
   Legend,
   ReferenceLine,
   ResponsiveContainer,
-  ErrorBar,
   Cell,
 } from 'recharts';
 
@@ -45,6 +44,72 @@ interface AdvancedVisualizationsProps {
   calculatePower: (effect: number, alpha: number, n: number) => number;
 }
 
+interface ForestDatum {
+  name: string;
+  proteinCount: number;
+  effect: number;
+  alpha: number;
+  color: string;
+}
+
+// Tooltips for the advanced visualizations. Defined at module scope to keep a
+// stable component identity across re-renders.
+const SampleSizeTooltip: React.FC<{
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string; dataKey: string }>;
+  label?: number;
+  isCox: boolean;
+}> = ({ active, payload, label, isCox }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  return (
+    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
+      <p className="font-semibold text-gray-800 mb-2">
+        Target Power: {label}%
+      </p>
+      {payload.map((entry, index) => {
+        const proteinCount = parseInt(entry.dataKey.split('_')[1]);
+        return (
+          <p key={index} className="text-sm flex items-center gap-2">
+            <span
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-gray-600">
+              {proteinCount.toLocaleString()} proteins:
+            </span>
+            <span className="font-medium" style={{ color: entry.color }}>
+              {isCox ? `${Math.round(entry.value)} events` : `n=${Math.round(entry.value).toLocaleString()}`}
+            </span>
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
+const ForestTooltip: React.FC<{
+  active?: boolean;
+  payload?: Array<{ payload: ForestDatum }>;
+  effectSymbol: string;
+  decimals: number;
+}> = ({ active, payload, effectSymbol, decimals }) => {
+  if (!active || !payload || !payload.length) return null;
+  const data = payload[0].payload;
+
+  return (
+    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
+      <p className="font-semibold text-gray-800">{data.name}</p>
+      <p className="text-sm text-gray-600">
+        Min Detectable {effectSymbol}: <span className="font-medium">{data.effect.toFixed(decimals)}</span>
+      </p>
+      <p className="text-xs text-gray-500">
+        α ≈ {data.alpha.toExponential(1)}
+      </p>
+    </div>
+  );
+};
+
 /**
  * AdvancedVisualizations Component
  *
@@ -68,8 +133,11 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
 }) => {
   const [activeViz, setActiveViz] = useState<VisualizationType>('sample-size-curve');
 
-  // Determine decimal places based on analysis type
-  const decimals = analysisType === 'linear' ? 3 : 2;
+  // Linear and GEE estimate an additive coefficient β (null effect = 0); the
+  // others estimate a multiplicative ratio (null effect = 1). This drives the
+  // effect range, axis domain, null reference, and display precision.
+  const isBetaEffect = analysisType === 'linear' || analysisType === 'gee';
+  const decimals = isBetaEffect ? 3 : 2;
   const isCox = analysisType === 'cox';
 
   // Generate sample size curve data
@@ -80,12 +148,14 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
       const point: Record<string, number> = { power: power * 100 };
 
       scenarios.forEach(scenario => {
-        if (isCox) {
-          const events = calculateRequiredEvents(currentEffectSize, scenario.alpha, power);
-          point[`events_${scenario.proteinCount}`] = Math.min(events, 5000);
-        } else {
-          const n = calculateRequiredSampleSize(currentEffectSize, scenario.alpha, power);
-          point[`n_${scenario.proteinCount}`] = Math.min(n, 50000);
+        // Plot the true required events / sample size (no display cap, so the
+        // tooltip never reports a clamped number). Non-finite results (e.g. at
+        // the null effect) are omitted so the line simply breaks.
+        const required = isCox
+          ? calculateRequiredEvents(currentEffectSize, scenario.alpha, power)
+          : calculateRequiredSampleSize(currentEffectSize, scenario.alpha, power);
+        if (Number.isFinite(required)) {
+          point[`${isCox ? 'events' : 'n'}_${scenario.proteinCount}`] = required;
         }
       });
 
@@ -93,33 +163,25 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
     });
   }, [scenarios, currentEffectSize, isCox, calculateRequiredEvents, calculateRequiredSampleSize]);
 
-  // Generate forest plot data
+  // Generate forest plot data. The minimum detectable effect is a single
+  // computed threshold (not an estimate with sampling error), so it carries no
+  // confidence interval — only the point value per scenario is shown.
   const forestPlotData = useMemo(() => {
-    return scenarios.map(scenario => {
-      const baseEffect = analysisType === 'linear' ? 0 : 1;
-      const effectRange = scenario.minDetectableEffect - baseEffect;
-
-      // Calculate confidence interval approximation (±15% of effect range for visualization)
-      const ciWidth = effectRange * 0.15;
-
-      return {
-        name: `${scenario.proteinCount.toLocaleString()} proteins`,
-        proteinCount: scenario.proteinCount,
-        effect: scenario.minDetectableEffect,
-        effectLow: scenario.minDetectableEffect - ciWidth,
-        effectHigh: scenario.minDetectableEffect + ciWidth,
-        alpha: scenario.alpha,
-        color: scenario.color.hex,
-      };
-    });
-  }, [scenarios, analysisType]);
+    return scenarios.map(scenario => ({
+      name: `${scenario.proteinCount.toLocaleString()} proteins`,
+      proteinCount: scenario.proteinCount,
+      effect: scenario.minDetectableEffect,
+      alpha: scenario.alpha,
+      color: scenario.color.hex,
+    }));
+  }, [scenarios]);
 
   // Generate power contour data (effect size vs sample size grid)
   const powerContourData = useMemo(() => {
     const data: Array<Record<string, number | string>> = [];
 
     // Define grid
-    const effectValues = analysisType === 'linear'
+    const effectValues = isBetaEffect
       ? [0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
       : [1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 2.5];
 
@@ -145,69 +207,11 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
     });
 
     return { data, sampleValues };
-  }, [scenarios, analysisType, isCox, decimals, calculatePower]);
-
-  // Custom tooltip for sample size curve
-  const SampleSizeTooltip = ({ active, payload, label }: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string; dataKey: string }>;
-    label?: number;
-  }) => {
-    if (!active || !payload || !payload.length) return null;
-
-    return (
-      <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
-        <p className="font-semibold text-gray-800 mb-2">
-          Target Power: {label}%
-        </p>
-        {payload.map((entry, index) => {
-          const proteinCount = parseInt(entry.dataKey.split('_')[1]);
-          return (
-            <p key={index} className="text-sm flex items-center gap-2">
-              <span
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: entry.color }}
-              />
-              <span className="text-gray-600">
-                {proteinCount.toLocaleString()} proteins:
-              </span>
-              <span className="font-medium" style={{ color: entry.color }}>
-                {isCox ? `${Math.round(entry.value)} events` : `n=${Math.round(entry.value).toLocaleString()}`}
-              </span>
-            </p>
-          );
-        })}
-      </div>
-    );
-  };
-
-  // Custom tooltip for forest plot
-  const ForestTooltip = ({ active, payload }: {
-    active?: boolean;
-    payload?: Array<{ payload: typeof forestPlotData[0] }>;
-  }) => {
-    if (!active || !payload || !payload.length) return null;
-    const data = payload[0].payload;
-
-    return (
-      <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
-        <p className="font-semibold text-gray-800">{data.name}</p>
-        <p className="text-sm text-gray-600">
-          Min Detectable {effectSymbol}: <span className="font-medium">{data.effect.toFixed(decimals)}</span>
-        </p>
-        <p className="text-xs text-gray-500">
-          α ≈ {data.alpha.toExponential(1)}
-        </p>
-        <p className="text-xs text-gray-400 mt-1">
-          95% CI: [{data.effectLow.toFixed(decimals)}, {data.effectHigh.toFixed(decimals)}]
-        </p>
-      </div>
-    );
-  };
+  }, [scenarios, isBetaEffect, isCox, decimals, calculatePower]);
 
   // Power status color
   const getPowerColor = (power: number): string => {
-    if (power >= 0.8) return '#10b981';
+    if (power >= targetPower) return '#10b981';
     if (power >= 0.5) return '#f59e0b';
     return '#ef4444';
   };
@@ -300,7 +304,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                   tick={{ fill: '#6b7280', fontSize: 11 }}
                 />
 
-                <Tooltip content={<SampleSizeTooltip />} />
+                <Tooltip content={<SampleSizeTooltip isCox={isCox} />} />
 
                 <Legend
                   verticalAlign="top"
@@ -377,7 +381,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
 
                 <XAxis
                   type="number"
-                  domain={analysisType === 'linear' ? [0, 'auto'] : [1, 'auto']}
+                  domain={isBetaEffect ? [0, 'auto'] : [1, 'auto']}
                   tickFormatter={(value) => value.toFixed(decimals)}
                   label={{
                     value: `Minimum Detectable ${effectLabel} (${effectSymbol})`,
@@ -395,11 +399,11 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                   width={110}
                 />
 
-                <Tooltip content={<ForestTooltip />} />
+                <Tooltip content={<ForestTooltip effectSymbol={effectSymbol} decimals={decimals} />} />
 
                 {/* Reference line at null effect */}
                 <ReferenceLine
-                  x={analysisType === 'linear' ? 0 : 1}
+                  x={isBetaEffect ? 0 : 1}
                   stroke="#9ca3af"
                   strokeWidth={2}
                   label={{
@@ -428,13 +432,6 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                   {forestPlotData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
-                  <ErrorBar
-                    dataKey="effectHigh"
-                    width={4}
-                    strokeWidth={2}
-                    stroke="#6b7280"
-                    direction="x"
-                  />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -496,11 +493,11 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
             <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded" style={{ backgroundColor: '#10b98133' }}></div>
-                <span className="text-green-600">≥80% adequate</span>
+                <span className="text-green-600">≥{(targetPower * 100).toFixed(0)}% meets target</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f59e0b33' }}></div>
-                <span className="text-amber-600">50-79% marginal</span>
+                <span className="text-amber-600">50%–{(targetPower * 100).toFixed(0)}% below target</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ef444433' }}></div>
