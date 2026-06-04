@@ -177,6 +177,11 @@ for (const b of [0.1, 0.25]) {
   const n = S.calculateLinearRequiredN(b, 0.8, 1.0, 0.05);
   ok(S.calculateLinearPower(b, n, 1.0, 0.05) >= 0.8, `Linear required-N round trip beta=${b} achieves >=80%`);
 }
+// Min-effect <-> power round trip
+for (const n of [100, 500]) {
+  const b = S.calculateLinearMinEffect(0.8, n, 1.0, 0.05);
+  close(S.calculateLinearPower(b, n, 1.0, 0.05), 0.8, 1e-6, `Linear min-effect round trip n=${n}`);
+}
 
 // ---------------------------------------------------------------------------
 console.log('\n6. Logistic regression');
@@ -199,6 +204,11 @@ close(ccPow, refPower(Math.log(1.5), Math.sqrt(1 / 200 + 1 / 400), 0.05), 1e-12,
 // Required N <-> power round trip
 const nLog = S.calculateLogisticRequiredN(1.5, 0.8, 0.2, 0.05);
 ok(S.calculateLogisticPower(1.5, nLog, 0.2, 0.05) >= 0.8, 'Logistic required-N round trip achieves >=80%');
+// Min-effect <-> power round trip
+for (const p of [0.1, 0.3]) {
+  const orMin = S.calculateLogisticMinEffect(0.8, 800, p, 0.05);
+  close(S.calculateLogisticPower(orMin, 800, p, 0.05), 0.8, 1e-6, `Logistic min-effect round trip p=${p}`);
+}
 // Case-control required TOTAL N (fixed controls-per-case ratio): independent
 // formula + round trip through the case-control power.
 for (const r of [1, 2, 4]) {
@@ -224,6 +234,11 @@ for (const n of [500, 1000]) {
 }
 const nPois = S.calculatePoissonRequiredN(1.5, 0.8, 0.1, 0.05);
 ok(S.calculatePoissonPower(1.5, nPois, 0.1, 0.05) >= 0.8, 'Poisson required-N round trip achieves >=80%');
+// Min-effect <-> power round trip
+for (const p of [0.1, 0.3]) {
+  const rrMin = S.calculatePoissonMinEffect(0.8, 800, p, 0.05);
+  close(S.calculatePoissonPower(rrMin, 800, p, 0.05), 0.8, 1e-6, `Poisson min-effect round trip p=${p}`);
+}
 
 // ---------------------------------------------------------------------------
 console.log('\n8. GEE / mixed effects');
@@ -247,6 +262,12 @@ ok(S.calculateGEE_Power(0.2, 1000, 10, 0.2, 1, 0.05) < S.calculateGEE_Power(0.2,
 const nGee = S.calculateGEE_RequiredN(0.2, 0.8, 5, 0.05, 1.0, 0.05);
 close(S.calculateGEE_RequiredClusters(0.2, 0.8, 5, 0.05, 1.0, 0.05), Math.ceil(nGee / 5), 0,
   'GEE required clusters = ceil(required N / cluster size)');
+// Required N <-> power and min-effect <-> power round trips
+ok(S.calculateGEE_Power(0.2, nGee, 5, 0.05, 1.0, 0.05) >= 0.8, 'GEE required-N round trip achieves >=80%');
+for (const m of [3, 10]) {
+  const bMin = S.calculateGEE_MinEffect(0.8, 1000, m, 0.05, 1.0, 0.05);
+  close(S.calculateGEE_Power(bMin, 1000, m, 0.05, 1.0, 0.05), 0.8, 1e-6, `GEE min-effect round trip m=${m}`);
+}
 
 // ---------------------------------------------------------------------------
 console.log('\n9. Covariate adjustment monotonicity');
