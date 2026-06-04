@@ -670,13 +670,6 @@ function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        <section className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
-          <strong>Public calculator notice.</strong> Use aggregate or synthetic planning assumptions only.
-          Do not paste patient identifiers, restricted research data, unpublished proprietary cohort details,
-          or confidential institutional information into this public demo. Calculations are methodological
-          estimates and are not medical, regulatory, or statistical-consulting advice.
-        </section>
-
         {/* Model Selection */}
         <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -1394,10 +1387,6 @@ function App() {
 
         {/* Methodology & References */}
         <References analysisType={analysisType} studyDesign={studyDesign} />
-
-        <footer className="mt-8 pt-6 pb-6 text-center text-xs text-slate-500 border-t border-slate-200">
-          <p>This is a synthetic public demo site for educational and reference purposes only. Not for clinical decision-making or real patient care.</p>
-        </footer>
       </main>
     </div>
   );
