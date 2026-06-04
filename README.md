@@ -95,11 +95,17 @@ control counts: σ = √((1/n_cases + 1/n_controls) / (1 − R²ₓ)).
 
 ```
 effect = log(RR)
-σ = √(1 / (n × p × (1 − R²ₓ)))     (conservative robust-variance approximation)
+σ = √(1 / (n × p × (1 − R²ₓ)))     (conservative naive-Poisson SE)
 
 where:
   p = outcome prevalence
 ```
+
+This uses the naive-Poisson information as a **conservative** standard error. The
+modified-Poisson robust (sandwich) SE for binary data is smaller — approximately
+√((1 − p) / (n × p × (1 − R²ₓ))) — so the tool slightly under-states power (and
+over-states the required sample size) for common outcomes; the two coincide as the
+outcome becomes rare (p → 0). This keeps planning estimates on the safe side.
 
 ### GEE / Mixed Effects (Liang & Zeger, 1986)
 

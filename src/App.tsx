@@ -19,6 +19,7 @@ import {
   calculateCoxRequiredEvents,
   calculateCoxSE,
   calculateCoxCaseCohortSE,
+  calculateCoxNestedCaseControlSE,
   calculateLinearPower,
   calculateLinearMinEffect,
   calculateLinearRequiredN,
@@ -26,6 +27,7 @@ import {
   calculateLogisticPower,
   calculateLogisticMinEffect,
   calculateLogisticRequiredN,
+  calculateLogisticCaseControlRequiredN,
   calculateLogisticSE,
   calculateLogisticCaseControlSE,
   calculatePoissonPower,
@@ -148,6 +150,16 @@ const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
     inputLabel: 'Target Beta (β)',
     inputDescription: '',
   },
+};
+
+// Two-sided Wald power from a log-scale effect (log HR/OR/RR) and its standard
+// error. Used where the SE is assembled in the component (e.g. the nested
+// case-control variance inflation) rather than inside a statistics helper.
+const powerFromSE = (logEffect: number, se: number, alpha: number): number => {
+  if (!isFinite(se) || se <= 0 || alpha <= 0 || alpha >= 1) return 0;
+  const zAlpha = normalQuantile(1 - alpha / 2);
+  const lambda = Math.abs(logEffect) / se;
+  return Math.min(Math.max(normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha), 0), 1);
 };
 
 interface SliderProps {
@@ -359,13 +371,25 @@ function App() {
   // Get current effect size config
   const effectConfig = EFFECT_SIZE_CONFIG[analysisType];
 
+  // Total participants for the current design, used as the "current" reference
+  // in the sample-size sensitivity views. Case-control / nested designs are sized
+  // by cases + controls rather than the cohort sample-size input.
+  const currentTotalSample =
+    studyDesign === 'case-control' || studyDesign === 'nested-case-control'
+      ? numCases + numControls
+      : sampleSize;
+
   // Helper function to calculate power for a given effect size and alpha
   const calculatePowerForEffect = useCallback((effect: number, alpha: number): number => {
     switch (analysisType) {
       case 'cox':
-        return studyDesign === 'case-cohort'
-          ? calculateCoxPower(effect, events, alpha, { subcohortSize, totalCohort }, covariateR2)
-          : calculateCoxPower(effect, events, alpha, undefined, covariateR2);
+        if (studyDesign === 'case-cohort') {
+          return calculateCoxPower(effect, events, alpha, { subcohortSize, totalCohort }, covariateR2);
+        }
+        if (studyDesign === 'nested-case-control') {
+          return powerFromSE(Math.log(effect), calculateCoxNestedCaseControlSE(events, matchingRatio, covariateR2), alpha);
+        }
+        return calculateCoxPower(effect, events, alpha, undefined, covariateR2);
       case 'linear':
         return calculateLinearPower(effect, sampleSize, residualSD, alpha, covariateR2);
       case 'logistic':
@@ -379,7 +403,7 @@ function App() {
       default:
         return 0;
     }
-  }, [analysisType, studyDesign, events, subcohortSize, totalCohort, covariateR2, sampleSize, residualSD, numCases, numControls, prevalence, clusterSize, icc]);
+  }, [analysisType, studyDesign, events, subcohortSize, totalCohort, covariateR2, matchingRatio, sampleSize, residualSD, numCases, numControls, prevalence, clusterSize, icc]);
 
   // Power as a function of the primary sample dimension (events for Cox, total
   // sample size otherwise), holding every other parameter fixed. Used by the
@@ -392,20 +416,21 @@ function App() {
           return calculateCoxPower(effect, dimension, alpha, { subcohortSize, totalCohort }, covariateR2);
         }
         if (studyDesign === 'nested-case-control') {
-          const se = calculateCoxSE(dimension, covariateR2) * Math.sqrt(1 + 1 / matchingRatio);
-          const zAlpha = normalQuantile(1 - alpha / 2);
-          const lambda = Math.abs(Math.log(effect)) / se;
-          return Math.min(Math.max(normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha), 0), 1);
+          return powerFromSE(Math.log(effect), calculateCoxNestedCaseControlSE(dimension, matchingRatio, covariateR2), alpha);
         }
         return calculateCoxPower(effect, dimension, alpha, undefined, covariateR2);
       case 'linear':
         return calculateLinearPower(effect, dimension, residualSD, alpha, covariateR2);
       case 'logistic':
-        // Case-control / nested designs are parameterized by the number of cases
-        // and controls, so the total sample size does not enter the calculation.
-        return (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
-          ? calculateLogisticPower(effect, 0, 0, alpha, { cases: numCases, controls: numControls }, covariateR2)
-          : calculateLogisticPower(effect, dimension, prevalence, alpha, undefined, covariateR2);
+        if (studyDesign === 'case-control' || studyDesign === 'nested-case-control') {
+          // Interpret the swept dimension as the TOTAL participants, split into
+          // cases and controls at the current ratio, so power scales with N.
+          const r = numControls / numCases;
+          const cases = dimension / (1 + r);
+          const controls = (dimension * r) / (1 + r);
+          return calculateLogisticPower(effect, 0, 0, alpha, { cases, controls }, covariateR2);
+        }
+        return calculateLogisticPower(effect, dimension, prevalence, alpha, undefined, covariateR2);
       case 'poisson':
         return calculatePoissonPower(effect, dimension, prevalence, alpha, covariateR2);
       case 'gee':
@@ -419,9 +444,15 @@ function App() {
   const calculateMinEffectForAlpha = useCallback((alpha: number): number => {
     switch (analysisType) {
       case 'cox':
-        return studyDesign === 'case-cohort'
-          ? calculateCoxMinEffect(targetPower, events, alpha, { subcohortSize, totalCohort }, covariateR2)
-          : calculateCoxMinEffect(targetPower, events, alpha, undefined, covariateR2);
+        if (studyDesign === 'case-cohort') {
+          return calculateCoxMinEffect(targetPower, events, alpha, { subcohortSize, totalCohort }, covariateR2);
+        }
+        if (studyDesign === 'nested-case-control') {
+          const se = calculateCoxNestedCaseControlSE(events, matchingRatio, covariateR2);
+          if (!isFinite(se) || alpha <= 0 || alpha >= 1 || targetPower <= 0 || targetPower >= 1) return Infinity;
+          return Math.exp((normalQuantile(1 - alpha / 2) + normalQuantile(targetPower)) * se);
+        }
+        return calculateCoxMinEffect(targetPower, events, alpha, undefined, covariateR2);
       case 'linear':
         return calculateLinearMinEffect(targetPower, sampleSize, residualSD, alpha, covariateR2);
       case 'logistic':
@@ -435,18 +466,34 @@ function App() {
       default:
         return Infinity;
     }
-  }, [analysisType, studyDesign, targetPower, events, subcohortSize, totalCohort, covariateR2, sampleSize, residualSD, numCases, numControls, prevalence, clusterSize, icc]);
+  }, [analysisType, studyDesign, targetPower, events, subcohortSize, totalCohort, covariateR2, matchingRatio, sampleSize, residualSD, numCases, numControls, prevalence, clusterSize, icc]);
 
-  // Helper function to calculate required sample/events for a given alpha
-  const calculateRequiredSampleForAlpha = useCallback((alpha: number): number | string => {
+  // Helper function to calculate required sample/events for a given alpha.
+  // Must stay consistent with the SE used for power / minimum-effect: in
+  // particular the case-cohort and nested-case-control variance inflation must
+  // be applied so the "required" number actually achieves the target power.
+  const calculateRequiredSampleForAlpha = useCallback((alpha: number): number => {
     switch (analysisType) {
-      case 'cox':
-        return calculateCoxRequiredEvents(effectSize, targetPower, alpha, covariateR2);
+      case 'cox': {
+        const base = calculateCoxRequiredEvents(effectSize, targetPower, alpha, covariateR2);
+        if (!isFinite(base)) return base;
+        if (studyDesign === 'case-cohort') {
+          const f = Math.min(1, subcohortSize / totalCohort); // VIF = 1/f
+          return Math.ceil(base / f);
+        }
+        if (studyDesign === 'nested-case-control') {
+          return Math.ceil(base * (1 + 1 / matchingRatio)); // VIF = (m+1)/m
+        }
+        return base;
+      }
       case 'linear':
         return calculateLinearRequiredN(effectSize, targetPower, residualSD, alpha, covariateR2);
       case 'logistic':
+        // Case-control / nested: required TOTAL participants at the current
+        // case:control ratio (varies with the multiple-testing alpha), not the
+        // static input counts.
         return (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
-          ? `${numCases}:${numControls}`
+          ? calculateLogisticCaseControlRequiredN(effectSize, targetPower, numControls / numCases, alpha, covariateR2)
           : calculateLogisticRequiredN(effectSize, targetPower, prevalence, alpha, covariateR2);
       case 'poisson':
         return calculatePoissonRequiredN(effectSize, targetPower, prevalence, alpha, covariateR2);
@@ -455,7 +502,7 @@ function App() {
       default:
         return Infinity;
     }
-  }, [analysisType, studyDesign, effectSize, targetPower, covariateR2, residualSD, numCases, numControls, prevalence, clusterSize, icc]);
+  }, [analysisType, studyDesign, effectSize, targetPower, covariateR2, residualSD, numCases, numControls, prevalence, clusterSize, icc, subcohortSize, totalCohort, matchingRatio]);
 
   // Calculate SE (standard error) - independent of alpha/protein count
   const standardError = useMemo(() => {
@@ -464,7 +511,7 @@ function App() {
         if (studyDesign === 'case-cohort') {
           return calculateCoxCaseCohortSE(events, subcohortSize, totalCohort, covariateR2);
         } else if (studyDesign === 'nested-case-control') {
-          return calculateCoxSE(events, covariateR2) * Math.sqrt(1 + 1/matchingRatio);
+          return calculateCoxNestedCaseControlSE(events, matchingRatio, covariateR2);
         }
         return calculateCoxSE(events, covariateR2);
       case 'linear':
@@ -484,15 +531,29 @@ function App() {
 
   // Helper functions for AdvancedVisualizations
   const calculateRequiredEventsForViz = useCallback((effect: number, alpha: number, power: number): number => {
-    return calculateCoxRequiredEvents(effect, power, alpha, covariateR2);
-  }, [covariateR2]);
+    const base = calculateCoxRequiredEvents(effect, power, alpha, covariateR2);
+    if (!isFinite(base)) return base;
+    // Inflate by the case-cohort / nested-case-control variance inflation factor
+    // so the curve matches the design-aware headline numbers.
+    if (studyDesign === 'case-cohort') {
+      const f = Math.min(1, subcohortSize / totalCohort); // VIF = 1/f
+      return Math.ceil(base / f);
+    }
+    if (studyDesign === 'nested-case-control') {
+      return Math.ceil(base * (1 + 1 / matchingRatio)); // VIF = (m+1)/m
+    }
+    return base;
+  }, [covariateR2, studyDesign, subcohortSize, totalCohort, matchingRatio]);
 
   const calculateRequiredSampleSizeForViz = useCallback((effect: number, alpha: number, power: number): number => {
     switch (analysisType) {
       case 'linear':
         return calculateLinearRequiredN(effect, power, residualSD, alpha, covariateR2);
       case 'logistic':
-        return calculateLogisticRequiredN(effect, power, prevalence, alpha, covariateR2);
+        // Case-control / nested: required TOTAL participants at the current ratio.
+        return (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
+          ? calculateLogisticCaseControlRequiredN(effect, power, numControls / numCases, alpha, covariateR2)
+          : calculateLogisticRequiredN(effect, power, prevalence, alpha, covariateR2);
       case 'poisson':
         return calculatePoissonRequiredN(effect, power, prevalence, alpha, covariateR2);
       case 'gee':
@@ -500,24 +561,7 @@ function App() {
       default:
         return Infinity;
     }
-  }, [analysisType, residualSD, prevalence, clusterSize, icc, covariateR2]);
-
-  const calculatePowerForViz = useCallback((effect: number, alpha: number, n: number): number => {
-    switch (analysisType) {
-      case 'cox':
-        return calculateCoxPower(effect, n, alpha, undefined, covariateR2);
-      case 'linear':
-        return calculateLinearPower(effect, n, residualSD, alpha, covariateR2);
-      case 'logistic':
-        return calculateLogisticPower(effect, n, prevalence, alpha, undefined, covariateR2);
-      case 'poisson':
-        return calculatePoissonPower(effect, n, prevalence, alpha, covariateR2);
-      case 'gee':
-        return calculateGEE_Power(effect, n, clusterSize, icc, residualSD, alpha, covariateR2);
-      default:
-        return 0;
-    }
-  }, [analysisType, residualSD, prevalence, clusterSize, icc, covariateR2]);
+  }, [analysisType, studyDesign, residualSD, prevalence, clusterSize, icc, covariateR2, numCases, numControls]);
 
   // Calculate results for each protein count scenario
   const scenarioResults = useMemo(() => {
@@ -1056,8 +1100,8 @@ function App() {
                 decimals={2}
                 description={
                   correctionMethod === 'fdr'
-                    ? 'Benjamini-Hochberg: Controls expected false discovery proportion'
-                    : 'Bonferroni: Controls probability of any false positive'
+                    ? 'Benjamini-Hochberg: power uses a conservative per-test α ≈ q/m (same as Bonferroni here; true BH power is typically higher)'
+                    : 'Bonferroni: controls the probability of any false positive (α/m per test)'
                 }
               />
             </div>
@@ -1280,7 +1324,7 @@ function App() {
           analysisType={analysisType}
           targetPower={targetPower}
           fdrQ={fdrQ}
-          currentSampleSize={sampleSize}
+          currentSampleSize={currentTotalSample}
           currentEvents={events}
           currentEffectSize={effectSize}
           proteinCounts={effectiveProteinCounts}
@@ -1305,10 +1349,10 @@ function App() {
           effectLabel={effectConfig.label}
           currentEffectSize={effectSize}
           currentEvents={events}
-          currentSampleSize={sampleSize}
+          currentSampleSize={currentTotalSample}
           calculateRequiredEvents={calculateRequiredEventsForViz}
           calculateRequiredSampleSize={calculateRequiredSampleSizeForViz}
-          calculatePower={calculatePowerForViz}
+          calculatePower={calculatePowerAtSampleSize}
         />
 
         {/* Export Panel */}

@@ -72,9 +72,9 @@ console.log('\n0. Module surface');
 console.log('-'.repeat(50));
 [
   'normalCDF', 'normalQuantile', 'calculateEffectiveAlpha',
-  'calculateCoxSE', 'calculateCoxCaseCohortSE', 'calculateCoxPower', 'calculateCoxMinEffect', 'calculateCoxRequiredEvents',
+  'calculateCoxSE', 'calculateCoxCaseCohortSE', 'calculateCoxNestedCaseControlSE', 'calculateCoxPower', 'calculateCoxMinEffect', 'calculateCoxRequiredEvents',
   'calculateLinearSE', 'calculateLinearPower', 'calculateLinearMinEffect', 'calculateLinearRequiredN',
-  'calculateLogisticSE', 'calculateLogisticCaseControlSE', 'calculateLogisticPower', 'calculateLogisticMinEffect', 'calculateLogisticRequiredN',
+  'calculateLogisticSE', 'calculateLogisticCaseControlSE', 'calculateLogisticPower', 'calculateLogisticMinEffect', 'calculateLogisticRequiredN', 'calculateLogisticCaseControlRequiredN',
   'calculatePoissonSE', 'calculatePoissonPower', 'calculatePoissonMinEffect', 'calculatePoissonRequiredN',
   'calculateDesignEffect', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN', 'calculateGEE_RequiredClusters',
   'orToRR', 'rrToOR', 'r2ToF2',
@@ -149,6 +149,18 @@ ok(S.calculateCoxPower(1.5, 100, 0.05, { subcohortSize: 5000, totalCohort: 1000 
    <= S.calculateCoxPower(1.5, 100, 0.05) + 1e-12,
    'GUARD: case-cohort power never exceeds full-cohort power');
 
+console.log('\n4b. Cox nested case-control SE (matching inflation)');
+console.log('-'.repeat(50));
+for (const m of [1, 2, 4, 10]) {
+  const ref = (1 / Math.sqrt(100)) * Math.sqrt(1 + 1 / m); // VIF = (m+1)/m
+  close(S.calculateCoxNestedCaseControlSE(100, m), ref, 1e-12, `nested SE d=100, m=${m} = (1/sqrt(d))*sqrt(1+1/m)`);
+}
+ok(S.calculateCoxNestedCaseControlSE(100, 4) > S.calculateCoxSE(100), 'nested SE > full-cohort SE');
+ok(S.calculateCoxNestedCaseControlSE(100, 1000) < S.calculateCoxNestedCaseControlSE(100, 4),
+  'nested SE decreases toward full cohort as controls/case grows');
+close(S.calculateCoxNestedCaseControlSE(100, 4, 0.2), (1 / Math.sqrt(80)) * Math.sqrt(1.25), 1e-12,
+  'nested SE honors covariate R^2');
+
 // ---------------------------------------------------------------------------
 console.log('\n5. Linear regression');
 console.log('-'.repeat(50));
@@ -187,6 +199,16 @@ close(ccPow, refPower(Math.log(1.5), Math.sqrt(1 / 200 + 1 / 400), 0.05), 1e-12,
 // Required N <-> power round trip
 const nLog = S.calculateLogisticRequiredN(1.5, 0.8, 0.2, 0.05);
 ok(S.calculateLogisticPower(1.5, nLog, 0.2, 0.05) >= 0.8, 'Logistic required-N round trip achieves >=80%');
+// Case-control required TOTAL N (fixed controls-per-case ratio): independent
+// formula + round trip through the case-control power.
+for (const r of [1, 2, 4]) {
+  const N = S.calculateLogisticCaseControlRequiredN(1.5, 0.8, r, 0.05);
+  const refN = Math.ceil(Math.pow((1 + r) * (ZQ(0.975) + ZQ(0.8)) / Math.log(1.5), 2) / r);
+  close(N, refN, 0, `Case-control required N matches independent formula (r=${r})`);
+  const ccPower = S.calculateLogisticPower(1.5, 0, 0, 0.05, { cases: N / (1 + r), controls: (N * r) / (1 + r) });
+  ok(ccPower >= 0.8 && ccPower < 0.82, `Case-control required-N round trip ~80% (r=${r}, got ${(ccPower * 100).toFixed(1)}%)`);
+}
+ok(!Number.isFinite(S.calculateLogisticCaseControlRequiredN(1.0, 0.8, 2, 0.05)), 'Case-control required N at OR=1 -> Infinity');
 
 // ---------------------------------------------------------------------------
 console.log('\n7. Modified Poisson (relative risk)');

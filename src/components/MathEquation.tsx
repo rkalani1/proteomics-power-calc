@@ -98,11 +98,12 @@ const FORMULA_CONFIGS: Record<AnalysisType, {
     minEffectFormula: String.raw`\text{RR}_{\min} = \exp\left( (z_{1-\alpha/2} + z_{\beta}) \cdot \sigma \right)`,
     minEffectLabel: 'Minimum Detectable Relative Risk',
     definitions: String.raw`\begin{aligned}
-    \sigma &= \sqrt{\frac{1}{n \cdot p \cdot (1 - R^2_x)}} \quad \text{(robust variance with covariate adjustment)} \\[0.5em]
+    \sigma &= \sqrt{\frac{1}{n \cdot p \cdot (1 - R^2_x)}} \quad \text{(conservative large-sample SE; covariate-adjusted)} \\[0.5em]
     n &= \text{sample size} \\[0.5em]
     p &= \text{outcome prevalence} \\[0.5em]
     R^2_x &= \text{proportion of protein variance explained by covariates} \\[0.5em]
-    \Phi(z) &= P(Z \leq z) \text{ for } Z \sim N(0,1) \quad \text{(standard normal CDF)}
+    \Phi(z) &= P(Z \leq z) \text{ for } Z \sim N(0,1) \quad \text{(standard normal CDF)} \\[0.5em]
+    &\text{Note: the modified-Poisson robust SE } \sqrt{\tfrac{1-p}{n p}} \text{ is smaller, so this is conservative.}
     \end{aligned}`,
   },
   gee: {

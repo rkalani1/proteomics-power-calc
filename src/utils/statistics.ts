@@ -237,6 +237,26 @@ export const calculateCoxCaseCohortSE = (
 };
 
 /**
+ * Calculate SE for Cox regression in a nested case-control design.
+ *
+ * Relative to a full-cohort analysis the variance is inflated by (m + 1) / m,
+ * where m is the number of controls matched per case (Ury, 1975), so the SE is
+ * multiplied by √(1 + 1/m). With m → ∞ this approaches the full-cohort SE.
+ *
+ * @param events - Number of cases (events)
+ * @param controlsPerCase - Matched controls per case (m)
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
+ */
+export const calculateCoxNestedCaseControlSE = (
+  events: number,
+  controlsPerCase: number,
+  covariateR2: number = 0
+): number => {
+  if (events <= 0 || controlsPerCase <= 0) return Infinity;
+  return calculateCoxSE(events, covariateR2) * Math.sqrt(1 + 1 / controlsPerCase);
+};
+
+/**
  * Calculate power for Cox regression (two-sided test)
  * Power = Φ(|log(HR)|/σ - z_{1-α/2}) + Φ(-|log(HR)|/σ - z_{1-α/2})
  *
@@ -615,13 +635,56 @@ export const calculateLogisticRequiredN = (
   return Math.ceil(n);
 };
 
+/**
+ * Required TOTAL participants for a case-control (or nested-case-control)
+ * logistic study to detect oddsRatio at targetPower, holding the
+ * controls-per-case ratio (r) fixed.
+ *
+ * Inverts the case-control SE √((1/cases + 1/controls) / (1 - R²_x)) with
+ * cases = N/(1+r) and controls = N·r/(1+r):
+ *   N = ((1 + r)·(z_{1-α/2} + z_β) / |log OR|)² / (r · (1 - R²_x))
+ *
+ * @param oddsRatio - Target odds ratio to detect
+ * @param targetPower - Desired statistical power
+ * @param controlsPerCase - Number of controls per case (r = controls / cases)
+ * @param alpha - Significance level
+ * @param covariateR2 - R² of protein ~ covariates (default 0)
+ */
+export const calculateLogisticCaseControlRequiredN = (
+  oddsRatio: number,
+  targetPower: number,
+  controlsPerCase: number,
+  alpha: number,
+  covariateR2: number = 0
+): number => {
+  if (oddsRatio <= 0 || oddsRatio === 1 || controlsPerCase <= 0 ||
+      targetPower <= 0 || targetPower >= 1 || alpha <= 0 || alpha >= 1) {
+    return Infinity;
+  }
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
+
+  const r = controlsPerCase;
+  const logOR = Math.log(oddsRatio);
+  const zAlpha = normalQuantile(1 - alpha / 2);
+  const zBeta = normalQuantile(targetPower);
+  const n = Math.pow((1 + r) * (zAlpha + zBeta) / Math.abs(logOR), 2) / (r * (1 - covariateR2));
+
+  return Math.ceil(n);
+};
+
 // ============================================================================
 // Poisson/Log-binomial Regression (Relative Risk)
 // ============================================================================
 
 /**
- * Calculate SE for Poisson regression log(RR)
- * For modified Poisson with robust variance
+ * Calculate SE for Poisson regression log(RR).
+ *
+ * Uses the naive-Poisson information SE = √(1 / (n·p·(1 - R²_x))) as a
+ * CONSERVATIVE standard error. The modified-Poisson robust (sandwich) SE for
+ * binary data is smaller — approximately √((1 - p) / (n·p·(1 - R²_x))) — so this
+ * slightly under-states power (over-states required N) for common outcomes and
+ * coincides with the robust SE as p → 0. The conservative choice keeps planning
+ * estimates on the safe side. See Zou (2004) for the robust-variance estimator.
  *
  * @param sampleSize - Total sample size
  * @param prevalence - Outcome prevalence
