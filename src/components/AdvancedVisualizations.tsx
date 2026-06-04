@@ -11,7 +11,6 @@ import {
   Legend,
   ReferenceLine,
   ResponsiveContainer,
-  ErrorBar,
   Cell,
 } from 'recharts';
 
@@ -49,8 +48,6 @@ interface ForestDatum {
   name: string;
   proteinCount: number;
   effect: number;
-  effectLow: number;
-  effectHigh: number;
   alpha: number;
   color: string;
 }
@@ -109,9 +106,6 @@ const ForestTooltip: React.FC<{
       <p className="text-xs text-gray-500">
         α ≈ {data.alpha.toExponential(1)}
       </p>
-      <p className="text-xs text-gray-400 mt-1">
-        95% CI: [{data.effectLow.toFixed(decimals)}, {data.effectHigh.toFixed(decimals)}]
-      </p>
     </div>
   );
 };
@@ -151,12 +145,14 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
       const point: Record<string, number> = { power: power * 100 };
 
       scenarios.forEach(scenario => {
-        if (isCox) {
-          const events = calculateRequiredEvents(currentEffectSize, scenario.alpha, power);
-          point[`events_${scenario.proteinCount}`] = Math.min(events, 5000);
-        } else {
-          const n = calculateRequiredSampleSize(currentEffectSize, scenario.alpha, power);
-          point[`n_${scenario.proteinCount}`] = Math.min(n, 50000);
+        // Plot the true required events / sample size (no display cap, so the
+        // tooltip never reports a clamped number). Non-finite results (e.g. at
+        // the null effect) are omitted so the line simply breaks.
+        const required = isCox
+          ? calculateRequiredEvents(currentEffectSize, scenario.alpha, power)
+          : calculateRequiredSampleSize(currentEffectSize, scenario.alpha, power);
+        if (Number.isFinite(required)) {
+          point[`${isCox ? 'events' : 'n'}_${scenario.proteinCount}`] = required;
         }
       });
 
@@ -164,26 +160,18 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
     });
   }, [scenarios, currentEffectSize, isCox, calculateRequiredEvents, calculateRequiredSampleSize]);
 
-  // Generate forest plot data
+  // Generate forest plot data. The minimum detectable effect is a single
+  // computed threshold (not an estimate with sampling error), so it carries no
+  // confidence interval — only the point value per scenario is shown.
   const forestPlotData = useMemo(() => {
-    return scenarios.map(scenario => {
-      const baseEffect = analysisType === 'linear' ? 0 : 1;
-      const effectRange = scenario.minDetectableEffect - baseEffect;
-
-      // Calculate confidence interval approximation (±15% of effect range for visualization)
-      const ciWidth = effectRange * 0.15;
-
-      return {
-        name: `${scenario.proteinCount.toLocaleString()} proteins`,
-        proteinCount: scenario.proteinCount,
-        effect: scenario.minDetectableEffect,
-        effectLow: scenario.minDetectableEffect - ciWidth,
-        effectHigh: scenario.minDetectableEffect + ciWidth,
-        alpha: scenario.alpha,
-        color: scenario.color.hex,
-      };
-    });
-  }, [scenarios, analysisType]);
+    return scenarios.map(scenario => ({
+      name: `${scenario.proteinCount.toLocaleString()} proteins`,
+      proteinCount: scenario.proteinCount,
+      effect: scenario.minDetectableEffect,
+      alpha: scenario.alpha,
+      color: scenario.color.hex,
+    }));
+  }, [scenarios]);
 
   // Generate power contour data (effect size vs sample size grid)
   const powerContourData = useMemo(() => {
@@ -441,13 +429,6 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                   {forestPlotData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
-                  <ErrorBar
-                    dataKey="effectHigh"
-                    width={4}
-                    strokeWidth={2}
-                    stroke="#6b7280"
-                    direction="x"
-                  />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

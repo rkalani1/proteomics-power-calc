@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { type CorrectionMethod } from '../utils/statistics';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
 type StudyDesign = 'cohort' | 'case-control' | 'cross-sectional' | 'case-cohort' | 'nested-case-control';
@@ -18,12 +19,19 @@ interface ExportPanelProps {
   effectSize: number;
   targetPower: number;
   fdrQ: number;
+  correctionMethod: CorrectionMethod;
   sampleSize: number;
   events: number;
   prevalence: number;
   residualSD: number;
   numCases: number;
   numControls: number;
+  subcohortSize: number;
+  totalCohort: number;
+  matchingRatio: number;
+  clusterSize: number;
+  icc: number;
+  covariateR2: number;
   effectSymbol: string;
   effectLabel: string;
   tableData: Array<Record<string, number>>;
@@ -42,17 +50,48 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
   effectSize,
   targetPower,
   fdrQ,
+  correctionMethod,
   sampleSize,
   events,
   prevalence,
   residualSD,
   numCases,
   numControls,
+  subcohortSize,
+  totalCohort,
+  matchingRatio,
+  clusterSize,
+  icc,
+  covariateR2,
   effectSymbol,
   effectLabel,
   tableData,
 }) => {
   const [isExporting, setIsExporting] = useState(false);
+
+  // Correction-method-aware labels (so an exported figure never mislabels a
+  // Bonferroni run as FDR) and whether a cohort sample size is meaningful.
+  const isFdr = correctionMethod === 'fdr';
+  const thresholdLabel = isFdr ? 'FDR Threshold (q)' : 'FWER Alpha (α)';
+  const correctionName = isFdr ? 'Benjamini-Hochberg FDR' : 'Bonferroni FWER';
+  const isCaseControl = studyDesign === 'case-control' || studyDesign === 'nested-case-control';
+  const showSampleSize = analysisType !== 'cox' && !isCaseControl;
+
+  // Design-specific parameters that enter the standard error, as [label, value]
+  // pairs, so an exported summary fully documents (and reproduces) the analysis.
+  const designParams: Array<[string, string]> = [];
+  if (analysisType === 'cox' && studyDesign === 'case-cohort') {
+    designParams.push(['Subcohort Size', `${subcohortSize}`], ['Total Cohort Size', `${totalCohort}`]);
+  }
+  if (analysisType === 'cox' && studyDesign === 'nested-case-control') {
+    designParams.push(['Controls per Case', `${matchingRatio}`]);
+  }
+  if (analysisType === 'gee') {
+    designParams.push(['Cluster Size (m)', `${clusterSize}`], ['Intraclass Correlation (ICC)', `${icc}`]);
+  }
+  if (covariateR2 > 0) {
+    designParams.push(['Covariate R² (protein ~ covariates)', `${covariateR2}`]);
+  }
 
   // Format analysis type for display
   const formatAnalysisType = (type: AnalysisType): string => {
@@ -92,16 +131,16 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     lines.push(`Analysis Type,${formatAnalysisType(analysisType)}`);
     lines.push(`Study Design,${formatStudyDesign(studyDesign)}`);
     lines.push(`Target Power,${(targetPower * 100).toFixed(0)}%`);
-    lines.push(`FDR Threshold (q),${fdrQ}`);
+    lines.push(`${thresholdLabel},${fdrQ}`);
     lines.push(`${effectLabel} (${effectSymbol}),${effectSize}`);
 
     if (analysisType === 'cox') {
       lines.push(`Number of Events,${events}`);
-    } else {
+    } else if (showSampleSize) {
       lines.push(`Sample Size,${sampleSize}`);
     }
 
-    if (analysisType === 'linear') {
+    if (analysisType === 'linear' || analysisType === 'gee') {
       lines.push(`Residual SD,${residualSD}`);
     }
 
@@ -114,6 +153,8 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
       lines.push(`Number of Cases,${numCases}`);
       lines.push(`Number of Controls,${numControls}`);
     }
+
+    designParams.forEach(([label, value]) => lines.push(`${label},${value}`));
 
     lines.push('');
 
@@ -221,12 +262,13 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     <tr><td>Analysis Type</td><td>${formatAnalysisType(analysisType)}</td></tr>
     <tr><td>Study Design</td><td>${formatStudyDesign(studyDesign)}</td></tr>
     <tr><td>Target Power</td><td>${(targetPower * 100).toFixed(0)}%</td></tr>
-    <tr><td>FDR Threshold (q)</td><td>${fdrQ}</td></tr>
+    <tr><td>${thresholdLabel}</td><td>${fdrQ}</td></tr>
     <tr><td>${effectLabel}</td><td>${effectSize}</td></tr>
-    ${analysisType === 'cox' ? `<tr><td>Number of Events</td><td>${events}</td></tr>` : `<tr><td>Sample Size</td><td>${sampleSize.toLocaleString()}</td></tr>`}
-    ${analysisType === 'linear' ? `<tr><td>Residual SD</td><td>${residualSD}</td></tr>` : ''}
+    ${analysisType === 'cox' ? `<tr><td>Number of Events</td><td>${events}</td></tr>` : showSampleSize ? `<tr><td>Sample Size</td><td>${sampleSize.toLocaleString()}</td></tr>` : ''}
+    ${analysisType === 'linear' || analysisType === 'gee' ? `<tr><td>Residual SD</td><td>${residualSD}</td></tr>` : ''}
     ${(analysisType === 'logistic' || analysisType === 'poisson') && studyDesign !== 'case-control' && studyDesign !== 'nested-case-control' ? `<tr><td>Outcome Prevalence</td><td>${(prevalence * 100).toFixed(1)}%</td></tr>` : ''}
     ${studyDesign === 'case-control' || studyDesign === 'nested-case-control' ? `<tr><td>Cases / Controls</td><td>${numCases} / ${numControls}</td></tr>` : ''}
+    ${designParams.map(([label, value]) => `<tr><td>${label}</td><td>${value}</td></tr>`).join('')}
   </table>
   <h2>Power Analysis Results</h2>
   <table>
@@ -239,7 +281,7 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
     <tbody>${tableRows}</tbody>
   </table>
   <div class="footer">
-    <p><strong>Note:</strong> This analysis assumes the predictor variable (protein level) is standardized with unit variance. Power calculations are based on the Wald test framework with Benjamini-Hochberg FDR correction for multiple testing.</p>
+    <p><strong>Note:</strong> This analysis assumes the predictor variable (protein level) is standardized with unit variance. Power calculations use the two-sided Wald-test framework with ${correctionName} correction for multiple testing (effective per-test &alpha; &asymp; threshold / number of proteins).</p>
     <p>Generated by Proteomics Power Calculator</p>
   </div>
   <script>window.onload = function() { window.print(); };</script>
@@ -275,9 +317,13 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
         '',
         `Analysis: ${formatAnalysisType(analysisType)} (${formatStudyDesign(studyDesign)})`,
         `Target Power: ${(targetPower * 100).toFixed(0)}%`,
-        `FDR: q=${fdrQ}`,
+        `${correctionName}: ${isFdr ? 'q' : 'α'}=${fdrQ}`,
         `Effect Size: ${effectSymbol}=${effectSize}`,
-        analysisType === 'cox' ? `Events: ${events}` : `Sample Size: ${sampleSize}`,
+        analysisType === 'cox'
+          ? `Events: ${events}`
+          : isCaseControl
+            ? `Cases/Controls: ${numCases}/${numControls}`
+            : `Sample Size: ${sampleSize}`,
         '',
         'RESULTS:',
         ...scenarios.map(s =>

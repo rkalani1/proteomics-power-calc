@@ -1191,7 +1191,7 @@ function App() {
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="flex items-center gap-4 text-sm text-gray-600">
               <span className="font-medium">
-                {analysisType === 'linear' ? 'SE(β)' : `SE(log ${effectConfig.symbol})`}:
+                {analysisType === 'linear' || analysisType === 'gee' ? 'SE(β)' : `SE(log ${effectConfig.symbol})`}:
               </span>
               <span className="text-purple-600 font-semibold">
                 {isFinite(standardError) ? standardError.toFixed(4) : '∞'}
@@ -1201,6 +1201,8 @@ function App() {
                   ? `(${events} events)`
                   : analysisType === 'linear'
                   ? `(n = ${sampleSize})`
+                  : analysisType === 'gee'
+                  ? `(n = ${sampleSize}, m = ${clusterSize}, ICC = ${icc.toFixed(2)}, DE = ${calculateDesignEffect(clusterSize, icc).toFixed(2)})`
                   : (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
                   ? `(${numCases} cases, ${numControls} controls)`
                   : `(n = ${sampleSize}, prev = ${(prevalence * 100).toFixed(0)}%)`}
@@ -1367,15 +1369,22 @@ function App() {
           events={events}
           sampleSize={sampleSize}
           fdrQ={fdrQ}
+          correctionMethod={correctionMethod}
           prevalence={prevalence}
           residualSD={residualSD}
           numCases={numCases}
           numControls={numControls}
+          subcohortSize={subcohortSize}
+          totalCohort={totalCohort}
+          matchingRatio={matchingRatio}
+          clusterSize={clusterSize}
+          icc={icc}
+          covariateR2={covariateR2}
           tableData={tableData}
         />
 
         {/* Power Formula Display */}
-        <PowerFormula analysisType={analysisType} />
+        <PowerFormula analysisType={analysisType} studyDesign={studyDesign} />
 
         {/* Methodology & References */}
         <References analysisType={analysisType} studyDesign={studyDesign} />
