@@ -63,7 +63,7 @@ const References: React.FC<ReferencesProps> = ({ analysisType, studyDesign }) =>
       volume: '57(1)',
       pages: '289-300',
       doi: '10.1111/j.2517-6161.1995.tb02031.x',
-      analysisTypes: ['cox', 'linear', 'logistic', 'poisson'],
+      analysisTypes: ['cox', 'linear', 'logistic', 'poisson', 'gee'],
     },
     {
       id: 4,
@@ -122,7 +122,7 @@ const References: React.FC<ReferencesProps> = ({ analysisType, studyDesign }) =>
       volume: '64(3)',
       pages: '479-498',
       doi: '10.1111/1467-9868.00346',
-      analysisTypes: ['cox', 'linear', 'logistic', 'poisson'],
+      analysisTypes: ['cox', 'linear', 'logistic', 'poisson', 'gee'],
     },
     {
       id: 9,
@@ -133,7 +133,7 @@ const References: React.FC<ReferencesProps> = ({ analysisType, studyDesign }) =>
       volume: '33(11)',
       pages: '1946-1978',
       doi: '10.1002/sim.6082',
-      analysisTypes: ['cox', 'linear', 'logistic', 'poisson'],
+      analysisTypes: ['cox', 'linear', 'logistic', 'poisson', 'gee'],
     },
     {
       id: 10,

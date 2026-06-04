@@ -80,8 +80,15 @@ for (const analysisType of ['cox', 'linear', 'logistic', 'poisson', 'gee']) {
     // SSR inserts a comment node between {percentage} and the literal '%', so the
     // injected power (0.73 -> "73") is not contiguous with '%'. Check for "73".
     const renders = html.includes('Power Sensitivity') && html.includes('>73<');
+    // GEE/linear are additive β models: effect-size headers must be β values
+    // (e.g. 0.05), not the ratio values (e.g. 1.1) used by Cox/logistic/Poisson.
+    const isBeta = analysisType === 'gee' || analysisType === 'linear';
+    const effectHeadersOk = isBeta
+      ? html.includes('0.05') && !html.includes('=1.1')
+      : html.includes('1.1');
     console.log(`  ${renders ? '✓' : '✗'} PowerByProteinsChart renders for ${analysisType} (injected non-zero power shown)`);
-    if (!renders) failed = true;
+    console.log(`  ${effectHeadersOk ? '✓' : '✗'} ${analysisType} shows ${isBeta ? 'β' : 'ratio'} effect headers`);
+    if (!renders || !effectHeadersOk) failed = true;
   } catch (err) {
     console.error(`  ✗ PowerByProteinsChart threw for ${analysisType}:`);
     console.error(err && err.stack ? err.stack : err);
