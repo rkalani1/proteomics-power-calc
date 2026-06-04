@@ -224,10 +224,14 @@ export const calculateCoxCaseCohortSE = (
   totalCohort: number,
   covariateR2: number = 0
 ): number => {
-  if (events <= 0 || subcohortSize <= 0) return Infinity;
+  if (events <= 0 || subcohortSize <= 0 || totalCohort <= 0) return Infinity;
   if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
-  const samplingFraction = subcohortSize / totalCohort;
-  // Variance inflation factor for case-cohort design
+  // Sampling fraction is bounded to (0, 1]: a subcohort cannot exceed the full
+  // cohort. Clamping prevents a nonsensical variance *deflation* (and thus an
+  // overstated power) if the user enters subcohortSize >= totalCohort.
+  const samplingFraction = Math.min(1, subcohortSize / totalCohort);
+  // Variance inflation factor for case-cohort design (>= 1; equals 1 at f = 1,
+  // i.e. when the subcohort is the full cohort).
   const vif = 1 + (1 - samplingFraction) / samplingFraction;
   return Math.sqrt(vif) / Math.sqrt(events * (1 - covariateR2));
 };

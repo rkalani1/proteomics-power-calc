@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Transient test artifacts (smoke-test bundle)
+.smoke-app.bundle.*.cjs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

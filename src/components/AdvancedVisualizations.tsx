@@ -45,6 +45,77 @@ interface AdvancedVisualizationsProps {
   calculatePower: (effect: number, alpha: number, n: number) => number;
 }
 
+interface ForestDatum {
+  name: string;
+  proteinCount: number;
+  effect: number;
+  effectLow: number;
+  effectHigh: number;
+  alpha: number;
+  color: string;
+}
+
+// Tooltips for the advanced visualizations. Defined at module scope to keep a
+// stable component identity across re-renders.
+const SampleSizeTooltip: React.FC<{
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string; dataKey: string }>;
+  label?: number;
+  isCox: boolean;
+}> = ({ active, payload, label, isCox }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  return (
+    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
+      <p className="font-semibold text-gray-800 mb-2">
+        Target Power: {label}%
+      </p>
+      {payload.map((entry, index) => {
+        const proteinCount = parseInt(entry.dataKey.split('_')[1]);
+        return (
+          <p key={index} className="text-sm flex items-center gap-2">
+            <span
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-gray-600">
+              {proteinCount.toLocaleString()} proteins:
+            </span>
+            <span className="font-medium" style={{ color: entry.color }}>
+              {isCox ? `${Math.round(entry.value)} events` : `n=${Math.round(entry.value).toLocaleString()}`}
+            </span>
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
+const ForestTooltip: React.FC<{
+  active?: boolean;
+  payload?: Array<{ payload: ForestDatum }>;
+  effectSymbol: string;
+  decimals: number;
+}> = ({ active, payload, effectSymbol, decimals }) => {
+  if (!active || !payload || !payload.length) return null;
+  const data = payload[0].payload;
+
+  return (
+    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
+      <p className="font-semibold text-gray-800">{data.name}</p>
+      <p className="text-sm text-gray-600">
+        Min Detectable {effectSymbol}: <span className="font-medium">{data.effect.toFixed(decimals)}</span>
+      </p>
+      <p className="text-xs text-gray-500">
+        α ≈ {data.alpha.toExponential(1)}
+      </p>
+      <p className="text-xs text-gray-400 mt-1">
+        95% CI: [{data.effectLow.toFixed(decimals)}, {data.effectHigh.toFixed(decimals)}]
+      </p>
+    </div>
+  );
+};
+
 /**
  * AdvancedVisualizations Component
  *
@@ -147,64 +218,6 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
     return { data, sampleValues };
   }, [scenarios, analysisType, isCox, decimals, calculatePower]);
 
-  // Custom tooltip for sample size curve
-  const SampleSizeTooltip = ({ active, payload, label }: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string; dataKey: string }>;
-    label?: number;
-  }) => {
-    if (!active || !payload || !payload.length) return null;
-
-    return (
-      <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
-        <p className="font-semibold text-gray-800 mb-2">
-          Target Power: {label}%
-        </p>
-        {payload.map((entry, index) => {
-          const proteinCount = parseInt(entry.dataKey.split('_')[1]);
-          return (
-            <p key={index} className="text-sm flex items-center gap-2">
-              <span
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: entry.color }}
-              />
-              <span className="text-gray-600">
-                {proteinCount.toLocaleString()} proteins:
-              </span>
-              <span className="font-medium" style={{ color: entry.color }}>
-                {isCox ? `${Math.round(entry.value)} events` : `n=${Math.round(entry.value).toLocaleString()}`}
-              </span>
-            </p>
-          );
-        })}
-      </div>
-    );
-  };
-
-  // Custom tooltip for forest plot
-  const ForestTooltip = ({ active, payload }: {
-    active?: boolean;
-    payload?: Array<{ payload: typeof forestPlotData[0] }>;
-  }) => {
-    if (!active || !payload || !payload.length) return null;
-    const data = payload[0].payload;
-
-    return (
-      <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
-        <p className="font-semibold text-gray-800">{data.name}</p>
-        <p className="text-sm text-gray-600">
-          Min Detectable {effectSymbol}: <span className="font-medium">{data.effect.toFixed(decimals)}</span>
-        </p>
-        <p className="text-xs text-gray-500">
-          α ≈ {data.alpha.toExponential(1)}
-        </p>
-        <p className="text-xs text-gray-400 mt-1">
-          95% CI: [{data.effectLow.toFixed(decimals)}, {data.effectHigh.toFixed(decimals)}]
-        </p>
-      </div>
-    );
-  };
-
   // Power status color
   const getPowerColor = (power: number): string => {
     if (power >= 0.8) return '#10b981';
@@ -300,7 +313,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                   tick={{ fill: '#6b7280', fontSize: 11 }}
                 />
 
-                <Tooltip content={<SampleSizeTooltip />} />
+                <Tooltip content={<SampleSizeTooltip isCox={isCox} />} />
 
                 <Legend
                   verticalAlign="top"
@@ -395,7 +408,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                   width={110}
                 />
 
-                <Tooltip content={<ForestTooltip />} />
+                <Tooltip content={<ForestTooltip effectSymbol={effectSymbol} decimals={decimals} />} />
 
                 {/* Reference line at null effect */}
                 <ReferenceLine

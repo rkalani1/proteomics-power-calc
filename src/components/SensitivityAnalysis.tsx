@@ -26,8 +26,45 @@ interface SensitivityAnalysisProps {
   effectSymbol: string;
   effectLabel: string;
   calculatePowerForEffect: (effect: number, alpha: number) => number;
+  /** Design-aware power as a function of the swept sample dimension
+   * (events for Cox, total sample size otherwise). */
+  calculatePowerAtSampleSize: (effect: number, alpha: number, dimension: number) => number;
   correctionMethod?: CorrectionMethod;
 }
+
+// Tooltip for the sensitivity curves. Defined at module scope to keep a stable
+// component identity across re-renders.
+const SensitivityTooltip: React.FC<{
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: number;
+  axisLabel: string;
+  selectedVariable: SensitivityVariable;
+}> = ({ active, payload, label, axisLabel, selectedVariable }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  return (
+    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
+      <p className="font-semibold text-gray-800 mb-2">
+        {axisLabel}: {selectedVariable === 'effectSize'
+          ? Number(label).toFixed(2)
+          : Number(label).toLocaleString()}
+      </p>
+      {payload.map((entry, index) => (
+        <p key={index} className="text-sm flex items-center gap-2">
+          <span
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-gray-600">{entry.name}:</span>
+          <span className="font-medium" style={{ color: entry.color }}>
+            {(entry.value * 100).toFixed(1)}%
+          </span>
+        </p>
+      ))}
+    </div>
+  );
+};
 
 /**
  * SensitivityAnalysis Component
@@ -46,6 +83,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
   effectSymbol,
   effectLabel,
   calculatePowerForEffect,
+  calculatePowerAtSampleSize,
   correctionMethod = 'fdr',
 }) => {
   const [selectedVariable, setSelectedVariable] = useState<SensitivityVariable>(
@@ -58,18 +96,14 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
 
     switch (selectedVariable) {
       case 'sampleSize': {
-        // Vary sample size from 100 to 10000
+        // Vary sample size from 100 to 10000, recomputing the exact power at
+        // each n with the same design-aware formula used for the headline result.
         const sizes = [100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000];
         sizes.forEach(size => {
           const point: Record<string, number> = { x: size };
           proteinCounts.forEach(count => {
             const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
-            // For sample size sensitivity, we need to recalculate with different n
-            // This is a simplified approximation - actual power would need the full calculation
-            const basePower = calculatePowerForEffect(currentEffectSize, alpha);
-            const scaleFactor = Math.sqrt(size / currentSampleSize);
-            const adjustedPower = Math.min(0.999, 1 - Math.pow(1 - basePower, scaleFactor));
-            point[`power_${count}`] = adjustedPower;
+            point[`power_${count}`] = calculatePowerAtSampleSize(currentEffectSize, alpha, size);
           });
           data.push(point);
         });
@@ -77,16 +111,14 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
       }
 
       case 'events': {
-        // Vary events from 20 to 500
+        // Vary events from 20 to 500, recomputing the exact power at each event
+        // count with the same design-aware formula used for the headline result.
         const eventCounts = [20, 40, 60, 80, 100, 150, 200, 300, 400, 500];
         eventCounts.forEach(e => {
           const point: Record<string, number> = { x: e };
           proteinCounts.forEach(count => {
             const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
-            const basePower = calculatePowerForEffect(currentEffectSize, alpha);
-            const scaleFactor = Math.sqrt(e / currentEvents);
-            const adjustedPower = Math.min(0.999, 1 - Math.pow(1 - basePower, scaleFactor));
-            point[`power_${count}`] = adjustedPower;
+            point[`power_${count}`] = calculatePowerAtSampleSize(currentEffectSize, alpha, e);
           });
           data.push(point);
         });
@@ -129,7 +161,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
     }
 
     return data;
-  }, [selectedVariable, proteinCounts, fdrQ, correctionMethod, currentEffectSize, currentSampleSize, currentEvents, analysisType, calculatePowerForEffect]);
+  }, [selectedVariable, proteinCounts, fdrQ, correctionMethod, currentEffectSize, analysisType, calculatePowerForEffect, calculatePowerAtSampleSize]);
 
   // Color palette for lines
   const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f97316', '#ec4899', '#14b8a6'];
@@ -152,37 +184,6 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
       case 'effectSize': return currentEffectSize;
       case 'proteinCount': return proteinCounts[0];
     }
-  };
-
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string }>;
-    label?: number;
-  }) => {
-    if (!active || !payload || !payload.length) return null;
-
-    return (
-      <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
-        <p className="font-semibold text-gray-800 mb-2">
-          {getAxisLabel()}: {selectedVariable === 'effectSize'
-            ? Number(label).toFixed(2)
-            : Number(label).toLocaleString()}
-        </p>
-        {payload.map((entry, index) => (
-          <p key={index} className="text-sm flex items-center gap-2">
-            <span
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-gray-600">{entry.name}:</span>
-            <span className="font-medium" style={{ color: entry.color }}>
-              {(entry.value * 100).toFixed(1)}%
-            </span>
-          </p>
-        ))}
-      </div>
-    );
   };
 
   return (
@@ -253,7 +254,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
             tick={{ fill: '#6b7280', fontSize: 11 }}
           />
 
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<SensitivityTooltip axisLabel={getAxisLabel()} selectedVariable={selectedVariable} />} />
 
           {/* Target power line */}
           <ReferenceLine

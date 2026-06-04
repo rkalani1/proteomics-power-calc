@@ -27,6 +27,31 @@ interface MultiScenarioResultsTableProps {
 
 type SortDirection = 'asc' | 'desc';
 
+// Sort direction indicator. Defined at module scope so it keeps a stable
+// component identity across re-renders.
+const SortIndicator: React.FC<{
+  field: string;
+  sortField: string;
+  sortDirection: SortDirection;
+}> = ({ field, sortField, sortDirection }) => {
+  if (sortField !== field) {
+    return (
+      <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+      </svg>
+    );
+  }
+  return sortDirection === 'asc' ? (
+    <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+    </svg>
+  ) : (
+    <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+};
+
 /**
  * MultiScenarioResultsTable Component
  *
@@ -74,26 +99,6 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
       setSortField(field);
       setSortDirection('asc');
     }
-  };
-
-  // Sort indicator component
-  const SortIndicator = ({ field }: { field: string }) => {
-    if (sortField !== field) {
-      return (
-        <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-        </svg>
-      );
-    }
-    return sortDirection === 'asc' ? (
-      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-      </svg>
-    ) : (
-      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
-    );
   };
 
   // Format power as percentage with color coding
@@ -150,7 +155,7 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
               >
                 <div className="flex items-center gap-2">
                   {effectLabel}
-                  <SortIndicator field="effect" />
+                  <SortIndicator field="effect" sortField={sortField} sortDirection={sortDirection} />
                 </div>
               </th>
               {scenarios.map((scenario) => (
@@ -167,7 +172,7 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
                       ></span>
                       {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
                     </span>
-                    <SortIndicator field={`power_${scenario.proteinCount}`} />
+                    <SortIndicator field={`power_${scenario.proteinCount}`} sortField={sortField} sortDirection={sortDirection} />
                   </div>
                   <div className="text-xs font-normal text-gray-500">
                     α≈{scenario.alpha.toExponential(1)}

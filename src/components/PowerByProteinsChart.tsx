@@ -12,10 +12,6 @@ import {
 } from 'recharts';
 import {
   calculateEffectiveAlpha,
-  calculateCoxPower,
-  calculateLinearPower,
-  calculateLogisticPower,
-  calculatePoissonPower,
   type CorrectionMethod,
 } from '../utils/statistics';
 
@@ -36,8 +32,14 @@ interface PowerByProteinsChartProps {
   numControls: number;
   subcohortSize: number;
   totalCohort: number;
+  clusterSize: number;
+  icc: number;
   effectSymbol: string;
   correctionMethod?: CorrectionMethod;
+  /** Design-aware power for a given effect size and per-test alpha, computed by
+   * the parent with the current study parameters (covariate R², study design,
+   * clustering, etc.). Guarantees this chart matches the headline results. */
+  calculatePower: (effectSize: number, alpha: number) => number;
 }
 
 // Effect size configurations per analysis type
@@ -49,12 +51,52 @@ const EFFECT_SIZES: Record<AnalysisType, number[]> = {
   gee: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5],
 };
 
+// Tooltip for the power-vs-proteins curves. Defined at module scope to keep a
+// stable component identity across re-renders.
+const ProteinsTooltip: React.FC<{
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string; dataKey: string }>;
+  label?: number;
+  fdrQ: number;
+  effectSymbol: string;
+}> = ({ active, payload, label, fdrQ, effectSymbol }) => {
+  if (!active || !payload || !payload.length) return null;
+
+  return (
+    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3 max-h-64 overflow-y-auto">
+      <p className="font-semibold text-gray-800 mb-2">
+        {label?.toLocaleString()} protein{label !== 1 ? 's' : ''} tested
+      </p>
+      <p className="text-xs text-gray-500 mb-2">
+        α ≈ {calculateEffectiveAlpha(fdrQ, label || 1).toExponential(2)}
+      </p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        {payload.map((entry, index) => {
+          const es = entry.dataKey.replace('es_', '');
+          return (
+            <p key={index} className="text-sm flex items-center gap-1">
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-gray-600">{effectSymbol} {es}:</span>
+              <span className="font-medium" style={{ color: entry.color }}>
+                {(entry.value * 100).toFixed(0)}%
+              </span>
+            </p>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 /**
  * PowerByProteinsChart Component
  *
  * Comprehensive visualization of how statistical power changes with
  * the number of proteins tested, for multiple effect size values.
- * Supports all analysis types: Cox, Linear, Logistic, and Poisson.
+ * Supports all analysis types: Cox, Linear, Logistic, Poisson, and GEE.
  */
 const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
   events,
@@ -69,8 +111,11 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
   numControls,
   subcohortSize,
   totalCohort,
+  clusterSize,
+  icc,
   effectSymbol,
   correctionMethod = 'fdr',
+  calculatePower,
 }) => {
   // Scale toggle state
   const [scaleType, setScaleType] = useState<ScaleType>('linear');
@@ -91,31 +136,12 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     effectColors[es] = colorScale[idx];
   });
 
-  // Calculate power for a given effect size and alpha
-  const calculateModelPower = (effectSize: number, alpha: number): number => {
-    switch (analysisType) {
-      case 'cox':
-        if (studyDesign === 'case-cohort') {
-          return calculateCoxPower(effectSize, events, alpha, { subcohortSize, totalCohort });
-        }
-        return calculateCoxPower(effectSize, events, alpha);
-
-      case 'linear':
-        return calculateLinearPower(effectSize, sampleSize, residualSD, alpha);
-
-      case 'logistic':
-        if (studyDesign === 'case-control') {
-          return calculateLogisticPower(effectSize, 0, 0, alpha, { cases: numCases, controls: numControls });
-        }
-        return calculateLogisticPower(effectSize, sampleSize, prevalence, alpha);
-
-      case 'poisson':
-        return calculatePoissonPower(effectSize, sampleSize, prevalence, alpha);
-
-      default:
-        return 0;
-    }
-  };
+  // Power for a given effect size and alpha. Delegated to the parent's
+  // design-aware calculator so this chart stays consistent with the headline
+  // results for every analysis type (including GEE) and honors covariate R²,
+  // case-cohort, and nested-case-control adjustments.
+  const calculateModelPower = (effectSize: number, alpha: number): number =>
+    calculatePower(effectSize, alpha);
 
   // Generate data for linear chart (1-1000 range)
   const generateLinearChartData = () => {
@@ -164,43 +190,6 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     return row;
   });
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string; dataKey: string }>;
-    label?: number;
-  }) => {
-    if (!active || !payload || !payload.length) return null;
-
-    return (
-      <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3 max-h-64 overflow-y-auto">
-        <p className="font-semibold text-gray-800 mb-2">
-          {label?.toLocaleString()} protein{label !== 1 ? 's' : ''} tested
-        </p>
-        <p className="text-xs text-gray-500 mb-2">
-          α ≈ {calculateEffectiveAlpha(fdrQ, label || 1).toExponential(2)}
-        </p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          {payload.map((entry, index) => {
-            const es = entry.dataKey.replace('es_', '');
-            return (
-              <p key={index} className="text-sm flex items-center gap-1">
-                <span
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: entry.color }}
-                />
-                <span className="text-gray-600">{effectSymbol} {es}:</span>
-                <span className="font-medium" style={{ color: entry.color }}>
-                  {(entry.value * 100).toFixed(0)}%
-                </span>
-              </p>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
   // Format power cell with color coding
   const formatPowerCell = (power: number) => {
     const percentage = (power * 100).toFixed(0);
@@ -235,6 +224,8 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
           : `n = ${sampleSize}, prevalence = ${(prevalence * 100).toFixed(0)}%`;
       case 'poisson':
         return `n = ${sampleSize}, prevalence = ${(prevalence * 100).toFixed(0)}%`;
+      case 'gee':
+        return `n = ${sampleSize}, cluster size = ${clusterSize}, ICC = ${icc.toFixed(2)}`;
       default:
         return '';
     }
@@ -388,7 +379,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
               tick={{ fill: '#6b7280', fontSize: 11 }}
             />
 
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<ProteinsTooltip fdrQ={fdrQ} effectSymbol={effectSymbol} />} />
 
             <Legend
               verticalAlign="top"
