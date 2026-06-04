@@ -190,11 +190,11 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     return row;
   });
 
-  // Format power cell with color coding
+  // Format power cell with color coding (green = meets the target power)
   const formatPowerCell = (power: number) => {
     const percentage = (power * 100).toFixed(0);
     let bgColor = 'bg-red-100 text-red-800';
-    if (power >= 0.8) bgColor = 'bg-green-100 text-green-800';
+    if (power >= targetPower) bgColor = 'bg-green-100 text-green-800';
     else if (power >= 0.5) bgColor = 'bg-amber-100 text-amber-800';
 
     return (
@@ -204,9 +204,10 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     );
   };
 
-  // Format effect size for display
+  // Format effect size for display. Linear and GEE use additive β values (some
+  // as fine as 0.05), so they need 2 decimals; the ratio models use 1.
   const formatEffectSize = (es: number) => {
-    return analysisType === 'linear' ? es.toFixed(2) : es.toFixed(1);
+    return analysisType === 'linear' || analysisType === 'gee' ? es.toFixed(2) : es.toFixed(1);
   };
 
   // Get parameter description for subtitle
@@ -288,13 +289,13 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
 
         <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">≥80%</span>
+            <span className="px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">≥{(targetPower * 100).toFixed(0)}% (meets target)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">50-79%</span>
+            <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">50%–{(targetPower * 100).toFixed(0)}% (below target)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-red-100 text-red-800 text-xs">&lt;50%</span>
+            <span className="px-2 py-0.5 rounded bg-red-100 text-red-800 text-xs">&lt;50% (underpowered)</span>
           </div>
         </div>
       </div>

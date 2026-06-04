@@ -126,9 +126,10 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
       }
 
       case 'effectSize': {
-        // Vary effect size based on analysis type
+        // Vary effect size; linear and GEE use additive β values, the ratio
+        // models (Cox/logistic/Poisson) use multiplicative values around 1.
         let effectValues: number[];
-        if (analysisType === 'linear') {
+        if (analysisType === 'linear' || analysisType === 'gee') {
           effectValues = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8];
         } else {
           effectValues = [1.1, 1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 2.5, 3.0];
@@ -229,7 +230,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
             domain={['dataMin', 'dataMax']}
             tickFormatter={(value) =>
               selectedVariable === 'effectSize'
-                ? value.toFixed(analysisType === 'linear' ? 2 : 1)
+                ? value.toFixed(analysisType === 'linear' || analysisType === 'gee' ? 2 : 1)
                 : value.toLocaleString()
             }
             label={{

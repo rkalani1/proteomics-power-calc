@@ -133,8 +133,11 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
 }) => {
   const [activeViz, setActiveViz] = useState<VisualizationType>('sample-size-curve');
 
-  // Determine decimal places based on analysis type
-  const decimals = analysisType === 'linear' ? 3 : 2;
+  // Linear and GEE estimate an additive coefficient β (null effect = 0); the
+  // others estimate a multiplicative ratio (null effect = 1). This drives the
+  // effect range, axis domain, null reference, and display precision.
+  const isBetaEffect = analysisType === 'linear' || analysisType === 'gee';
+  const decimals = isBetaEffect ? 3 : 2;
   const isCox = analysisType === 'cox';
 
   // Generate sample size curve data
@@ -178,7 +181,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
     const data: Array<Record<string, number | string>> = [];
 
     // Define grid
-    const effectValues = analysisType === 'linear'
+    const effectValues = isBetaEffect
       ? [0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
       : [1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 2.5];
 
@@ -204,11 +207,11 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
     });
 
     return { data, sampleValues };
-  }, [scenarios, analysisType, isCox, decimals, calculatePower]);
+  }, [scenarios, isBetaEffect, isCox, decimals, calculatePower]);
 
   // Power status color
   const getPowerColor = (power: number): string => {
-    if (power >= 0.8) return '#10b981';
+    if (power >= targetPower) return '#10b981';
     if (power >= 0.5) return '#f59e0b';
     return '#ef4444';
   };
@@ -378,7 +381,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
 
                 <XAxis
                   type="number"
-                  domain={analysisType === 'linear' ? [0, 'auto'] : [1, 'auto']}
+                  domain={isBetaEffect ? [0, 'auto'] : [1, 'auto']}
                   tickFormatter={(value) => value.toFixed(decimals)}
                   label={{
                     value: `Minimum Detectable ${effectLabel} (${effectSymbol})`,
@@ -400,7 +403,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
 
                 {/* Reference line at null effect */}
                 <ReferenceLine
-                  x={analysisType === 'linear' ? 0 : 1}
+                  x={isBetaEffect ? 0 : 1}
                   stroke="#9ca3af"
                   strokeWidth={2}
                   label={{
@@ -490,11 +493,11 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
             <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded" style={{ backgroundColor: '#10b98133' }}></div>
-                <span className="text-green-600">≥80% adequate</span>
+                <span className="text-green-600">≥{(targetPower * 100).toFixed(0)}% meets target</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f59e0b33' }}></div>
-                <span className="text-amber-600">50-79% marginal</span>
+                <span className="text-amber-600">50%–{(targetPower * 100).toFixed(0)}% below target</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ef444433' }}></div>

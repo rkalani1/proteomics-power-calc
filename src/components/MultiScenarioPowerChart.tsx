@@ -105,7 +105,8 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
   analysisType = 'cox',
 }) => {
   // Determine decimal places based on analysis type
-  const decimals = analysisType === 'linear' ? 3 : 2;
+  const isBetaEffect = analysisType === 'linear' || analysisType === 'gee';
+  const decimals = isBetaEffect ? 3 : 2;
 
   // Get x-axis domain based on data
   const xMin = data.length > 0 ? data[0].effect : 1;
@@ -139,7 +140,7 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
             type="number"
             domain={[xMin, xMax]}
             tickCount={11}
-            tickFormatter={(value) => value.toFixed(analysisType === 'linear' ? 2 : 1)}
+            tickFormatter={(value) => value.toFixed(isBetaEffect ? 2 : 1)}
             label={{
               value: `${effectLabel} (${effectSymbol})`,
               position: 'insideBottom',

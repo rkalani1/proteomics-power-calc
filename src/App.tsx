@@ -379,6 +379,10 @@ function App() {
       ? numCases + numControls
       : sampleSize;
 
+  // Linear and GEE report an additive β (shown to 3 decimals); the ratio models
+  // (Cox/logistic/Poisson) report HR/OR/RR to 2 decimals.
+  const effectDecimals = analysisType === 'linear' || analysisType === 'gee' ? 3 : 2;
+
   // Helper function to calculate power for a given effect size and alpha
   const calculatePowerForEffect = useCallback((effect: number, alpha: number): number => {
     switch (analysisType) {
@@ -1126,7 +1130,7 @@ function App() {
               min={effectConfig.min}
               max={effectConfig.max}
               step={effectConfig.step}
-              decimals={analysisType === 'linear' ? 3 : 2}
+              decimals={effectDecimals}
               description={effectConfig.inputDescription}
             />
           </div>
@@ -1154,9 +1158,7 @@ function App() {
                   </span>
                 </div>
                 <div className={`text-2xl font-bold ${scenario.color.text}`}>
-                  {effectConfig.symbol} ≥ {analysisType === 'linear'
-                    ? scenario.minEffect.toFixed(3)
-                    : scenario.minEffect.toFixed(2)}
+                  {effectConfig.symbol} ≥ {scenario.minEffect.toFixed(effectDecimals)}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   α ≈ {scenario.alpha.toExponential(1)}
@@ -1217,7 +1219,7 @@ function App() {
             <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            Power for {effectConfig.symbol} = {effectSize.toFixed(analysisType === 'linear' ? 3 : 2)}
+            Power for {effectConfig.symbol} = {effectSize.toFixed(effectDecimals)}
           </h3>
 
           {/* Power bars for each scenario */}
@@ -1246,8 +1248,11 @@ function App() {
                   />
                 </div>
                 <p className={`text-xs ${scenario.color.text} mt-2`}>
-                  {scenario.powerAtInput >= 0.8 ? '✓ Adequately powered' :
-                   scenario.powerAtInput >= 0.5 ? '⚠ Marginally powered' : '✗ Underpowered'}
+                  {scenario.powerAtInput >= targetPower
+                    ? `✓ Meets ${(targetPower * 100).toFixed(0)}% target`
+                    : scenario.powerAtInput >= 0.5
+                    ? `⚠ Below ${(targetPower * 100).toFixed(0)}% target`
+                    : '✗ Underpowered'}
                 </p>
               </div>
             ))}
@@ -1256,7 +1261,7 @@ function App() {
           {/* Sample/Events needed */}
           <div className="mt-6 bg-gray-50 rounded-lg p-4">
             <h4 className="text-sm font-medium text-gray-700 mb-3">
-              {analysisType === 'cox' ? 'Events' : 'Sample Size'} Required for {(targetPower * 100).toFixed(0)}% Power at {effectConfig.symbol} = {effectSize.toFixed(analysisType === 'linear' ? 3 : 2)}
+              {analysisType === 'cox' ? 'Events' : 'Sample Size'} Required for {(targetPower * 100).toFixed(0)}% Power at {effectConfig.symbol} = {effectSize.toFixed(effectDecimals)}
             </h4>
             <div className={`grid grid-cols-2 ${scenarioResults.length > 2 ? 'md:grid-cols-3' : ''} ${scenarioResults.length > 4 ? 'lg:grid-cols-6' : ''} gap-4`}>
               {scenarioResults.map((scenario) => (
@@ -1297,6 +1302,7 @@ function App() {
             scenarios={scenarioResults}
             effectLabel={effectConfig.label}
             analysisType={analysisType}
+            targetPower={targetPower}
           />
         )}
 
