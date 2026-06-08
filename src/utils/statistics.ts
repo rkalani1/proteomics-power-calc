@@ -414,21 +414,25 @@ export const calculateLinearPower = (
  */
 export const calculateLinearPowerFromR2 = (
   r2: number,
-  sampleSize: number,
-  alpha: number
+  n: number,
+  alpha: number = 0.05,
+  covariateR2: number = 0
 ): number => {
-  if (sampleSize <= 2 || r2 <= 0 || r2 >= 1 || alpha <= 0 || alpha >= 1) {
+  if (n <= 2 || r2 <= 0 || r2 >= 1 || alpha <= 0 || alpha >= 1) {
     return 0;
   }
+  if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
 
   // Using non-central F approximation with normal approximation for large samples
-  // For single predictor: f² = r²/(1-r²), λ = f² × n
+  // For single predictor: f² = r2/(1-r2), λ = f² × (n - 2)
+  // Adjusted for covariate correlation: f²_adj = f² * (1 - covariateR2)
   const f2 = r2 / (1 - r2);
-  const lambda = f2 * sampleSize; // Non-centrality parameter
+  const lambda = f2 * (n - 2) * (1 - covariateR2); // Non-centrality parameter
 
   const zAlpha = normalQuantile(1 - alpha / 2);
-  // Approximate using normal distribution for large samples
-  const power = normalCDF(Math.sqrt(lambda) - zAlpha);
+  // Approximate using normal distribution for large samples (two-sided)
+  const sqrtLambda = Math.sqrt(lambda);
+  const power = normalCDF(sqrtLambda - zAlpha) + normalCDF(-sqrtLambda - zAlpha);
 
   return Math.min(Math.max(power, 0), 1);
 };
