@@ -1287,7 +1287,7 @@ export const calculateTwoStagePower = (
   const stage1Alpha = calculateStage1Alpha(stage1FDR, stage1Proteins);
 
   // Power in Stage 1 depends on the analysis type
-  const stage1PowerParams: PowerParams = {
+  const powerParams: PowerParams = {
     analysisType,
     studyDesign: studyParams.studyDesign || 'cohort',
     effectSize,
@@ -1302,7 +1302,7 @@ export const calculateTwoStagePower = (
     icc: studyParams.icc,
   };
 
-  const stage1Power = calculatePower(stage1PowerParams);
+  const stage1Power = calculatePower(powerParams);
 
   // Expected number advancing: true positives + false positives
   // True positives: expectedHits × stage1Power
@@ -1325,13 +1325,11 @@ export const calculateTwoStagePower = (
     ? stage2Alpha / Math.max(1, Math.ceil(expectedAdvancing)) // Bonferroni for advancing proteins
     : stage2Alpha;
 
-  const stage2PowerParams: PowerParams = {
-    ...stage1PowerParams,
-    alpha: stage2PerProteinAlpha,
-    sampleSize: effectiveStage2Size,
-  };
+  // Reuse powerParams for Stage 2
+  powerParams.alpha = stage2PerProteinAlpha;
+  powerParams.sampleSize = effectiveStage2Size;
 
-  const stage2Power = calculatePower(stage2PowerParams);
+  const stage2Power = calculatePower(powerParams);
 
   // Joint power: probability of passing both stages
   const jointPower = stage1Power * stage2Power;
@@ -1345,12 +1343,12 @@ export const calculateTwoStagePower = (
   // Single-stage would need N_single to achieve same power at α_proteome
   // Cost efficiency = N_single / totalSampleSize
   const singleStageAlpha = calculateEffectiveAlpha(0.05, stage1Proteins);
-  const singleStagePowerParams: PowerParams = {
-    ...stage1PowerParams,
-    alpha: singleStageAlpha,
-    sampleSize: totalSampleSize,
-  };
-  const singleStagePower = calculatePower(singleStagePowerParams);
+
+  // Reuse powerParams for single-stage comparison
+  powerParams.alpha = singleStageAlpha;
+  powerParams.sampleSize = totalSampleSize;
+
+  const singleStagePower = calculatePower(powerParams);
 
   // Cost efficiency metric: how much better is two-stage?
   // If jointPower > singleStagePower with same total N, efficiency > 1
@@ -1381,11 +1379,14 @@ export const findOptimalStage1FDR = (
   studyParams: Partial<PowerParams>,
   fdrGrid: number[] = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50]
 ): { optimalFDR: number; maxJointPower: number; results: Array<{ fdr: number; jointPower: number }> } => {
+  // Pre-allocate params object to avoid spread in loop
+  const twoStageParams: TwoStageParams = { ...baseParams, stage1FDR: 0 };
   const results = fdrGrid.map(fdr => {
+    twoStageParams.stage1FDR = fdr;
     const result = calculateTwoStagePower(
       effectSize,
       analysisType,
-      { ...baseParams, stage1FDR: fdr },
+      twoStageParams,
       studyParams
     );
     return { fdr, jointPower: result.jointPower };
@@ -1415,12 +1416,17 @@ export const calculateRequiredStage2Size = (
   let low = 50;
   let high = 10000;
 
+  // Pre-allocate params object to avoid spread in tight loop
+  const twoStageParams: TwoStageParams = { ...params, stage2SampleSize: 0 };
+
   for (let i = 0; i < maxIterations; i++) {
     const mid = Math.floor((low + high) / 2);
+    twoStageParams.stage2SampleSize = mid;
+
     const result = calculateTwoStagePower(
       effectSize,
       analysisType,
-      { ...params, stage2SampleSize: mid },
+      twoStageParams,
       studyParams
     );
 
