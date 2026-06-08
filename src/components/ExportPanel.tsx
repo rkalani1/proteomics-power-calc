@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { type CorrectionMethod } from '../utils/statistics';
+import { escapeHTML } from '../utils/security';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
 type StudyDesign = 'cohort' | 'case-control' | 'cross-sectional' | 'case-cohort' | 'nested-case-control';
@@ -217,11 +218,11 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
       const scenarioRows = scenarios.map(s => {
         const powerClass = s.powerAtInput >= targetPower ? 'power-good' : s.powerAtInput >= 0.5 ? 'power-marginal' : 'power-low';
         return `<tr>
-          <td>${s.proteinCount.toLocaleString()}</td>
-          <td>${s.alpha.toExponential(2)}</td>
-          <td>${s.minEffect.toFixed(3)}</td>
-          <td class="${powerClass}">${(s.powerAtInput * 100).toFixed(1)}%</td>
-          <td>${typeof s.sampleNeeded === 'string' ? s.sampleNeeded : s.sampleNeeded.toLocaleString()}</td>
+          <td>${escapeHTML(s.proteinCount.toLocaleString())}</td>
+          <td>${escapeHTML(s.alpha.toExponential(2))}</td>
+          <td>${escapeHTML(s.minEffect.toFixed(3))}</td>
+          <td class="${escapeHTML(powerClass)}">${escapeHTML((s.powerAtInput * 100).toFixed(1))}%</td>
+          <td>${escapeHTML(typeof s.sampleNeeded === 'string' ? s.sampleNeeded : s.sampleNeeded.toLocaleString())}</td>
         </tr>`;
       }).join('');
 
@@ -229,9 +230,9 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
         const cells = scenarios.map(s => {
           const power = row[`power_${s.proteinCount}`] || 0;
           const powerClass = power >= targetPower ? 'power-good' : power >= 0.5 ? 'power-marginal' : 'power-low';
-          return `<td class="${powerClass}">${(power * 100).toFixed(1)}%</td>`;
+          return `<td class="${escapeHTML(powerClass)}">${escapeHTML((power * 100).toFixed(1))}%</td>`;
         }).join('');
-        return `<tr><td>${row.effect.toFixed(2)}</td>${cells}</tr>`;
+        return `<tr><td>${escapeHTML(row.effect.toFixed(2))}</td>${cells}</tr>`;
       }).join('');
 
       const html = `<!DOCTYPE html>
@@ -256,32 +257,32 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
 </head>
 <body>
   <h1>Proteomics Power Analysis</h1>
-  <div class="timestamp">Generated: ${new Date().toLocaleString()}</div>
+  <div class="timestamp">Generated: ${escapeHTML(new Date().toLocaleString())}</div>
   <h2>Study Parameters</h2>
   <table class="param-table">
-    <tr><td>Analysis Type</td><td>${formatAnalysisType(analysisType)}</td></tr>
-    <tr><td>Study Design</td><td>${formatStudyDesign(studyDesign)}</td></tr>
-    <tr><td>Target Power</td><td>${(targetPower * 100).toFixed(0)}%</td></tr>
-    <tr><td>${thresholdLabel}</td><td>${fdrQ}</td></tr>
-    <tr><td>${effectLabel}</td><td>${effectSize}</td></tr>
-    ${analysisType === 'cox' ? `<tr><td>Number of Events</td><td>${events}</td></tr>` : showSampleSize ? `<tr><td>Sample Size</td><td>${sampleSize.toLocaleString()}</td></tr>` : ''}
-    ${analysisType === 'linear' || analysisType === 'gee' ? `<tr><td>Residual SD</td><td>${residualSD}</td></tr>` : ''}
-    ${(analysisType === 'logistic' || analysisType === 'poisson') && studyDesign !== 'case-control' && studyDesign !== 'nested-case-control' ? `<tr><td>Outcome Prevalence</td><td>${(prevalence * 100).toFixed(1)}%</td></tr>` : ''}
-    ${studyDesign === 'case-control' || studyDesign === 'nested-case-control' ? `<tr><td>Cases / Controls</td><td>${numCases} / ${numControls}</td></tr>` : ''}
-    ${designParams.map(([label, value]) => `<tr><td>${label}</td><td>${value}</td></tr>`).join('')}
+    <tr><td>Analysis Type</td><td>${escapeHTML(formatAnalysisType(analysisType))}</td></tr>
+    <tr><td>Study Design</td><td>${escapeHTML(formatStudyDesign(studyDesign))}</td></tr>
+    <tr><td>Target Power</td><td>${escapeHTML((targetPower * 100).toFixed(0))}%</td></tr>
+    <tr><td>${escapeHTML(thresholdLabel)}</td><td>${escapeHTML(fdrQ)}</td></tr>
+    <tr><td>${escapeHTML(effectLabel)}</td><td>${escapeHTML(effectSize)}</td></tr>
+    ${analysisType === 'cox' ? `<tr><td>Number of Events</td><td>${escapeHTML(events)}</td></tr>` : showSampleSize ? `<tr><td>Sample Size</td><td>${escapeHTML(sampleSize.toLocaleString())}</td></tr>` : ''}
+    ${analysisType === 'linear' || analysisType === 'gee' ? `<tr><td>Residual SD</td><td>${escapeHTML(residualSD)}</td></tr>` : ''}
+    ${(analysisType === 'logistic' || analysisType === 'poisson') && studyDesign !== 'case-control' && studyDesign !== 'nested-case-control' ? `<tr><td>Outcome Prevalence</td><td>${escapeHTML((prevalence * 100).toFixed(1))}%</td></tr>` : ''}
+    ${studyDesign === 'case-control' || studyDesign === 'nested-case-control' ? `<tr><td>Cases / Controls</td><td>${escapeHTML(numCases)} / ${escapeHTML(numControls)}</td></tr>` : ''}
+    ${designParams.map(([label, value]) => `<tr><td>${escapeHTML(label)}</td><td>${escapeHTML(value)}</td></tr>`).join('')}
   </table>
   <h2>Power Analysis Results</h2>
   <table>
-    <thead><tr><th>Proteins Tested</th><th>Effective Alpha</th><th>Min Detectable ${effectSymbol}</th><th>Power at ${effectSymbol}=${effectSize}</th><th>Required ${analysisType === 'cox' ? 'Events' : 'N'}</th></tr></thead>
+    <thead><tr><th>Proteins Tested</th><th>Effective Alpha</th><th>Min Detectable ${escapeHTML(effectSymbol)}</th><th>Power at ${escapeHTML(effectSymbol)}=${escapeHTML(effectSize)}</th><th>Required ${analysisType === 'cox' ? 'Events' : 'N'}</th></tr></thead>
     <tbody>${scenarioRows}</tbody>
   </table>
-  <h2>Power by ${effectLabel}</h2>
+  <h2>Power by ${escapeHTML(effectLabel)}</h2>
   <table>
-    <thead><tr><th>${effectSymbol}</th>${scenarios.map(s => `<th>${s.proteinCount.toLocaleString()} proteins</th>`).join('')}</tr></thead>
+    <thead><tr><th>${escapeHTML(effectSymbol)}</th>${scenarios.map(s => `<th>${escapeHTML(s.proteinCount.toLocaleString())} proteins</th>`).join('')}</tr></thead>
     <tbody>${tableRows}</tbody>
   </table>
   <div class="footer">
-    <p><strong>Note:</strong> This analysis assumes the predictor variable (protein level) is standardized with unit variance. Power calculations use the two-sided Wald-test framework with ${correctionName} correction for multiple testing (effective per-test &alpha; &asymp; threshold / number of proteins).</p>
+    <p><strong>Note:</strong> This analysis assumes the predictor variable (protein level) is standardized with unit variance. Power calculations use the two-sided Wald-test framework with ${escapeHTML(correctionName)} correction for multiple testing (effective per-test &alpha; &asymp; threshold / number of proteins).</p>
     <p>Generated by Proteomics Power Calculator</p>
   </div>
   <script>window.onload = function() { window.print(); };</script>
