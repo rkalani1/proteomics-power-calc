@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { type CorrectionMethod } from '../utils/statistics';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
 type StudyDesign = 'cohort' | 'case-control' | 'cross-sectional' | 'case-cohort' | 'nested-case-control';
+type CorrectionMethod = 'fdr' | 'bonferroni';
 
 interface ScenarioResult {
   proteinCount: number;
