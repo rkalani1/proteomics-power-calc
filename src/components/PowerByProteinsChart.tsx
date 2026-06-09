@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import {
   calculateEffectiveAlpha,
+  normalQuantile,
   type CorrectionMethod,
 } from '../utils/statistics';
 
@@ -39,7 +40,7 @@ interface PowerByProteinsChartProps {
   /** Design-aware power for a given effect size and per-test alpha, computed by
    * the parent with the current study parameters (covariate R², study design,
    * clustering, etc.). Guarantees this chart matches the headline results. */
-  calculatePower: (effectSize: number, alpha: number) => number;
+  calculatePower: (effectSize: number, alpha: number, zAlpha?: number) => number;
 }
 
 // Effect size configurations per analysis type
@@ -140,8 +141,8 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
   // design-aware calculator so this chart stays consistent with the headline
   // results for every analysis type (including GEE) and honors covariate R²,
   // case-cohort, and nested-case-control adjustments.
-  const calculateModelPower = (effectSize: number, alpha: number): number =>
-    calculatePower(effectSize, alpha);
+  const calculateModelPower = (effectSize: number, alpha: number, zAlpha?: number): number =>
+    calculatePower(effectSize, alpha, zAlpha);
 
   // Generate data for linear chart (1-1000 range)
   const generateLinearChartData = () => {
@@ -151,9 +152,10 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     }
     return counts.map((numProteins) => {
       const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
+      const zAlpha = normalQuantile(1 - alphaMulti / 2);
       const dataPoint: Record<string, number> = { proteins: numProteins };
       effectSizes.forEach((es) => {
-        dataPoint[`es_${es}`] = calculateModelPower(es, alphaMulti);
+        dataPoint[`es_${es}`] = calculateModelPower(es, alphaMulti, zAlpha);
       });
       return dataPoint;
     });
@@ -169,9 +171,10 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
 
     return counts.map((numProteins) => {
       const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
+      const zAlpha = normalQuantile(1 - alphaMulti / 2);
       const dataPoint: Record<string, number> = { proteins: numProteins };
       effectSizes.forEach((es) => {
-        dataPoint[`es_${es}`] = calculateModelPower(es, alphaMulti);
+        dataPoint[`es_${es}`] = calculateModelPower(es, alphaMulti, zAlpha);
       });
       return dataPoint;
     });
@@ -183,9 +186,10 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
   // Generate sensitivity table data
   const sensitivityTableData = proteinCountsForTable.map((numProteins) => {
     const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
+    const zAlpha = normalQuantile(1 - alphaMulti / 2);
     const row: Record<string, number> = { proteins: numProteins };
     effectSizes.forEach((es) => {
-      row[`es_${es}`] = calculateModelPower(es, alphaMulti);
+      row[`es_${es}`] = calculateModelPower(es, alphaMulti, zAlpha);
     });
     return row;
   });
