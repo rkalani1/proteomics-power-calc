@@ -159,6 +159,15 @@ The app will be available at `http://localhost:5173`
 npm run build
 ```
 
+### Validation
+
+```bash
+npm run test:automedbench-lite
+npm run test
+```
+
+Use `docs/ai-agent-evals/automedbench-lite.md` before accepting AI-assisted formula, source, or validation-case changes.
+
 ### Deploy
 
 The app automatically deploys to GitHub Pages on push to `main` branch via GitHub Actions.
