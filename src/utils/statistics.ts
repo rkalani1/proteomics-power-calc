@@ -263,14 +263,17 @@ export const calculateCoxNestedCaseControlSE = (
  * @param hazardRatio - The hazard ratio to detect
  * @param events - Number of outcome events
  * @param alpha - Significance level (per-test alpha after any correction)
- * @param caseCohort - Optional case-cohort design parameters
+ * @param designOptions - Optional design-specific parameters (case-cohort, nested-case-control)
  * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateCoxPower = (
   hazardRatio: number,
   events: number,
   alpha: number,
-  caseCohort?: { subcohortSize: number; totalCohort: number },
+  designOptions?: {
+    caseCohort?: { subcohortSize: number; totalCohort: number };
+    nestedCaseControl?: { matchingRatio: number };
+  },
   covariateR2: number = 0
 ): number => {
   if (hazardRatio <= 0 || events <= 0 || alpha <= 0 || alpha >= 1) {
@@ -278,9 +281,25 @@ export const calculateCoxPower = (
   }
 
   const logHR = Math.log(hazardRatio);
-  const se = caseCohort
-    ? calculateCoxCaseCohortSE(events, caseCohort.subcohortSize, caseCohort.totalCohort, covariateR2)
-    : calculateCoxSE(events, covariateR2);
+  let se: number;
+
+  if (designOptions?.caseCohort) {
+    se = calculateCoxCaseCohortSE(
+      events,
+      designOptions.caseCohort.subcohortSize,
+      designOptions.caseCohort.totalCohort,
+      covariateR2
+    );
+  } else if (designOptions?.nestedCaseControl) {
+    se = calculateCoxNestedCaseControlSE(
+      events,
+      designOptions.nestedCaseControl.matchingRatio,
+      covariateR2
+    );
+  } else {
+    se = calculateCoxSE(events, covariateR2);
+  }
+
   const zAlpha = normalQuantile(1 - alpha / 2);
   const lambda = Math.abs(logHR) / se;
   const power = normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha);
@@ -294,23 +313,42 @@ export const calculateCoxPower = (
  * @param targetPower - Desired statistical power
  * @param events - Number of outcome events
  * @param alpha - Significance level
- * @param caseCohort - Optional case-cohort design parameters
+ * @param designOptions - Optional design-specific parameters (case-cohort, nested-case-control)
  * @param covariateR2 - R² of protein ~ covariates (default 0)
  */
 export const calculateCoxMinEffect = (
   targetPower: number,
   events: number,
   alpha: number,
-  caseCohort?: { subcohortSize: number; totalCohort: number },
+  designOptions?: {
+    caseCohort?: { subcohortSize: number; totalCohort: number };
+    nestedCaseControl?: { matchingRatio: number };
+  },
   covariateR2: number = 0
 ): number => {
   if (events <= 0 || alpha <= 0 || alpha >= 1 || targetPower <= 0 || targetPower >= 1) {
     return Infinity;
   }
 
-  const se = caseCohort
-    ? calculateCoxCaseCohortSE(events, caseCohort.subcohortSize, caseCohort.totalCohort, covariateR2)
-    : calculateCoxSE(events, covariateR2);
+  let se: number;
+
+  if (designOptions?.caseCohort) {
+    se = calculateCoxCaseCohortSE(
+      events,
+      designOptions.caseCohort.subcohortSize,
+      designOptions.caseCohort.totalCohort,
+      covariateR2
+    );
+  } else if (designOptions?.nestedCaseControl) {
+    se = calculateCoxNestedCaseControlSE(
+      events,
+      designOptions.nestedCaseControl.matchingRatio,
+      covariateR2
+    );
+  } else {
+    se = calculateCoxSE(events, covariateR2);
+  }
+
   const zAlpha = normalQuantile(1 - alpha / 2);
   const zBeta = normalQuantile(targetPower);
   const minLogHR = (zAlpha + zBeta) * se;
@@ -1005,6 +1043,8 @@ export interface PowerParams {
   // Case-cohort parameters
   subcohortSize?: number;
   totalCohort?: number;
+  // Nested case-control parameters
+  matchingRatio?: number;
   // GEE/Mixed Effects parameters
   clusterSize?: number;
   icc?: number;
@@ -1020,14 +1060,20 @@ export const calculatePower = (params: PowerParams): number => {
   const { analysisType, studyDesign, effectSize, alpha, covariateR2 = 0 } = params;
 
   switch (analysisType) {
-    case 'cox':
+    case 'cox': {
+      const designOptions: any = {};
       if (studyDesign === 'case-cohort' && params.subcohortSize && params.totalCohort) {
-        return calculateCoxPower(effectSize, params.events || 0, alpha, {
+        designOptions.caseCohort = {
           subcohortSize: params.subcohortSize,
           totalCohort: params.totalCohort,
-        }, covariateR2);
+        };
+      } else if (studyDesign === 'nested-case-control' && params.matchingRatio) {
+        designOptions.nestedCaseControl = {
+          matchingRatio: params.matchingRatio,
+        };
       }
-      return calculateCoxPower(effectSize, params.events || 0, alpha, undefined, covariateR2);
+      return calculateCoxPower(effectSize, params.events || 0, alpha, designOptions, covariateR2);
+    }
 
     case 'linear':
       return calculateLinearPower(
@@ -1039,7 +1085,7 @@ export const calculatePower = (params: PowerParams): number => {
       );
 
     case 'logistic':
-      if (studyDesign === 'case-control' && params.cases && params.controls) {
+      if ((studyDesign === 'case-control' || studyDesign === 'nested-case-control') && params.cases && params.controls) {
         return calculateLogisticPower(effectSize, 0, 0, alpha, {
           cases: params.cases,
           controls: params.controls,
@@ -1088,14 +1134,20 @@ export const calculateMinEffect = (
   const { analysisType, studyDesign, targetPower, alpha, covariateR2 = 0 } = params;
 
   switch (analysisType) {
-    case 'cox':
+    case 'cox': {
+      const designOptions: any = {};
       if (studyDesign === 'case-cohort' && params.subcohortSize && params.totalCohort) {
-        return calculateCoxMinEffect(targetPower, params.events || 0, alpha, {
+        designOptions.caseCohort = {
           subcohortSize: params.subcohortSize,
           totalCohort: params.totalCohort,
-        }, covariateR2);
+        };
+      } else if (studyDesign === 'nested-case-control' && params.matchingRatio) {
+        designOptions.nestedCaseControl = {
+          matchingRatio: params.matchingRatio,
+        };
       }
-      return calculateCoxMinEffect(targetPower, params.events || 0, alpha, undefined, covariateR2);
+      return calculateCoxMinEffect(targetPower, params.events || 0, alpha, designOptions, covariateR2);
+    }
 
     case 'linear':
       return calculateLinearMinEffect(
@@ -1107,7 +1159,7 @@ export const calculateMinEffect = (
       );
 
     case 'logistic':
-      if (studyDesign === 'case-control' && params.cases && params.controls) {
+      if ((studyDesign === 'case-control' || studyDesign === 'nested-case-control') && params.cases && params.controls) {
         return calculateLogisticMinEffect(targetPower, 0, 0, alpha, {
           cases: params.cases,
           controls: params.controls,
@@ -1436,6 +1488,75 @@ export const calculateRequiredStage2Size = (
   }
 
   return Math.ceil((low + high) / 2);
+};
+
+/**
+ * Unified required sample size calculation
+ */
+export const calculateRequiredSample = (
+  params: Omit<PowerParams, 'sampleSize' | 'events' | 'cases' | 'controls'> & { targetPower: number }
+): number => {
+  const { analysisType, studyDesign, effectSize, targetPower, alpha, covariateR2 = 0 } = params;
+
+  switch (analysisType) {
+    case 'cox': {
+      const base = calculateCoxRequiredEvents(effectSize, targetPower, alpha, covariateR2);
+      if (!isFinite(base)) return base;
+      if (studyDesign === 'case-cohort' && params.subcohortSize && params.totalCohort) {
+        const f = Math.min(1, params.subcohortSize / params.totalCohort);
+        return Math.ceil(base / f);
+      }
+      if (studyDesign === 'nested-case-control' && params.matchingRatio) {
+        return Math.ceil(base * (1 + 1 / params.matchingRatio));
+      }
+      return base;
+    }
+
+    case 'linear':
+      return calculateLinearRequiredN(
+        effectSize,
+        targetPower,
+        params.residualSD || 1,
+        alpha,
+        covariateR2
+      );
+
+    case 'logistic':
+      if (studyDesign === 'case-control' || studyDesign === 'nested-case-control') {
+        const r = params.matchingRatio || 1;
+        return calculateLogisticCaseControlRequiredN(effectSize, targetPower, r, alpha, covariateR2);
+      }
+      return calculateLogisticRequiredN(
+        effectSize,
+        targetPower,
+        params.prevalence || 0.1,
+        alpha,
+        covariateR2
+      );
+
+    case 'poisson':
+      return calculatePoissonRequiredN(
+        effectSize,
+        targetPower,
+        params.prevalence || 0.1,
+        alpha,
+        covariateR2
+      );
+
+    case 'gee':
+      return calculateGEE_RequiredN(
+        effectSize,
+        targetPower,
+        params.clusterSize || 1,
+        params.icc || 0,
+        params.residualSD || 1,
+        alpha,
+        covariateR2
+      );
+
+    default:
+      return Infinity;
+  }
 };
 
 export const calculateRequiredEvents = calculateCoxRequiredEvents;
