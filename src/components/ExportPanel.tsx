@@ -290,18 +290,19 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
 
       const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
-      const printWindow = window.open(url, '_blank');
 
-      if (!printWindow) {
-        alert('Please allow popups to print the summary.');
-        URL.revokeObjectURL(url);
-        return;
-      }
+      // Use noopener and noreferrer for security.
+      // Note: when noopener is used, window.open returns null in many browsers,
+      // making it difficult to detect if a popup was blocked. We prioritize
+      // security (preventing window.opener access) over the blocked-popup alert.
+      window.open(url, '_blank', 'noopener,noreferrer');
 
-      // Clean up the URL after the window loads
-      printWindow.onload = () => {
+      // Clean up the URL after a delay, since we can't reliably track the new
+      // window's lifecycle when noopener is used. 60s is ample time for
+      // the browser to load the blob.
+      setTimeout(() => {
         URL.revokeObjectURL(url);
-      };
+      }, 60000);
     } finally {
       setIsExporting(false);
     }
