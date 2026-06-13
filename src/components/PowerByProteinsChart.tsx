@@ -220,7 +220,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
       case 'linear':
         return `n = ${sampleSize}, σ = ${residualSD}`;
       case 'logistic':
-        return studyDesign === 'case-control'
+        return studyDesign === 'case-control' || studyDesign === 'nested-case-control'
           ? `${numCases} cases, ${numControls} controls`
           : `n = ${sampleSize}, prevalence = ${(prevalence * 100).toFixed(0)}%`;
       case 'poisson':
