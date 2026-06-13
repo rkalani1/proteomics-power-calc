@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   LineChart,
   Line,
@@ -50,6 +50,10 @@ const EFFECT_SIZES: Record<AnalysisType, number[]> = {
   poisson: [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0],
   gee: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5],
 };
+
+// Protein counts shown in the sensitivity table. Module scope so the array
+// identity is stable across renders, keeping the memoized table effective.
+const PROTEIN_COUNTS_FOR_TABLE = [1, 5, 10, 25, 50, 100, 200, 500, 1000, 3000, 5000];
 
 // Tooltip for the power-vs-proteins curves. Defined at module scope to keep a
 // stable component identity across re-renders.
@@ -123,9 +127,6 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
   // Get effect sizes for current analysis type
   const effectSizes = EFFECT_SIZES[analysisType];
 
-  // Protein counts for sensitivity table
-  const proteinCountsForTable = [1, 5, 10, 25, 50, 100, 200, 500, 1000, 3000, 5000];
-
   // Color palette for effect size curves
   const effectColors: Record<number, string> = {};
   const colorScale = [
@@ -136,31 +137,33 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     effectColors[es] = colorScale[idx];
   });
 
-  // Power for a given effect size and alpha. Delegated to the parent's
-  // design-aware calculator so this chart stays consistent with the headline
-  // results for every analysis type (including GEE) and honors covariate R²,
-  // case-cohort, and nested-case-control adjustments.
-  const calculateModelPower = (effectSize: number, alpha: number): number =>
-    calculatePower(effectSize, alpha);
+  // Power for every (protein count × effect size) cell is delegated to the
+  // parent's design-aware calculator, so this chart stays consistent with the
+  // headline results for every analysis type (including GEE) and honors
+  // covariate R², case-cohort, and nested-case-control adjustments.
+  //
+  // The three datasets below are memoized: together they are ~1.5k–11k power
+  // evaluations, so recomputing them on unrelated re-renders (e.g. the Linear/Log
+  // scale toggle, or a parent re-render that leaves the power inputs unchanged)
+  // is wasteful. They are recomputed only when an input to the power calculation
+  // changes — matching the useMemo pattern used by the sibling chart components.
 
-  // Generate data for linear chart (1-1000 range)
-  const generateLinearChartData = () => {
-    const counts: number[] = [];
-    for (let i = 1; i <= 1000; i += 1) {
-      counts.push(i);
-    }
-    return counts.map((numProteins) => {
+  // Linear chart data: every protein count across the 1–1000 range.
+  const linearChartData = useMemo(() => {
+    const data: Array<Record<string, number>> = [];
+    for (let numProteins = 1; numProteins <= 1000; numProteins += 1) {
       const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
       const dataPoint: Record<string, number> = { proteins: numProteins };
       effectSizes.forEach((es) => {
-        dataPoint[`es_${es}`] = calculateModelPower(es, alphaMulti);
+        dataPoint[`es_${es}`] = calculatePower(es, alphaMulti);
       });
-      return dataPoint;
-    });
-  };
+      data.push(dataPoint);
+    }
+    return data;
+  }, [effectSizes, fdrQ, correctionMethod, calculatePower]);
 
-  // Generate data for log chart (full 1-5000 range)
-  const generateLogChartData = () => {
+  // Log chart data: thinned grid across the full 1–5000 range.
+  const logChartData = useMemo(() => {
     const counts: number[] = [];
     for (let i = 1; i <= 100; i += 1) counts.push(i);
     for (let i = 110; i <= 500; i += 10) counts.push(i);
@@ -171,24 +174,22 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
       const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
       const dataPoint: Record<string, number> = { proteins: numProteins };
       effectSizes.forEach((es) => {
-        dataPoint[`es_${es}`] = calculateModelPower(es, alphaMulti);
+        dataPoint[`es_${es}`] = calculatePower(es, alphaMulti);
       });
       return dataPoint;
     });
-  };
+  }, [effectSizes, fdrQ, correctionMethod, calculatePower]);
 
-  const linearChartData = generateLinearChartData();
-  const logChartData = generateLogChartData();
-
-  // Generate sensitivity table data
-  const sensitivityTableData = proteinCountsForTable.map((numProteins) => {
-    const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
-    const row: Record<string, number> = { proteins: numProteins };
-    effectSizes.forEach((es) => {
-      row[`es_${es}`] = calculateModelPower(es, alphaMulti);
-    });
-    return row;
-  });
+  // Sensitivity table data: power for each (protein count × effect size) cell.
+  const sensitivityTableData = useMemo(() =>
+    PROTEIN_COUNTS_FOR_TABLE.map((numProteins) => {
+      const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
+      const row: Record<string, number> = { proteins: numProteins };
+      effectSizes.forEach((es) => {
+        row[`es_${es}`] = calculatePower(es, alphaMulti);
+      });
+      return row;
+    }), [effectSizes, fdrQ, correctionMethod, calculatePower]);
 
   // Format power cell with color coding (green = meets the target power)
   const formatPowerCell = (power: number) => {
