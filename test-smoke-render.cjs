@@ -113,6 +113,29 @@ for (const analysisType of ['cox', 'linear', 'logistic', 'poisson', 'gee']) {
   }
 }
 
+// Design-aware subtitle: logistic case-control AND nested-case-control are sized
+// by case/control counts, so the "Power Sensitivity" subtitle must report those
+// counts — not the cohort "n / prevalence". Regression guard: the nested-case-
+// control branch previously fell through to the cohort label.
+for (const studyDesign of ['case-control', 'nested-case-control']) {
+  try {
+    const html = renderToString(React.createElement(PowerByProteinsChart, {
+      events: 70, fdrQ: 0.05, targetPower: 0.8, analysisType: 'logistic', studyDesign,
+      sampleSize: 1000, residualSD: 1, prevalence: 0.1, numCases: 200, numControls: 400,
+      subcohortSize: 500, totalCohort: 5000, clusterSize: 5, icc: 0.05,
+      effectSymbol: 'OR', correctionMethod: 'fdr',
+      calculatePower: () => 0.5,
+    }));
+    const ok = html.includes('200 cases, 400 controls') && !html.includes('prevalence');
+    console.log(`  ${ok ? '✓' : '✗'} PowerByProteinsChart logistic ${studyDesign} subtitle reports cases/controls`);
+    if (!ok) failed = true;
+  } catch (err) {
+    console.error(`  ✗ PowerByProteinsChart logistic ${studyDesign} subtitle threw:`);
+    console.error(err && err.stack ? err.stack : err);
+    failed = true;
+  }
+}
+
 // Render the tab-hidden Advanced Visualizations (power grid + forest plot) for
 // every model. The power grid is a plain HTML table (fully server-rendered), so
 // we can confirm GEE/linear use additive β effect rows (0.10–0.50) while the

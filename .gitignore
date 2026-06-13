@@ -16,6 +16,9 @@ dist-ssr
 .smoke-app.bundle.*.cjs
 .eq.bundle.*.cjs
 
+# Polish-pass working notes (audit log + report), not part of the project
+.polish/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
