@@ -10,12 +10,12 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
-import { calculateEffectiveAlpha, type AnalysisType, type CorrectionMethod } from '../utils/statistics';
+import { calculateEffectiveAlpha, type CorrectionMethod } from '../utils/statistics';
 import { normalizeSensitivityVariable, type SensitivityVariable } from '../utils/sensitivity';
 
 
 interface SensitivityAnalysisProps {
-  analysisType: AnalysisType;
+  analysisType: Parameters<typeof normalizeSensitivityVariable>[0];
   targetPower: number;
   fdrQ: number;
   currentSampleSize: number;
