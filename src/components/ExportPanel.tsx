@@ -298,6 +298,16 @@ const ExportPanel: React.FC<ExportPanelProps> = ({
         return;
       }
 
+      // Security: Prevent tabnabbing by removing access to the opener.
+      // We use this approach instead of the 'noopener' feature string to maintain
+      // the ability to detect popup blockers and use the onload handler for cleanup.
+      try {
+        printWindow.opener = null;
+      } catch (e) {
+        // In some browsers or security contexts, setting opener might throw.
+        // The URL is already opened at this point.
+      }
+
       // Clean up the URL after the window loads
       printWindow.onload = () => {
         URL.revokeObjectURL(url);
