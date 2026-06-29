@@ -15,7 +15,6 @@ import {
   type StudyDesign,
   type CorrectionMethod,
   type PowerParams,
-  calculateCoxRequiredEvents,
   calculateCoxSE,
   calculateCoxCaseCohortSE,
   calculateCoxNestedCaseControlSE,
@@ -29,8 +28,6 @@ import {
   // GEE/Mixed Effects imports
   calculateGEE_SE,
   calculateDesignEffect,
-  normalCDF,
-  normalQuantile,
 } from './utils/statistics';
 
 // Model configuration for UI
@@ -141,15 +138,6 @@ const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
   },
 };
 
-// Two-sided Wald power from a log-scale effect (log HR/OR/RR) and its standard
-// error. Used where the SE is assembled in the component (e.g. the nested
-// case-control variance inflation) rather than inside a statistics helper.
-const powerFromSE = (logEffect: number, se: number, alpha: number): number => {
-  if (!isFinite(se) || se <= 0 || alpha <= 0 || alpha >= 1) return 0;
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const lambda = Math.abs(logEffect) / se;
-  return Math.min(Math.max(normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha), 0), 1);
-};
 
 interface SliderProps {
   label: string;
