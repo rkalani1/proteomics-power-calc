@@ -36,7 +36,7 @@ const MathEquation: React.FC<MathEquationProps> = ({
           displayMode,
           throwOnError: false,
           strict: false,
-          trust: true,
+          trust: false,
         });
       } catch (error) {
         console.error('KaTeX rendering error:', error);

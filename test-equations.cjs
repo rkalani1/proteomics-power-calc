@@ -34,7 +34,7 @@ const fails = [];
 const render = (latex, name) => {
   total++;
   try {
-    const html = katex.renderToString(latex, { displayMode: true, throwOnError: true, strict: false, trust: true });
+    const html = katex.renderToString(latex, { displayMode: true, throwOnError: true, strict: false, trust: false });
     if (typeof html === 'string' && html.length > 0) { passed++; console.log(`  ✓ ${name}`); }
     else { fails.push({ name, err: 'empty render' }); console.log(`  ✗ ${name}: empty render`); }
   } catch (e) {
