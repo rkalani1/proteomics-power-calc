@@ -81,8 +81,9 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
 
     // Filter by minimum power (any column)
     if (filterMinPower > 0) {
+      const powerKeys = scenarios.map(s => `power_${s.proteinCount}`);
       result = result.filter((row) =>
-        scenarios.some(s => row[`power_${s.proteinCount}`] >= filterMinPower)
+        powerKeys.some(key => (row[key] as number) >= filterMinPower)
       );
     }
 
