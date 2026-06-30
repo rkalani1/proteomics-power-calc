@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import { type CorrectionMethod } from '../utils/statistics';
+import { calculateEffectiveAlpha, type CorrectionMethod } from '../utils/statistics';
 import { usePowerChartData } from '../hooks/usePowerChartData';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';

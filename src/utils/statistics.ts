@@ -853,6 +853,19 @@ export const calculateDesignEffect = (
 };
 
 /**
+ * Calculate effective sample size for GEE/Mixed Effects
+ * n_eff = n / DE = n / (1 + (m - 1) x ICC)
+ */
+export const calculateEffectiveSampleSize = (
+  totalObservations: number,
+  clusterSize: number,
+  icc: number
+): number => {
+  const de = calculateDesignEffect(clusterSize, icc);
+  return totalObservations / de;
+};
+
+/**
  * Calculate SE for GEE regression coefficient
  * SE(β) = σ_residual × √DE / √(n × (1 - R²_x))
  * For standardized predictor: SE(β) = √DE / √((n - 2) × (1 - R²_x))
@@ -1194,6 +1207,13 @@ export const calculateMinEffect = (
 // Legacy exports for backward compatibility
 // ============================================================================
 
+export const calculateStandardError = calculateCoxSE;
+
+export const calculateMinDetectableHR = (
+  targetPower: number,
+  events: number,
+  alpha: number
+): number => calculateCoxMinEffect(targetPower, events, alpha);
 
 export const calculateInflation = (hrSingle: number, hrMulti: number): number => {
   // Both HRs must be on the same side of 1 (both > 1 or both < 1)
@@ -1220,6 +1240,19 @@ export const generatePowerCurve = (
   }
 
   return curve;
+};
+
+export const generateTableData = (
+  events: number,
+  alphaSingle: number,
+  alphaMulti: number,
+  hrValues: number[] = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0]
+): Array<{ hr: number; powerSingle: number; powerMulti: number }> => {
+  return hrValues.map(hr => ({
+    hr,
+    powerSingle: calculateCoxPower(hr, events, alphaSingle),
+    powerMulti: calculateCoxPower(hr, events, alphaMulti),
+  }));
 };
 
 // ============================================================================
