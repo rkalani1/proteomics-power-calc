@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -52,6 +53,14 @@ const PowerCurveTooltip: React.FC<{
   decimals: number;
   scenarios: ScenarioInfo[];
 }> = ({ active, payload, label, effectLabel, decimals, scenarios }) => {
+  const scenarioDict = useMemo(() => {
+    const dict: Record<number, ScenarioInfo> = {};
+    for (let i = 0; i < scenarios.length; i++) {
+      dict[scenarios[i].proteinCount] = scenarios[i];
+    }
+    return dict;
+  }, [scenarios]);
+
   if (!active || !payload || !payload.length) return null;
 
   return (
@@ -62,7 +71,7 @@ const PowerCurveTooltip: React.FC<{
       {payload.map((entry, index) => {
         // Extract protein count from dataKey (format: power_1000)
         const proteinCount = parseInt(entry.dataKey.split('_')[1]);
-        const scenario = scenarios.find(s => s.proteinCount === proteinCount);
+        const scenario = scenarioDict[proteinCount];
 
         return (
           <p key={index} className="text-sm flex items-center gap-2">
