@@ -1,10 +1,18 @@
 import { type CorrectionMethod, type AnalysisType, type StudyDesign } from './statistics';
 import { escapeHTML } from './security';
 
+export interface ScenarioResult {
+  proteinCount: number;
+  alpha: number;
+  minEffect: number;
+  powerAtInput: number;
+  sampleNeeded: number | string;
+}
+
 export interface ExportData {
   analysisType: AnalysisType;
   studyDesign: StudyDesign;
-  scenarios: any[];
+  scenarios: ScenarioResult[];
   effectSize: number;
   targetPower: number;
   fdrQ: number;
@@ -23,7 +31,7 @@ export interface ExportData {
   covariateR2: number;
   effectSymbol: string;
   effectLabel: string;
-  tableData: Array<Record<string, any>>;
+  tableData: Array<Record<string, number>>;
 }
 
 export const formatAnalysisType = (type: AnalysisType): string => {
