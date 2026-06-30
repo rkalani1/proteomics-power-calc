@@ -76,7 +76,7 @@ console.log('-'.repeat(50));
   'calculateLinearSE', 'calculateLinearPower', 'calculateLinearPowerFromR2', 'calculateLinearMinEffect', 'calculateLinearRequiredN',
   'calculateLogisticSE', 'calculateLogisticCaseControlSE', 'calculateLogisticPower', 'calculateLogisticMinEffect', 'calculateLogisticRequiredN', 'calculateLogisticCaseControlRequiredN',
   'calculatePoissonSE', 'calculatePoissonPower', 'calculatePoissonMinEffect', 'calculatePoissonRequiredN',
-  'calculateDesignEffect', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN',
+  'calculateDesignEffect', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN', 'calculateGEE_RequiredClusters',
   'orToRR', 'rrToOR', 'r2ToF2',
 ].forEach((fn) => ok(typeof S[fn] === 'function', `exports ${fn}()`));
 
@@ -274,8 +274,10 @@ for (const n of [500, 1000]) {
 // More clustering (higher ICC) -> lower power
 ok(S.calculateGEE_Power(0.2, 1000, 10, 0.2, 1, 0.05) < S.calculateGEE_Power(0.2, 1000, 10, 0.0, 1, 0.05),
   'GEE: higher ICC reduces power');
-// Required N consistent with previous calculation
+// Required clusters consistent with required N
 const nGee = S.calculateGEE_RequiredN(0.2, 0.8, 5, 0.05, 1.0, 0.05);
+close(S.calculateGEE_RequiredClusters(0.2, 0.8, 5, 0.05, 1.0, 0.05), Math.ceil(nGee / 5), 0,
+  'GEE required clusters = ceil(required N / cluster size)');
 // Required N <-> power and min-effect <-> power round trips
 ok(S.calculateGEE_Power(0.2, nGee, 5, 0.05, 1.0, 0.05) >= 0.8, 'GEE required-N round trip achieves >=80%');
 for (const m of [3, 10]) {
