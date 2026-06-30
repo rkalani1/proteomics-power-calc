@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { type CorrectionMethod } from '../utils/statistics';
 import {
   generateCSV,
   generatePrintHTML,
@@ -7,43 +6,10 @@ import {
   performCSVDownload,
   performPrint,
   performCopy,
+  type ExportData,
 } from '../utils/exportUtils';
 
-type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
-type StudyDesign = 'cohort' | 'case-control' | 'cross-sectional' | 'case-cohort' | 'nested-case-control';
 
-interface ScenarioResult {
-  proteinCount: number;
-  alpha: number;
-  minEffect: number;
-  powerAtInput: number;
-  sampleNeeded: number | string;
-}
-
-interface ExportPanelProps {
-  analysisType: AnalysisType;
-  studyDesign: StudyDesign;
-  scenarios: ScenarioResult[];
-  effectSize: number;
-  targetPower: number;
-  fdrQ: number;
-  correctionMethod: CorrectionMethod;
-  sampleSize: number;
-  events: number;
-  prevalence: number;
-  residualSD: number;
-  numCases: number;
-  numControls: number;
-  subcohortSize: number;
-  totalCohort: number;
-  matchingRatio: number;
-  clusterSize: number;
-  icc: number;
-  covariateR2: number;
-  effectSymbol: string;
-  effectLabel: string;
-  tableData: Array<Record<string, number>>;
-}
 
 /**
  * ExportPanel Component
@@ -51,7 +17,7 @@ interface ExportPanelProps {
  * Provides export functionality for power analysis results.
  * Supports CSV export for data and a printable summary.
  */
-const ExportPanel: React.FC<ExportPanelProps> = (props) => {
+const ExportPanel: React.FC<ExportData> = (props) => {
   const [isExporting, setIsExporting] = useState(false);
 
   // Download CSV
