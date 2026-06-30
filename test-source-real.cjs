@@ -97,6 +97,10 @@ close(S.calculateEffectiveAlpha(0.05, 1000, 'bonferroni'), 5e-5, 1e-12, 'Bonferr
 close(S.calculateEffectiveAlpha(0.05, 1), 0.05, 1e-12, 'm=1 -> threshold unchanged');
 close(S.calculateEffectiveAlpha(0.05, 0), 0.05, 1e-12, 'm=0 guard -> threshold unchanged');
 
+close(S.calculateStage1Alpha(0.1, 1000), 1e-4, 1e-12, 'calculateStage1Alpha(0.1, 1000) = 0.0001');
+close(S.calculateStage1Alpha(0.05, 500), 1e-4, 1e-12, 'calculateStage1Alpha(0.05, 500) = 0.0001');
+close(S.calculateStage1Alpha(0.05, 0), 0.05, 1e-12, 'calculateStage1Alpha m=0 guard -> unchanged');
+
 // ---------------------------------------------------------------------------
 console.log('\n3. Cox proportional hazards');
 console.log('-'.repeat(50));
