@@ -115,20 +115,23 @@ try {
     console.log(`    Captured log: ${capturedError}`);
   }
 
+  let exitCode = 0;
   if (fallbackOk && errorLoggedOk) {
     console.log('\n✓ TEST PASSED');
-    process.exit(0);
+    exitCode = 0;
   } else {
     console.log('\n✗ TEST FAILED');
-    process.exit(1);
+    exitCode = 1;
   }
+
+  console.error = originalConsoleError;
+  try { fs.unlinkSync(bundlePath); } catch (e) {}
+  process.exit(exitCode);
 
 } catch (err) {
   console.error = originalConsoleError;
   console.error('\n✗ Test threw an unexpected error:');
   console.error(err);
-  process.exit(1);
-} finally {
-  console.error = originalConsoleError;
   try { fs.unlinkSync(bundlePath); } catch (e) {}
+  process.exit(1);
 }
