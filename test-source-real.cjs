@@ -72,7 +72,7 @@ console.log('\n0. Module surface');
 console.log('-'.repeat(50));
 [
   'normalCDF', 'normalQuantile', 'calculateEffectiveAlpha',
-  'calculateCoxSE', 'calculateCoxCaseCohortSE', 'calculateCoxNestedCaseControlSE', 'calculateCoxPower', 'calculateCoxMinEffect', 'calculateCoxRequiredEvents',
+  'calculateCoxSE', 'calculateCoxCaseCohortSE', 'calculateCoxNestedCaseControlSE', 'calculateCoxPower', 'calculateCoxMinEffect', 'calculateCoxRequiredEvents', 'calculateMinDetectableHR',
   'calculateLinearSE', 'calculateLinearPower', 'calculateLinearPowerFromR2', 'calculateLinearMinEffect', 'calculateLinearRequiredN',
   'calculateLogisticSE', 'calculateLogisticCaseControlSE', 'calculateLogisticPower', 'calculateLogisticMinEffect', 'calculateLogisticRequiredN', 'calculateLogisticCaseControlRequiredN',
   'calculatePoissonSE', 'calculatePoissonPower', 'calculatePoissonMinEffect', 'calculatePoissonRequiredN',
@@ -133,6 +133,10 @@ for (const d of [80, 200, 500]) {
   for (const a of [0.05, 1e-4]) {
     const minHR = S.calculateCoxMinEffect(0.8, d, a);
     close(S.calculateCoxPower(minHR, d, a), 0.8, 1e-6, `Cox min-HR round trip d=${d},a=${a}`);
+
+    // Delegation check
+    const delegatedHR = S.calculateMinDetectableHR(0.8, d, a);
+    close(delegatedHR, minHR, 0, `calculateMinDetectableHR delegates perfectly for d=${d},a=${a}`);
   }
 }
 
