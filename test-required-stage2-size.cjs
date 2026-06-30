@@ -127,6 +127,46 @@ console.log(`  Stage 2 Power (Linear): ${resultLinear.stage2Power}`);
 console.log(`  Achieved Joint Power (Linear): ${resultLinear.jointPower}`);
 close(resultLinear.jointPower, 0.8, 0.02, 'Achieved linear power should be close to target');
 
+// Test Case 4: Edge Cases (Bounds)
+console.log('\n4. Edge Cases (Bounds)');
+
+// Target power impossible to reach (too high)
+const impossiblePowerHigh = 0.9999;
+const requiredNMax = S.calculateRequiredStage2Size(
+  effectSize,
+  analysisType,
+  impossiblePowerHigh,
+  twoStageParams,
+  studyParams
+);
+console.log(`  Required N for impossible high power (${impossiblePowerHigh}): ${requiredNMax}`);
+ok(requiredNMax === 10000 || requiredNMax === 10001 || requiredNMax === 9999, 'Should return upper bound for impossible high power');
+
+// Target power very low (should return lower bound)
+const impossiblePowerLow = 0.0001;
+const requiredNMin = S.calculateRequiredStage2Size(
+  effectSize,
+  analysisType,
+  impossiblePowerLow,
+  twoStageParams,
+  studyParams
+);
+console.log(`  Required N for very low power (${impossiblePowerLow}): ${requiredNMin}`);
+ok(requiredNMin === 50 || requiredNMin === 51 || requiredNMin === 49, 'Should return lower bound for very low power');
+
+// Test Case 5: Max Iterations early termination
+console.log('\n5. Max Iterations early termination');
+const requiredNEarlyTerm = S.calculateRequiredStage2Size(
+  effectSize,
+  analysisType,
+  0.8,
+  twoStageParams,
+  studyParams,
+  2 // only 2 iterations
+);
+console.log(`  Required N with 2 iterations: ${requiredNEarlyTerm}`);
+ok(requiredNEarlyTerm > 50 && requiredNEarlyTerm < 10000, 'Should return intermediate value when terminated early');
+
 // ---------------------------------------------------------------------------
 console.log('\n' + '='.repeat(70));
 console.log(`RESULTS: ${passed}/${total} passed, ${fails.length} failed`);
