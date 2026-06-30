@@ -27,6 +27,9 @@ const ExportPanel: React.FC<ExportData> = (props) => {
       const csv = generateCSV(props);
       const filename = `power-analysis-${new Date().toISOString().split('T')[0]}.csv`;
       performCSVDownload(csv, filename);
+    } catch (err) {
+      console.error('Failed to download CSV:', err);
+      alert('Failed to download CSV. Please try again.');
     } finally {
       setIsExporting(false);
     }
@@ -38,6 +41,9 @@ const ExportPanel: React.FC<ExportData> = (props) => {
     try {
       const html = generatePrintHTML(props);
       performPrint(html);
+    } catch (err) {
+      console.error('Failed to print summary:', err);
+      alert('Failed to print summary. Please try again.');
     } finally {
       setIsExporting(false);
     }
