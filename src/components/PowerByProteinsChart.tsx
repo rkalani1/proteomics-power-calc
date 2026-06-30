@@ -55,12 +55,15 @@ const EFFECT_SIZES: Record<AnalysisType, number[]> = {
 // stable component identity across re-renders.
 const ProteinsTooltip: React.FC<{
   active?: boolean;
-  payload?: Array<{ name: string; value: number; color: string; dataKey: string }>;
+  payload?: Array<{ name: string; value: number; color: string; dataKey: string; payload?: { alphaMulti?: number } }>;
   label?: number;
   fdrQ: number;
   effectSymbol: string;
 }> = ({ active, payload, label, fdrQ, effectSymbol }) => {
   if (!active || !payload || !payload.length) return null;
+
+  // Use pre-calculated effective alpha from the payload if available to save CPU time on every hover frame
+  const effectiveAlpha = payload[0]?.payload?.alphaMulti ?? calculateEffectiveAlpha(fdrQ, label || 1);
 
   return (
     <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3 max-h-64 overflow-y-auto">
@@ -68,7 +71,7 @@ const ProteinsTooltip: React.FC<{
         {label?.toLocaleString()} protein{label !== 1 ? 's' : ''} tested
       </p>
       <p className="text-xs text-gray-500 mb-2">
-        α ≈ {calculateEffectiveAlpha(fdrQ, label || 1).toExponential(2)}
+        α ≈ {effectiveAlpha.toExponential(2)}
       </p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         {payload.map((entry, index) => {
@@ -147,7 +150,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     }
     return counts.map((numProteins) => {
       const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
-      const dataPoint: Record<string, number> = { proteins: numProteins };
+      const dataPoint: Record<string, number> = { proteins: numProteins, alphaMulti };
       effectSizes.forEach((es) => {
         dataPoint[`es_${es}`] = calculatePower(es, alphaMulti);
       });
@@ -165,7 +168,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
 
     return counts.map((numProteins) => {
       const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
-      const dataPoint: Record<string, number> = { proteins: numProteins };
+      const dataPoint: Record<string, number> = { proteins: numProteins, alphaMulti };
       effectSizes.forEach((es) => {
         dataPoint[`es_${es}`] = calculatePower(es, alphaMulti);
       });
@@ -177,7 +180,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
   const sensitivityTableData = useMemo(() => {
     return proteinCountsForTable.map((numProteins) => {
       const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
-      const row: Record<string, number> = { proteins: numProteins };
+      const row: Record<string, number> = { proteins: numProteins, alphaMulti };
       effectSizes.forEach((es) => {
         row[`es_${es}`] = calculatePower(es, alphaMulti);
       });
