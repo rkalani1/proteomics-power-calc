@@ -1323,6 +1323,86 @@ export const calculateStage1Alpha = (
  * For a true effect, this is approximately:
  * Joint Power ≈ Power_Stage1 × Power_Stage2
  */
+/**
+ * Helper to calculate Stage 1 metrics
+ */
+const calculateStage1Metrics = (
+  powerParams: PowerParams,
+  stage1Proteins: number,
+  expectedHits: number
+) => {
+  const stage1Power = calculatePower(powerParams);
+
+  // Expected number advancing: true positives + false positives
+  const expectedTruePositives = expectedHits * stage1Power;
+  const nullProteins = stage1Proteins - expectedHits;
+  // Conservative estimate for false positives: use α for each null
+  const expectedFalsePositives = nullProteins * powerParams.alpha;
+  const expectedAdvancing = expectedTruePositives + expectedFalsePositives;
+
+  return { stage1Power, expectedAdvancing };
+};
+
+/**
+ * Helper to calculate Stage 2 metrics
+ */
+const calculateStage2Metrics = (
+  powerParams: PowerParams,
+  stage2SampleSize: number,
+  stage2Alpha: number,
+  expectedAdvancing: number,
+  sampleOverlap: number
+) => {
+  // Account for sample overlap if any
+  const effectiveStage2Size = sampleOverlap > 0
+    ? stage2SampleSize * (1 - sampleOverlap * 0.5) // Penalize for overlap
+    : stage2SampleSize;
+
+  // Stage 2 per-protein alpha (Bonferroni for advancing proteins)
+  const stage2PerProteinAlpha = expectedAdvancing > 1
+    ? stage2Alpha / Math.max(1, Math.ceil(expectedAdvancing))
+    : stage2Alpha;
+
+  // Update powerParams for Stage 2
+  powerParams.alpha = stage2PerProteinAlpha;
+  powerParams.sampleSize = effectiveStage2Size;
+
+  const stage2Power = calculatePower(powerParams);
+
+  return { stage2Power, stage2PerProteinAlpha };
+};
+
+/**
+ * Helper to calculate cost efficiency vs single-stage design
+ */
+const calculateCostEfficiency = (
+  powerParams: PowerParams,
+  stage1SampleSize: number,
+  stage2SampleSize: number,
+  stage1Proteins: number,
+  jointPower: number,
+  sampleOverlap: number
+) => {
+  // Total sample size accounting for overlap
+  const totalSampleSize = sampleOverlap > 0
+    ? stage1SampleSize + stage2SampleSize * (1 - sampleOverlap)
+    : stage1SampleSize + stage2SampleSize;
+
+  // Cost efficiency: compare to single-stage proteome-wide study
+  const singleStageAlpha = calculateEffectiveAlpha(0.05, stage1Proteins);
+
+  // Update powerParams for single-stage comparison
+  powerParams.alpha = singleStageAlpha;
+  powerParams.sampleSize = totalSampleSize;
+
+  const singleStagePower = calculatePower(powerParams);
+
+  // Cost efficiency metric: how much better is two-stage?
+  const costEfficiency = singleStagePower > 0 ? jointPower / singleStagePower : 1;
+
+  return { costEfficiency, totalSampleSize };
+};
+
 export const calculateTwoStagePower = (
   effectSize: number,
   analysisType: AnalysisType,
@@ -1342,7 +1422,7 @@ export const calculateTwoStagePower = (
   // Stage 1: Calculate power with FDR-corrected alpha
   const stage1Alpha = calculateStage1Alpha(stage1FDR, stage1Proteins);
 
-  // Power in Stage 1 depends on the analysis type
+  // Base powerParams used and mutated across stages
   const powerParams: PowerParams = {
     analysisType,
     studyDesign: studyParams.studyDesign || 'cohort',
@@ -1358,57 +1438,31 @@ export const calculateTwoStagePower = (
     icc: studyParams.icc,
   };
 
-  const stage1Power = calculatePower(powerParams);
+  const { stage1Power, expectedAdvancing } = calculateStage1Metrics(
+    powerParams,
+    stage1Proteins,
+    expectedHits
+  );
 
-  // Expected number advancing: true positives + false positives
-  // True positives: expectedHits × stage1Power
-  // False positives: (stage1Proteins - expectedHits) × stage1FDR / stage1Proteins
-  const expectedTruePositives = expectedHits * stage1Power;
-  const nullProteins = stage1Proteins - expectedHits;
-  // Under BH-FDR, expected false positives ≈ FDR × number of discoveries
-  // Conservative estimate: use α for each null
-  const expectedFalsePositives = nullProteins * stage1Alpha;
-  const expectedAdvancing = expectedTruePositives + expectedFalsePositives;
-
-  // Stage 2: Calculate power for validation
-  // Account for sample overlap if any
-  const effectiveStage2Size = sampleOverlap > 0
-    ? stage2SampleSize * (1 - sampleOverlap * 0.5) // Penalize for overlap
-    : stage2SampleSize;
-
-  // Stage 2 per-protein alpha (typically just 0.05, but could be adjusted for multiple hits)
-  const stage2PerProteinAlpha = expectedAdvancing > 1
-    ? stage2Alpha / Math.max(1, Math.ceil(expectedAdvancing)) // Bonferroni for advancing proteins
-    : stage2Alpha;
-
-  // Reuse powerParams for Stage 2
-  powerParams.alpha = stage2PerProteinAlpha;
-  powerParams.sampleSize = effectiveStage2Size;
-
-  const stage2Power = calculatePower(powerParams);
+  const { stage2Power, stage2PerProteinAlpha } = calculateStage2Metrics(
+    powerParams,
+    stage2SampleSize,
+    stage2Alpha,
+    expectedAdvancing,
+    sampleOverlap
+  );
 
   // Joint power: probability of passing both stages
   const jointPower = stage1Power * stage2Power;
 
-  // Total sample size accounting for overlap
-  const totalSampleSize = sampleOverlap > 0
-    ? stage1SampleSize + stage2SampleSize * (1 - sampleOverlap)
-    : stage1SampleSize + stage2SampleSize;
-
-  // Cost efficiency: compare to single-stage proteome-wide study
-  // Single-stage would need N_single to achieve same power at α_proteome
-  // Cost efficiency = N_single / totalSampleSize
-  const singleStageAlpha = calculateEffectiveAlpha(0.05, stage1Proteins);
-
-  // Reuse powerParams for single-stage comparison
-  powerParams.alpha = singleStageAlpha;
-  powerParams.sampleSize = totalSampleSize;
-
-  const singleStagePower = calculatePower(powerParams);
-
-  // Cost efficiency metric: how much better is two-stage?
-  // If jointPower > singleStagePower with same total N, efficiency > 1
-  const costEfficiency = singleStagePower > 0 ? jointPower / singleStagePower : 1;
+  const { costEfficiency, totalSampleSize } = calculateCostEfficiency(
+    powerParams,
+    stage1SampleSize,
+    stage2SampleSize,
+    stage1Proteins,
+    jointPower,
+    sampleOverlap
+  );
 
   return {
     stage1Power,
