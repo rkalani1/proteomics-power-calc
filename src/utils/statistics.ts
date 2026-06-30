@@ -1223,25 +1223,6 @@ export const calculateInflation = (hrSingle: number, hrMulti: number): number =>
   return ((hrMulti / hrSingle) - 1) * 100;
 };
 
-export const generatePowerCurve = (
-  events: number,
-  alpha: number,
-  hrMin: number = 1.0,
-  hrMax: number = 3.0,
-  numPoints: number = 100
-): Array<{ hr: number; power: number }> => {
-  const curve: Array<{ hr: number; power: number }> = [];
-  const step = (hrMax - hrMin) / (numPoints - 1);
-
-  for (let i = 0; i < numPoints; i++) {
-    const hr = hrMin + i * step;
-    const power = calculateCoxPower(hr, events, alpha);
-    curve.push({ hr: Number(hr.toFixed(4)), power });
-  }
-
-  return curve;
-};
-
 export const generateTableData = (
   events: number,
   alphaSingle: number,
