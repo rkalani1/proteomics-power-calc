@@ -1423,41 +1423,6 @@ export const calculateTwoStagePower = (
 };
 
 /**
- * Calculate optimal Stage 1 FDR threshold for maximum joint power
- *
- * Too stringent Stage 1 → lose true positives
- * Too liberal Stage 1 → too many proteins to validate, Stage 2 underpowered
- */
-export const findOptimalStage1FDR = (
-  effectSize: number,
-  analysisType: AnalysisType,
-  baseParams: Omit<TwoStageParams, 'stage1FDR'>,
-  studyParams: Partial<PowerParams>,
-  fdrGrid: number[] = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50]
-): { optimalFDR: number; maxJointPower: number; results: Array<{ fdr: number; jointPower: number }> } => {
-  // Pre-allocate params object to avoid spread in loop
-  const twoStageParams: TwoStageParams = { ...baseParams, stage1FDR: 0 };
-  const results = fdrGrid.map(fdr => {
-    twoStageParams.stage1FDR = fdr;
-    const result = calculateTwoStagePower(
-      effectSize,
-      analysisType,
-      twoStageParams,
-      studyParams
-    );
-    return { fdr, jointPower: result.jointPower };
-  });
-
-  const best = results.reduce((a, b) => a.jointPower > b.jointPower ? a : b);
-
-  return {
-    optimalFDR: best.fdr,
-    maxJointPower: best.jointPower,
-    results,
-  };
-};
-
-/**
  * Calculate required Stage 2 sample size for target joint power
  */
 export const calculateRequiredStage2Size = (
