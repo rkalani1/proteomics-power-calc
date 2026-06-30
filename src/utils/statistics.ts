@@ -1000,31 +1000,6 @@ export const calculateGEE_RequiredN = (
   return Math.ceil(n);
 };
 
-/**
- * Calculate required number of clusters for GEE
- *
- * @param beta - Target effect size
- * @param targetPower - Desired statistical power
- * @param clusterSize - Average observations per cluster
- * @param icc - Intraclass correlation coefficient
- * @param residualSD - Standard deviation of residuals
- * @param alpha - Significance level
- * @param covariateR2 - R² of protein ~ covariates (default 0)
- */
-export const calculateGEE_RequiredClusters = (
-  beta: number,
-  targetPower: number,
-  clusterSize: number,
-  icc: number,
-  residualSD: number,
-  alpha: number,
-  covariateR2: number = 0
-): number => {
-  const totalN = calculateGEE_RequiredN(beta, targetPower, clusterSize, icc, residualSD, alpha, covariateR2);
-  if (!isFinite(totalN)) return Infinity;
-  return Math.ceil(totalN / clusterSize);
-};
-
 // ============================================================================
 // Unified Interface Functions
 // ============================================================================
