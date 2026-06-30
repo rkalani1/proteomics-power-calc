@@ -77,7 +77,7 @@ console.log('-'.repeat(50));
   'calculateLogisticSE', 'calculateLogisticCaseControlSE', 'calculateLogisticPower', 'calculateLogisticMinEffect', 'calculateLogisticRequiredN', 'calculateLogisticCaseControlRequiredN',
   'calculatePoissonSE', 'calculatePoissonPower', 'calculatePoissonMinEffect', 'calculatePoissonRequiredN',
   'calculateDesignEffect', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN', 'calculateGEE_RequiredClusters',
-  'orToRR', 'rrToOR', 'r2ToF2',
+
 ].forEach((fn) => ok(typeof S[fn] === 'function', `exports ${fn}()`));
 
 // ---------------------------------------------------------------------------
@@ -292,14 +292,6 @@ ok(S.calculateCoxPower(1.5, 100, 0.05, undefined, 0.5) < S.calculateCoxPower(1.5
   'Cox: covariate R^2>0 lowers power (variance inflation)');
 ok(S.calculateLogisticPower(1.5, 1000, 0.2, 0.05, undefined, 0.5) < S.calculateLogisticPower(1.5, 1000, 0.2, 0.05, undefined, 0),
   'Logistic: covariate R^2>0 lowers power');
-
-// ---------------------------------------------------------------------------
-console.log('\n10. Effect-size conversions');
-console.log('-'.repeat(50));
-const p0 = 0.1, orv = 2.0;
-const rr = S.orToRR(orv, p0);
-close(S.rrToOR(rr, p0), orv, 1e-9, 'orToRR <-> rrToOR round trip');
-close(S.r2ToF2(0.2), 0.2 / 0.8, 1e-12, 'r2ToF2: f^2 = R^2/(1-R^2)');
 
 // ---------------------------------------------------------------------------
 console.log('\n11. Numerical stability / guards');

@@ -1571,36 +1571,3 @@ export const calculateRequiredSample = (
 
 export const calculateRequiredEvents = calculateCoxRequiredEvents;
 
-// ============================================================================
-// Effect Size Conversion Utilities
-// ============================================================================
-
-/**
- * Convert OR to approximate RR given baseline prevalence
- * RR ≈ OR / (1 - p0 + p0 × OR) where p0 is baseline prevalence
- */
-export const orToRR = (oddsRatio: number, baselinePrevalence: number): number => {
-  return oddsRatio / (1 - baselinePrevalence + baselinePrevalence * oddsRatio);
-};
-
-/**
- * Convert RR to OR given baseline prevalence
- */
-export const rrToOR = (relativeRisk: number, baselinePrevalence: number): number => {
-  return relativeRisk * (1 - baselinePrevalence) / (1 - relativeRisk * baselinePrevalence);
-};
-
-/**
- * Convert beta to standardized beta (Cohen's d approximation)
- */
-export const betaToCohenD = (beta: number, residualSD: number): number => {
-  return beta / residualSD;
-};
-
-/**
- * Convert R² to Cohen's f²
- */
-export const r2ToF2 = (r2: number): number => {
-  if (r2 >= 1) return Infinity;
-  return r2 / (1 - r2);
-};
