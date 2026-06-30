@@ -91,6 +91,16 @@ console.log('ExportPanel Error Handling Test');
 console.log('='.repeat(70));
 
 let passed = false;
+let capturedAlert = null;
+let capturedError = null;
+global.alert = (msg) => {
+  capturedAlert = msg;
+};
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  capturedError = args.join(' ');
+};
+
 try {
   // Render component to get the props (which includes the onClick handlers)
   const props = {
@@ -160,18 +170,18 @@ try {
   const isExportingHook = stateHooks[0];
   isExportingHook.setCalls = []; // Clear previous calls from render if any
 
-  // Execute the print function which should throw our mock error
+  // Execute the print function. ExportPanel should catch the mock error, alert,
+  // and still reset the loading state in the finally block.
   let errorThrown = false;
   try {
     printFn();
   } catch (err) {
     errorThrown = true;
-    if (err.message !== 'Mocked print error') {
-      throw err;
-    }
   }
 
-  console.log(`  ${errorThrown ? '✓' : '✗'} Error was thrown and caught during execution`);
+  console.log(`  ${!errorThrown ? '✓' : '✗'} Error was caught inside printSummary`);
+  console.log(`  ${capturedError && capturedError.includes('Failed to print summary') ? '✓' : '✗'} Error was logged`);
+  console.log(`  ${capturedAlert === 'Failed to print summary. Please try again.' ? '✓' : '✗'} Alert was shown`);
   console.log(`  ${isExportingHook.setCalls.length === 2 ? '✓' : '✗'} setIsExporting called twice`);
 
   if (isExportingHook.setCalls.length === 2) {
@@ -179,7 +189,10 @@ try {
     console.log(`  ${isExportingHook.setCalls[1] === false ? '✓' : '✗'} Second call sets to false (in finally block)`);
   }
 
-  if (errorThrown && isExportingHook.setCalls.length === 2 &&
+  if (!errorThrown &&
+      capturedError && capturedError.includes('Failed to print summary') &&
+      capturedAlert === 'Failed to print summary. Please try again.' &&
+      isExportingHook.setCalls.length === 2 &&
       isExportingHook.setCalls[0] === true && isExportingHook.setCalls[1] === false) {
     passed = true;
   }
@@ -187,6 +200,7 @@ try {
   console.error('\n✗ Test threw an unexpected error:');
   console.error(err);
 } finally {
+  console.error = originalConsoleError;
   try { fs.unlinkSync(bundlePath); } catch (e) {}
 }
 

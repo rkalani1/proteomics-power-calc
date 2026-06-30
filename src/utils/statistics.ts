@@ -1521,6 +1521,51 @@ export const calculateRequiredStage2Size = (
   return Math.ceil((low + high) / 2);
 };
 
+export interface Stage1FDRGridResult {
+  fdr: number;
+  jointPower: number;
+  twoStageResult: TwoStageResult;
+}
+
+export interface OptimalStage1FDRResult {
+  optimalFDR: number;
+  maxJointPower: number;
+  results: Stage1FDRGridResult[];
+}
+
+export const findOptimalStage1FDR = (
+  effectSize: number,
+  analysisType: AnalysisType,
+  params: Omit<TwoStageParams, 'stage1FDR'>,
+  studyParams: Partial<PowerParams>,
+  fdrGrid: number[] = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50]
+): OptimalStage1FDRResult => {
+  const results = fdrGrid.map((fdr) => {
+    const twoStageResult = calculateTwoStagePower(
+      effectSize,
+      analysisType,
+      { ...params, stage1FDR: fdr },
+      studyParams
+    );
+
+    return {
+      fdr,
+      jointPower: twoStageResult.jointPower,
+      twoStageResult,
+    };
+  });
+
+  const optimal = results.reduce((best, current) =>
+    best.jointPower > current.jointPower ? best : current
+  );
+
+  return {
+    optimalFDR: optimal.fdr,
+    maxJointPower: optimal.jointPower,
+    results,
+  };
+};
+
 /**
  * Unified required sample size calculation
  */
@@ -1617,4 +1662,11 @@ export const rrToOR = (relativeRisk: number, baselinePrevalence: number): number
 export const r2ToF2 = (r2: number): number => {
   if (r2 >= 1) return Infinity;
   return r2 / (1 - r2);
+};
+
+/**
+ * Convert a beta coefficient to Cohen's d using the outcome residual SD.
+ */
+export const betaToCohenD = (beta: number, residualSD: number): number => {
+  return beta / residualSD;
 };

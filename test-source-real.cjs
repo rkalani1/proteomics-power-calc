@@ -77,7 +77,9 @@ console.log('-'.repeat(50));
   'calculateLogisticSE', 'calculateLogisticCaseControlSE', 'calculateLogisticPower', 'calculateLogisticMinEffect', 'calculateLogisticRequiredN', 'calculateLogisticCaseControlRequiredN',
   'calculatePoissonSE', 'calculatePoissonPower', 'calculatePoissonMinEffect', 'calculatePoissonRequiredN',
   'calculateDesignEffect', 'calculateEffectiveSampleSize', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN', 'calculateGEE_RequiredClusters',
-  'orToRR', 'rrToOR', 'r2ToF2',
+  'orToRR', 'rrToOR', 'r2ToF2', 'betaToCohenD',
+  'calculateInflation', 'calculateMinEffect', 'calculateStage1Alpha', 'findOptimalStage1FDR',
+  'generatePowerCurve', 'generateTableData',
 ].forEach((fn) => ok(typeof S[fn] === 'function', `exports ${fn}()`));
 
 // ---------------------------------------------------------------------------
@@ -316,7 +318,19 @@ close(S.betaToCohenD(0, 1.0), 0.0, 1e-9, 'betaToCohenD: zero beta');
 ok(!Number.isFinite(S.betaToCohenD(1.0, 0)), 'betaToCohenD: div by zero residualSD -> Infinity');
 
 // ---------------------------------------------------------------------------
-console.log('\n11. generatePowerCurve (missing tests from issue)');
+console.log('\n11. Inflation calculation');
+console.log('-'.repeat(50));
+close(S.calculateInflation(0, 1.5), 0, 1e-12, 'calculateInflation: hrSingle <= 0 -> 0');
+close(S.calculateInflation(1.5, -1), 0, 1e-12, 'calculateInflation: hrMulti <= 0 -> 0');
+close(S.calculateInflation(1, 1.5), 0, 1e-12, 'calculateInflation: hrSingle === 1 -> 0');
+close(S.calculateInflation(1.5, 1), 0, 1e-12, 'calculateInflation: hrMulti === 1 -> 0');
+close(S.calculateInflation(1.5, 0.8), 0, 1e-12, 'calculateInflation: opposite directions -> 0');
+close(S.calculateInflation(0.8, 1.5), 0, 1e-12, 'calculateInflation: opposite directions -> 0');
+close(S.calculateInflation(1.5, 1.8), ((1.8 / 1.5) - 1) * 100, 1e-12, 'calculateInflation: 1.5 -> 1.8');
+close(S.calculateInflation(0.8, 0.5), ((0.5 / 0.8) - 1) * 100, 1e-12, 'calculateInflation: 0.8 -> 0.5');
+
+// ---------------------------------------------------------------------------
+console.log('\n12. generatePowerCurve (missing tests from issue)');
 console.log('-'.repeat(50));
 const curvePoints = S.generatePowerCurve(100, 0.05, 1.0, 3.0, 50);
 ok(Array.isArray(curvePoints), 'generatePowerCurve returns an array');
@@ -337,7 +351,7 @@ const curveDefault = S.generatePowerCurve(100, 0.05);
 ok(curveDefault.length === 100, 'generatePowerCurve uses default numPoints=100');
 
 // ---------------------------------------------------------------------------
-console.log('\n12. Numerical stability / guards');
+console.log('\n13. Numerical stability / guards');
 console.log('-'.repeat(50));
 for (const [hr, d, a] of [[1.0001, 10, 0.05], [100, 10, 0.05], [1.5, 1, 0.05], [1.5, 100000, 0.05], [1.5, 100, 1e-15]]) {
   const v = S.calculateCoxPower(hr, d, a);
@@ -347,7 +361,103 @@ ok(S.calculateLinearPower(0.3, 2, 1, 0.05) === 0, 'Linear: n<=2 guarded -> 0');
 ok(!Number.isFinite(S.calculateLogisticRequiredN(1.0, 0.8, 0.1, 0.05)), 'Logistic: required N at OR=1 -> Infinity');
 
 // ---------------------------------------------------------------------------
-console.log('\n12. Data Generation Utilities');
+console.log('\n14. Unified calculateMinEffect');
+console.log('-'.repeat(50));
+const minCox = S.calculateMinEffect({
+  analysisType: 'cox',
+  studyDesign: 'cohort',
+  targetPower: 0.8,
+  alpha: 0.05,
+  events: 100,
+});
+close(minCox, S.calculateCoxMinEffect(0.8, 100, 0.05), 1e-12, 'Unified calculateMinEffect: Cox cohort');
+
+const minCoxCC = S.calculateMinEffect({
+  analysisType: 'cox',
+  studyDesign: 'case-cohort',
+  targetPower: 0.8,
+  alpha: 0.05,
+  events: 100,
+  subcohortSize: 500,
+  totalCohort: 5000,
+});
+close(minCoxCC, S.calculateCoxMinEffect(0.8, 100, 0.05, { caseCohort: { subcohortSize: 500, totalCohort: 5000 } }), 1e-12, 'Unified calculateMinEffect: Cox case-cohort');
+
+const minCoxNCC = S.calculateMinEffect({
+  analysisType: 'cox',
+  studyDesign: 'nested-case-control',
+  targetPower: 0.8,
+  alpha: 0.05,
+  events: 100,
+  matchingRatio: 4,
+});
+close(minCoxNCC, S.calculateCoxMinEffect(0.8, 100, 0.05, { nestedCaseControl: { matchingRatio: 4 } }), 1e-12, 'Unified calculateMinEffect: Cox nested-case-control');
+
+const minLin = S.calculateMinEffect({
+  analysisType: 'linear',
+  studyDesign: 'cohort',
+  targetPower: 0.8,
+  alpha: 0.05,
+  sampleSize: 100,
+  residualSD: 2,
+  covariateR2: 0.1,
+});
+close(minLin, S.calculateLinearMinEffect(0.8, 100, 2, 0.05, 0.1), 1e-12, 'Unified calculateMinEffect: Linear');
+
+const minLog = S.calculateMinEffect({
+  analysisType: 'logistic',
+  studyDesign: 'cohort',
+  targetPower: 0.8,
+  alpha: 0.05,
+  sampleSize: 1000,
+  prevalence: 0.2,
+});
+close(minLog, S.calculateLogisticMinEffect(0.8, 1000, 0.2, 0.05), 1e-12, 'Unified calculateMinEffect: Logistic cohort');
+
+const minLogCC = S.calculateMinEffect({
+  analysisType: 'logistic',
+  studyDesign: 'case-control',
+  targetPower: 0.8,
+  alpha: 0.05,
+  cases: 200,
+  controls: 400,
+});
+close(minLogCC, S.calculateLogisticMinEffect(0.8, 0, 0, 0.05, { cases: 200, controls: 400 }), 1e-12, 'Unified calculateMinEffect: Logistic case-control');
+
+const minPois = S.calculateMinEffect({
+  analysisType: 'poisson',
+  studyDesign: 'cohort',
+  targetPower: 0.8,
+  alpha: 0.05,
+  sampleSize: 500,
+  prevalence: 0.1,
+  covariateR2: 0.2,
+});
+close(minPois, S.calculatePoissonMinEffect(0.8, 500, 0.1, 0.05, 0.2), 1e-12, 'Unified calculateMinEffect: Poisson');
+
+const minGee = S.calculateMinEffect({
+  analysisType: 'gee',
+  studyDesign: 'cohort',
+  targetPower: 0.8,
+  alpha: 0.05,
+  sampleSize: 1000,
+  clusterSize: 5,
+  icc: 0.1,
+  residualSD: 1.5,
+  covariateR2: 0.05,
+});
+close(minGee, S.calculateGEE_MinEffect(0.8, 1000, 5, 0.1, 1.5, 0.05, 0.05), 1e-12, 'Unified calculateMinEffect: GEE');
+
+const minInvalid = S.calculateMinEffect({
+  analysisType: 'unknown',
+  studyDesign: 'cohort',
+  targetPower: 0.8,
+  alpha: 0.05,
+});
+ok(minInvalid === Infinity, 'Unified calculateMinEffect: unknown analysis type -> Infinity');
+
+// ---------------------------------------------------------------------------
+console.log('\n15. Data Generation Utilities');
 console.log('-'.repeat(50));
 const defaultTable = S.generateTableData(100, 0.05, 0.00005);
 ok(Array.isArray(defaultTable) && defaultTable.length === 11, 'generateTableData: uses default hrValues length of 11');
