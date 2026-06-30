@@ -1194,7 +1194,6 @@ export const calculateMinEffect = (
 // Legacy exports for backward compatibility
 // ============================================================================
 
-export const calculateStandardError = calculateCoxSE;
 
 export const calculateMinDetectableHR = (
   targetPower: number,
