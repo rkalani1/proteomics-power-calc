@@ -1195,12 +1195,6 @@ export const calculateMinEffect = (
 // ============================================================================
 
 
-export const calculateMinDetectableHR = (
-  targetPower: number,
-  events: number,
-  alpha: number
-): number => calculateCoxMinEffect(targetPower, events, alpha);
-
 export const calculateInflation = (hrSingle: number, hrMulti: number): number => {
   // Both HRs must be on the same side of 1 (both > 1 or both < 1)
   if (hrSingle <= 0 || hrMulti <= 0 || hrSingle === 1 || hrMulti === 1) return 0;
