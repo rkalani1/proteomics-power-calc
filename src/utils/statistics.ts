@@ -1458,49 +1458,6 @@ export const findOptimalStage1FDR = (
 };
 
 /**
- * Calculate required Stage 2 sample size for target joint power
- */
-export const calculateRequiredStage2Size = (
-  effectSize: number,
-  analysisType: AnalysisType,
-  targetJointPower: number,
-  params: Omit<TwoStageParams, 'stage2SampleSize'>,
-  studyParams: Partial<PowerParams>,
-  maxIterations: number = 50
-): number => {
-  // Binary search for required Stage 2 sample size
-  let low = 50;
-  let high = 10000;
-
-  // Pre-allocate params object to avoid spread in tight loop
-  const twoStageParams: TwoStageParams = { ...params, stage2SampleSize: 0 };
-
-  for (let i = 0; i < maxIterations; i++) {
-    const mid = Math.floor((low + high) / 2);
-    twoStageParams.stage2SampleSize = mid;
-
-    const result = calculateTwoStagePower(
-      effectSize,
-      analysisType,
-      twoStageParams,
-      studyParams
-    );
-
-    if (Math.abs(result.jointPower - targetJointPower) < 0.005) {
-      return mid;
-    }
-
-    if (result.jointPower < targetJointPower) {
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-
-  return Math.ceil((low + high) / 2);
-};
-
-/**
  * Unified required sample size calculation
  */
 export const calculateRequiredSample = (
