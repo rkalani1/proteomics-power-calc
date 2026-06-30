@@ -7,6 +7,9 @@ import SensitivityAnalysis from './components/SensitivityAnalysis';
 import ExportPanel from './components/ExportPanel';
 import References from './components/References';
 import AdvancedVisualizations from './components/AdvancedVisualizations';
+import { Header } from './components/Header';
+import { AnalysisFramework } from './components/AnalysisFramework';
+import { StudyParameters } from './components/StudyParameters';
 import {
   calculateEffectiveAlpha,
   calculateInflation,
@@ -138,117 +141,6 @@ const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
   },
 };
 
-
-interface SliderProps {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  min: number;
-  max: number;
-  step: number;
-  unit?: string;
-  description?: string;
-  decimals?: number;
-}
-
-/**
- * Slider with a free-text input.
- *
- * Defined at module scope (not inside App) so its component identity is stable
- * across App re-renders; otherwise it would remount on every keystroke/drag,
- * dropping native drag interactions and input focus.
- *
- * The text field shows the canonical (committed) value formatted, except while
- * it is focused, when it shows the raw text being typed. Deriving the displayed
- * value from focus state avoids mirroring the prop into an effect, so there is
- * no setState-in-effect and no risk of the text and value drifting out of sync.
- */
-const Slider: React.FC<SliderProps> = ({
-  label,
-  value,
-  onChange,
-  min,
-  max,
-  step,
-  unit = '',
-  description = '',
-  decimals = 0,
-}) => {
-  const format = (v: number) => (decimals > 0 ? v.toFixed(decimals) : String(v));
-
-  // Raw text while the field is focused; otherwise the field shows format(value).
-  const [draft, setDraft] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
-  const displayValue = isFocused ? draft : format(value);
-
-  const handleFocus = () => {
-    setDraft(format(value));
-    setIsFocused(true);
-  };
-
-  // Handle text input changes - allow free typing
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDraft(e.target.value);
-  };
-
-  // Parse, clamp, and commit the typed value (invalid input is ignored, so the
-  // field reverts to the current value once focus is lost).
-  const applyValue = () => {
-    const newValue = parseFloat(draft);
-    if (!isNaN(newValue)) {
-      onChange(Math.min(max, Math.max(min, newValue)));
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      applyValue();
-      (e.target as HTMLInputElement).blur();
-    }
-  };
-
-  const handleBlur = () => {
-    applyValue();
-    setIsFocused(false);
-  };
-
-  const percentage = ((value - min) / (max - min)) * 100;
-
-  return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
-        <label className="text-sm font-medium text-gray-700">{label}</label>
-        <input
-          type="text"
-          inputMode="decimal"
-          value={displayValue}
-          onChange={handleInputChange}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          className="w-28 px-2 py-1.5 text-right text-sm font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-        />
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-2 rounded-lg appearance-none cursor-pointer slider-thumb"
-        style={{
-          background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${percentage}%, #e2e8f0 ${percentage}%, #e2e8f0 100%)`
-        }}
-      />
-      <div className="flex justify-between text-xs text-gray-400">
-        <span>{decimals > 0 ? min.toFixed(decimals) : min.toLocaleString()}{unit}</span>
-        <span>{decimals > 0 ? max.toFixed(decimals) : max.toLocaleString()}{unit}</span>
-      </div>
-      {description && <p className="text-xs text-gray-500">{description}</p>}
-    </div>
-  );
-};
 
 /**
  * Proteomics Power Calculator
@@ -582,500 +474,78 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/20 to-purple-50/30">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm sticky top-0 z-50">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                  Proteomics Power Calculator
-                </h1>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="px-3 py-1.5 bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 rounded-full font-medium border border-indigo-200/50 shadow-sm">
-                {ANALYSIS_TYPE_OPTIONS.find(o => o.value === analysisType)?.label}
-              </span>
-              <span className="px-3 py-1.5 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 rounded-full font-medium border border-purple-200/50 shadow-sm">
-                {STUDY_DESIGN_OPTIONS[analysisType].find(o => o.value === studyDesign)?.label}
-              </span>
-              <span className="px-3 py-1.5 bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 rounded-full font-medium border border-amber-200/50 shadow-sm">
-                {comparisonMode
-                  ? `Comparing ${proteinCounts.length} scenario${proteinCounts.length !== 1 ? 's' : ''}`
-                  : `${proteinCount.toLocaleString()} proteins`
-                }
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header
+        analysisType={analysisType}
+        studyDesign={studyDesign}
+        comparisonMode={comparisonMode}
+        proteinCounts={proteinCounts}
+        proteinCount={proteinCount}
+        ANALYSIS_TYPE_OPTIONS={ANALYSIS_TYPE_OPTIONS}
+        STUDY_DESIGN_OPTIONS={STUDY_DESIGN_OPTIONS}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Model Selection */}
-        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-            </svg>
-            Analysis Framework
-          </h2>
+        <AnalysisFramework
+          analysisType={analysisType}
+          studyDesign={studyDesign}
+          comparisonMode={comparisonMode}
+          proteinCount={proteinCount}
+          proteinCounts={proteinCounts}
+          newProteinCount={newProteinCount}
+          fdrQ={fdrQ}
+          correctionMethod={correctionMethod}
+          ANALYSIS_TYPE_OPTIONS={ANALYSIS_TYPE_OPTIONS}
+          STUDY_DESIGN_OPTIONS={STUDY_DESIGN_OPTIONS}
+          handleAnalysisTypeChange={handleAnalysisTypeChange}
+          setStudyDesign={setStudyDesign}
+          setComparisonMode={setComparisonMode}
+          setProteinCount={setProteinCount}
+          setNewProteinCount={setNewProteinCount}
+          addProteinCount={addProteinCount}
+          removeProteinCount={removeProteinCount}
+          calculateEffectiveAlpha={calculateEffectiveAlpha}
+          SCENARIO_COLORS={SCENARIO_COLORS}
+          setProteinCounts={setProteinCounts}
+        />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Analysis Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Analysis Type</label>
-              <div className="grid grid-cols-2 gap-2">
-                {ANALYSIS_TYPE_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => handleAnalysisTypeChange(option.value)}
-                    className={`p-3 rounded-lg border-2 text-left transition-all ${
-                      analysisType === option.value
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
-                        : 'border-gray-200 hover:border-indigo-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="font-medium text-sm">{option.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Study Design */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Study Design</label>
-              <div className="grid grid-cols-1 gap-2">
-                {STUDY_DESIGN_OPTIONS[analysisType].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setStudyDesign(option.value)}
-                    className={`p-3 rounded-lg border-2 text-left transition-all ${
-                      studyDesign === option.value
-                        ? 'border-purple-500 bg-purple-50 text-purple-900'
-                        : 'border-gray-200 hover:border-purple-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="font-medium text-sm">{option.label}</div>
-                    <div className="text-xs text-gray-500 mt-1">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Protein Count */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-medium text-gray-700">
-                Number of Proteins
-              </label>
-              <button
-                onClick={() => setComparisonMode(!comparisonMode)}
-                className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                  comparisonMode
-                    ? 'bg-indigo-100 text-indigo-700 border border-indigo-300'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                {comparisonMode ? 'Comparison On' : 'Compare Scenarios'}
-              </button>
-            </div>
-
-            {!comparisonMode ? (
-              /* Single protein count mode */
-              <div>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="number"
-                    min={1}
-                    max={100000}
-                    value={proteinCount}
-                    onChange={(e) => setProteinCount(Math.min(100000, Math.max(1, parseInt(e.target.value) || 1)))}
-                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  <span className="text-sm text-gray-500">
-                    Effective α ≈ {calculateEffectiveAlpha(fdrQ, proteinCount, correctionMethod).toExponential(2)}
-                  </span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="text-xs text-gray-500 mr-2">Presets:</span>
-                  {[1, 100, 1000, 3000, 5000, 7000].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setProteinCount(n)}
-                      className={`px-2 py-1 text-xs rounded transition-colors ${
-                        proteinCount === n
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
-                      }`}
-                    >
-                      {n.toLocaleString()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              /* Comparison mode */
-              <div>
-                <p className="text-xs text-gray-500 mb-4">
-                  Compare power across different protein counts (e.g., targeted panel vs. proteome-wide).
-                </p>
-
-                {/* Current protein counts */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {proteinCounts.map((count, index) => {
-                    const color = SCENARIO_COLORS[index % SCENARIO_COLORS.length];
-                    return (
-                      <div
-                        key={count}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${color.border} ${color.light}`}
-                      >
-                        <span className={`w-3 h-3 rounded-full ${color.bg}`}></span>
-                        <span className={`font-medium ${color.text}`}>
-                          {count.toLocaleString()} protein{count !== 1 ? 's' : ''}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          (α≈{calculateEffectiveAlpha(fdrQ, count, correctionMethod).toExponential(1)})
-                        </span>
-                        {proteinCounts.length > 1 && (
-                          <button
-                            onClick={() => removeProteinCount(count)}
-                            className="ml-1 text-gray-400 hover:text-red-500 transition-colors"
-                            title="Remove"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Add new protein count */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    max={100000}
-                    value={newProteinCount}
-                    onChange={(e) => setNewProteinCount(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addProteinCount()}
-                    placeholder="Enter protein count..."
-                    className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  <button
-                    onClick={addProteinCount}
-                    disabled={!newProteinCount || proteinCounts.length >= 6}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Add
-                  </button>
-                  {proteinCounts.length >= 6 && (
-                    <span className="text-xs text-amber-600">Maximum 6 scenarios</span>
-                  )}
-                </div>
-
-                {/* Quick add presets */}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="text-xs text-gray-500 mr-2">Quick add:</span>
-                  {[1, 50, 100, 500, 1000, 3000, 5000, 7000].filter(n => !proteinCounts.includes(n)).slice(0, 5).map(n => (
-                    <button
-                      key={n}
-                      onClick={() => {
-                        if (proteinCounts.length < 6) {
-                          setProteinCounts([...proteinCounts, n].sort((a, b) => a - b));
-                        }
-                      }}
-                      disabled={proteinCounts.length >= 6}
-                      className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-indigo-100 hover:text-indigo-700 disabled:opacity-50 transition-colors"
-                    >
-                      {n.toLocaleString()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Study Parameters */}
-        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
-            Study Parameters
-          </h2>
-
-          {/* Standardization Assumption Note */}
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <p className="text-sm font-medium text-amber-800">Assumption: Standardized Protein Levels</p>
-                <p className="text-xs text-amber-700 mt-1">
-                  All calculations assume protein levels are <strong>standardized</strong> (mean = 0, variance = 1).
-                  Effect sizes are interpreted per 1 standard deviation increase in protein level.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Sample Size - shown for most designs except case-control/nested-case-control */}
-            {studyDesign !== 'case-control' && studyDesign !== 'nested-case-control' && (
-              <Slider
-                label="Sample Size (n)"
-                value={sampleSize}
-                onChange={setSampleSize}
-                min={100}
-                max={50000}
-                step={100}
-                description="Total participants in study"
-              />
-            )}
-
-            {/* Cox-specific: Number of Events */}
-            {analysisType === 'cox' && (
-              <Slider
-                label="Number of Events (d)"
-                value={events}
-                onChange={setEvents}
-                min={10}
-                max={1000}
-                step={1}
-                description="Outcome events observed"
-              />
-            )}
-
-            {/* Case-cohort: Subcohort size and Total cohort */}
-            {analysisType === 'cox' && studyDesign === 'case-cohort' && (
-              <>
-                <Slider
-                  label="Subcohort Size"
-                  value={subcohortSize}
-                  onChange={setSubcohortSize}
-                  min={100}
-                  max={5000}
-                  step={50}
-                  description={
-                    subcohortSize >= totalCohort
-                      ? '⚠ Subcohort ≥ total cohort — treated as a full cohort (no variance inflation)'
-                      : 'Random sample from full cohort'
-                  }
-                />
-                <Slider
-                  label="Total Cohort Size"
-                  value={totalCohort}
-                  onChange={setTotalCohort}
-                  min={1000}
-                  max={100000}
-                  step={500}
-                  description="Full cohort before sampling"
-                />
-              </>
-            )}
-
-            {/* Nested case-control: Matching ratio */}
-            {studyDesign === 'nested-case-control' && analysisType === 'cox' && (
-              <Slider
-                label="Matching Ratio (Controls per Case)"
-                value={matchingRatio}
-                onChange={setMatchingRatio}
-                min={1}
-                max={10}
-                step={1}
-                description={`${matchingRatio}:1 matching (${events} cases × ${matchingRatio} controls)`}
-              />
-            )}
-
-            {/* Linear regression: Residual SD */}
-            {analysisType === 'linear' && (
-              <Slider
-                label="Residual SD"
-                value={residualSD}
-                onChange={setResidualSD}
-                min={0.1}
-                max={5.0}
-                step={0.1}
-                decimals={1}
-                description="Standard deviation of residuals"
-              />
-            )}
-
-            {/* Logistic/Poisson: Prevalence (for cohort/cross-sectional designs) */}
-            {(analysisType === 'logistic' || analysisType === 'poisson') &&
-             studyDesign !== 'case-control' && studyDesign !== 'nested-case-control' && (
-              <Slider
-                label="Outcome Prevalence"
-                value={prevalence}
-                onChange={setPrevalence}
-                min={0.01}
-                max={0.50}
-                step={0.01}
-                decimals={2}
-                description={`${(prevalence * 100).toFixed(0)}% of sample has outcome`}
-              />
-            )}
-
-            {/* Case-control / Nested case-control: Cases and Controls */}
-            {(studyDesign === 'case-control' || studyDesign === 'nested-case-control') && (
-              <>
-                <Slider
-                  label="Number of Cases"
-                  value={numCases}
-                  onChange={setNumCases}
-                  min={50}
-                  max={5000}
-                  step={10}
-                  description="Participants with outcome"
-                />
-                <Slider
-                  label="Number of Controls"
-                  value={numControls}
-                  onChange={setNumControls}
-                  min={50}
-                  max={10000}
-                  step={10}
-                  description="Participants without outcome"
-                />
-              </>
-            )}
-
-            {/* GEE/Mixed Effects: Cluster size and ICC */}
-            {analysisType === 'gee' && (
-              <>
-                <Slider
-                  label="Cluster Size (m)"
-                  value={clusterSize}
-                  onChange={setClusterSize}
-                  min={2}
-                  max={50}
-                  step={1}
-                  description={`Observations per cluster/subject (DE = ${calculateDesignEffect(clusterSize, icc).toFixed(2)})`}
-                />
-                <Slider
-                  label="Intraclass Correlation (ICC)"
-                  value={icc}
-                  onChange={setICC}
-                  min={0.00}
-                  max={0.50}
-                  step={0.01}
-                  decimals={2}
-                  description="Correlation between observations in same cluster"
-                />
-                <Slider
-                  label="Residual SD"
-                  value={residualSD}
-                  onChange={setResidualSD}
-                  min={0.1}
-                  max={5.0}
-                  step={0.1}
-                  decimals={1}
-                  description="Standard deviation of residuals"
-                />
-              </>
-            )}
-
-            {/* Covariate Adjustment R² - applies to all models */}
-            <Slider
-              label="Covariate R² (protein ~ covariates)"
-              value={covariateR2}
-              onChange={setCovariateR2}
-              min={0.00}
-              max={0.80}
-              step={0.01}
-              decimals={2}
-              description={`Proportion of protein variance explained by adjustment covariates (${(covariateR2 * 100).toFixed(0)}%)`}
-            />
-
-            {/* Multiple Testing Correction */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Multiple Testing Correction
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setCorrectionMethod('fdr')}
-                    className={`p-2.5 rounded-lg border-2 text-left transition-all ${
-                      correctionMethod === 'fdr'
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
-                        : 'border-gray-200 hover:border-indigo-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="font-medium text-sm">FDR (BH)</div>
-                    <div className="text-xs text-gray-500">False Discovery Rate</div>
-                  </button>
-                  <button
-                    onClick={() => setCorrectionMethod('bonferroni')}
-                    className={`p-2.5 rounded-lg border-2 text-left transition-all ${
-                      correctionMethod === 'bonferroni'
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
-                        : 'border-gray-200 hover:border-indigo-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="font-medium text-sm">Bonferroni</div>
-                    <div className="text-xs text-gray-500">Family-Wise Error Rate</div>
-                  </button>
-                </div>
-              </div>
-              <Slider
-                label={correctionMethod === 'fdr' ? 'FDR Threshold (q)' : 'FWER Alpha (α)'}
-                value={fdrQ}
-                onChange={setFdrQ}
-                min={0.01}
-                max={0.20}
-                step={0.01}
-                decimals={2}
-                description={
-                  correctionMethod === 'fdr'
-                    ? 'Benjamini-Hochberg: power uses a conservative per-test α ≈ q/m (same as Bonferroni here; true BH power is typically higher)'
-                    : 'Bonferroni: controls the probability of any false positive (α/m per test)'
-                }
-              />
-            </div>
-
-            {/* Target Power */}
-            <Slider
-              label="Target Power"
-              value={targetPower}
-              onChange={setTargetPower}
-              min={0.50}
-              max={0.99}
-              step={0.01}
-              decimals={2}
-              description={`${(targetPower * 100).toFixed(0)}% probability of detecting true effect`}
-            />
-
-            {/* Dynamic Effect Size Slider */}
-            <Slider
-              label={effectConfig.inputLabel}
-              value={effectSize}
-              onChange={setEffectSize}
-              min={effectConfig.min}
-              max={effectConfig.max}
-              step={effectConfig.step}
-              decimals={effectDecimals}
-              description={effectConfig.inputDescription}
-            />
-          </div>
-        </section>
+        <StudyParameters
+          analysisType={analysisType}
+          studyDesign={studyDesign}
+          sampleSize={sampleSize}
+          setSampleSize={setSampleSize}
+          events={events}
+          setEvents={setEvents}
+          subcohortSize={subcohortSize}
+          setSubcohortSize={setSubcohortSize}
+          totalCohort={totalCohort}
+          setTotalCohort={setTotalCohort}
+          matchingRatio={matchingRatio}
+          setMatchingRatio={setMatchingRatio}
+          residualSD={residualSD}
+          setResidualSD={setResidualSD}
+          prevalence={prevalence}
+          setPrevalence={setPrevalence}
+          numCases={numCases}
+          setNumCases={setNumCases}
+          numControls={numControls}
+          setNumControls={setNumControls}
+          clusterSize={clusterSize}
+          setClusterSize={setClusterSize}
+          icc={icc}
+          setICC={setICC}
+          covariateR2={covariateR2}
+          setCovariateR2={setCovariateR2}
+          correctionMethod={correctionMethod}
+          setCorrectionMethod={setCorrectionMethod}
+          fdrQ={fdrQ}
+          setFdrQ={setFdrQ}
+          targetPower={targetPower}
+          setTargetPower={setTargetPower}
+          effectSize={effectSize}
+          setEffectSize={setEffectSize}
+          effectConfig={effectConfig}
+          effectDecimals={effectDecimals}
+        />
 
         {/* Key Results Cards - Min Effect by Scenario */}
         <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
