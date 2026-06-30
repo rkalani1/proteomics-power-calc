@@ -76,7 +76,7 @@ console.log('-'.repeat(50));
   'calculateLinearSE', 'calculateLinearPower', 'calculateLinearPowerFromR2', 'calculateLinearMinEffect', 'calculateLinearRequiredN',
   'calculateLogisticSE', 'calculateLogisticCaseControlSE', 'calculateLogisticPower', 'calculateLogisticMinEffect', 'calculateLogisticRequiredN', 'calculateLogisticCaseControlRequiredN',
   'calculatePoissonSE', 'calculatePoissonPower', 'calculatePoissonMinEffect', 'calculatePoissonRequiredN',
-  'calculateDesignEffect', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN', 'calculateGEE_RequiredClusters',
+  'calculateDesignEffect', 'calculateEffectiveSampleSize', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN', 'calculateGEE_RequiredClusters',
   'orToRR', 'rrToOR', 'r2ToF2',
 ].forEach((fn) => ok(typeof S[fn] === 'function', `exports ${fn}()`));
 
@@ -261,6 +261,8 @@ console.log('\n8. GEE / mixed effects');
 console.log('-'.repeat(50));
 close(S.calculateDesignEffect(5, 0.05), 1 + 4 * 0.05, 1e-12, 'design effect DE = 1+(m-1)*ICC');
 close(S.calculateDesignEffect(1, 0.5), 1, 1e-12, 'DE with cluster size 1 = 1');
+close(S.calculateEffectiveSampleSize(100, 5, 0.05), 100 / (1 + 4 * 0.05), 1e-12, 'effective sample size n_eff = n / DE');
+close(S.calculateEffectiveSampleSize(100, 1, 0.5), 100, 1e-12, 'n_eff with cluster size 1 = n');
 for (const n of [500, 1000]) {
   for (const m of [3, 10]) {
     for (const icc of [0, 0.05, 0.2]) {

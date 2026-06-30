@@ -78,6 +78,17 @@ const calculateLinearPower = (beta, sampleSize, residualSD, alpha, covariateR2 =
   return Math.min(Math.max(power, 0), 1);
 };
 
+// GEE/Mixed Effects calculations
+const calculateDesignEffect = (clusterSize, icc) => {
+  if (clusterSize <= 0 || icc < 0 || icc > 1) return 1;
+  return 1 + (clusterSize - 1) * icc;
+};
+
+const calculateEffectiveSampleSize = (totalObservations, clusterSize, icc) => {
+  const de = calculateDesignEffect(clusterSize, icc);
+  return totalObservations / de;
+};
+
 // Test utilities
 function assertClose(actual, expected, tolerance, message) {
   const diff = Math.abs(actual - expected);
@@ -226,7 +237,24 @@ if (calculateCoxPower(1.5, 0, 0.05) === 0) { console.log('PASS: events=0 returns
 if (calculateCoxPower(1.5, 100, 0) === 0) { console.log('PASS: α=0 returns 0 power'); passed++; } else { failed++; }
 
 // ----------------------------------------------------------------------------
-// Test 8: Two-sided Power Formula Verification
+// Test 8: GEE Effective Sample Size Verification
+// ----------------------------------------------------------------------------
+console.log('\n--- GEE Effective Sample Size ---');
+
+// m=1 (no clustering) -> n_eff = n
+if (assertClose(calculateEffectiveSampleSize(100, 1, 0.5), 100, 0.0001, 'n_eff with m=1 equals n')) passed++; else failed++;
+
+// ICC=0 (no correlation) -> n_eff = n
+if (assertClose(calculateEffectiveSampleSize(100, 5, 0), 100, 0.0001, 'n_eff with ICC=0 equals n')) passed++; else failed++;
+
+// m=5, ICC=0.05 -> DE = 1 + 4*0.05 = 1.2 -> n_eff = 100 / 1.2 = 83.333
+if (assertClose(calculateEffectiveSampleSize(100, 5, 0.05), 100 / 1.2, 0.001, 'n_eff with m=5, ICC=0.05')) passed++; else failed++;
+
+// m=10, ICC=0.1 -> DE = 1 + 9*0.1 = 1.9 -> n_eff = 100 / 1.9 = 52.63
+if (assertClose(calculateEffectiveSampleSize(100, 10, 0.1), 100 / 1.9, 0.001, 'n_eff with m=10, ICC=0.1')) passed++; else failed++;
+
+// ----------------------------------------------------------------------------
+// Test 9: Two-sided Power Formula Verification
 // ----------------------------------------------------------------------------
 console.log('\n--- Two-sided Test Verification ---');
 
