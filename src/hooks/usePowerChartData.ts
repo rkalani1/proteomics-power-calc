@@ -37,7 +37,7 @@ export function usePowerChartData({
     }
     return counts.map((numProteins) => {
       const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
-      const dataPoint: Record<string, number> = { proteins: numProteins };
+      const dataPoint: Record<string, number> = { proteins: numProteins, alphaMulti };
       effectSizes.forEach((es) => {
         dataPoint[`es_${es}`] = calculatePower(es, alphaMulti);
       });
@@ -55,7 +55,7 @@ export function usePowerChartData({
 
     return counts.map((numProteins) => {
       const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
-      const dataPoint: Record<string, number> = { proteins: numProteins };
+      const dataPoint: Record<string, number> = { proteins: numProteins, alphaMulti };
       effectSizes.forEach((es) => {
         dataPoint[`es_${es}`] = calculatePower(es, alphaMulti);
       });
@@ -67,7 +67,7 @@ export function usePowerChartData({
   const sensitivityTableData = useMemo(() => {
     return PROTEIN_COUNTS_FOR_TABLE.map((numProteins) => {
       const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
-      const row: Record<string, number> = { proteins: numProteins };
+      const row: Record<string, number> = { proteins: numProteins, alphaMulti };
       effectSizes.forEach((es) => {
         row[`es_${es}`] = calculatePower(es, alphaMulti);
       });
