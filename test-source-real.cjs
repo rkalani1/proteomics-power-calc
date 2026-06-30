@@ -77,7 +77,7 @@ console.log('-'.repeat(50));
   'calculateLogisticSE', 'calculateLogisticCaseControlSE', 'calculateLogisticPower', 'calculateLogisticMinEffect', 'calculateLogisticRequiredN', 'calculateLogisticCaseControlRequiredN',
   'calculatePoissonSE', 'calculatePoissonPower', 'calculatePoissonMinEffect', 'calculatePoissonRequiredN',
   'calculateDesignEffect', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN', 'calculateGEE_RequiredClusters',
-  'orToRR', 'rrToOR', 'r2ToF2',
+  'orToRR', 'r2ToF2',
 ].forEach((fn) => ok(typeof S[fn] === 'function', `exports ${fn}()`));
 
 // ---------------------------------------------------------------------------
@@ -298,7 +298,6 @@ console.log('\n10. Effect-size conversions');
 console.log('-'.repeat(50));
 const p0 = 0.1, orv = 2.0;
 const rr = S.orToRR(orv, p0);
-close(S.rrToOR(rr, p0), orv, 1e-9, 'orToRR <-> rrToOR round trip');
 close(S.r2ToF2(0.2), 0.2 / 0.8, 1e-12, 'r2ToF2: f^2 = R^2/(1-R^2)');
 
 // ---------------------------------------------------------------------------

@@ -1584,13 +1584,6 @@ export const orToRR = (oddsRatio: number, baselinePrevalence: number): number =>
 };
 
 /**
- * Convert RR to OR given baseline prevalence
- */
-export const rrToOR = (relativeRisk: number, baselinePrevalence: number): number => {
-  return relativeRisk * (1 - baselinePrevalence) / (1 - relativeRisk * baselinePrevalence);
-};
-
-/**
  * Convert beta to standardized beta (Cohen's d approximation)
  */
 export const betaToCohenD = (beta: number, residualSD: number): number => {
