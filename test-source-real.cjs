@@ -73,7 +73,7 @@ console.log('-'.repeat(50));
 [
   'normalCDF', 'normalQuantile', 'calculateEffectiveAlpha',
   'calculateCoxSE', 'calculateCoxCaseCohortSE', 'calculateCoxNestedCaseControlSE', 'calculateCoxPower', 'calculateCoxMinEffect', 'calculateCoxRequiredEvents',
-  'calculateLinearSE', 'calculateLinearPower', 'calculateLinearPowerFromR2', 'calculateLinearMinEffect', 'calculateLinearRequiredN',
+  'calculateLinearSE', 'calculateLinearPower', 'calculateLinearMinEffect', 'calculateLinearRequiredN',
   'calculateLogisticSE', 'calculateLogisticCaseControlSE', 'calculateLogisticPower', 'calculateLogisticMinEffect', 'calculateLogisticRequiredN', 'calculateLogisticCaseControlRequiredN',
   'calculatePoissonSE', 'calculatePoissonPower', 'calculatePoissonMinEffect', 'calculatePoissonRequiredN',
   'calculateDesignEffect', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN', 'calculateGEE_RequiredClusters',
@@ -182,22 +182,6 @@ for (const n of [100, 500]) {
   const b = S.calculateLinearMinEffect(0.8, n, 1.0, 0.05);
   close(S.calculateLinearPower(b, n, 1.0, 0.05), 0.8, 1e-6, `Linear min-effect round trip n=${n}`);
 }
-
-console.log('\n5b. Linear power from R2');
-console.log('-'.repeat(50));
-// Using n=102, r2=0.0825688, alpha=0.05 -> Power ~ 0.8508
-close(S.calculateLinearPowerFromR2(0.0825688, 102, 0.05), 0.8508, 0.001, 'Linear power R2=0.0826, n=102, alpha=0.05');
-// Default alpha
-close(S.calculateLinearPowerFromR2(0.0825688, 102), 0.8508, 0.001, 'Linear power R2 (default alpha)');
-// Covariate adjustment
-ok(S.calculateLinearPowerFromR2(0.1, 100, 0.05, 0.2) < S.calculateLinearPowerFromR2(0.1, 100, 0.05, 0),
-  'Linear R2 power: covariate R2 reduces power');
-// Consistency
-const testBeta = 0.3;
-const testN = 500;
-const testR2 = (testBeta * testBeta) / (testBeta * testBeta + 1.0);
-close(S.calculateLinearPowerFromR2(testR2, testN, 0.05), S.calculateLinearPower(testBeta, testN, 1.0, 0.05), 0.01,
-  'Linear power R2 consistent with beta power');
 
 // ---------------------------------------------------------------------------
 console.log('\n6. Logistic regression');
