@@ -302,7 +302,28 @@ close(S.rrToOR(rr, p0), orv, 1e-9, 'orToRR <-> rrToOR round trip');
 close(S.r2ToF2(0.2), 0.2 / 0.8, 1e-12, 'r2ToF2: f^2 = R^2/(1-R^2)');
 
 // ---------------------------------------------------------------------------
-console.log('\n11. Numerical stability / guards');
+console.log('\n11. generatePowerCurve (missing tests from issue)');
+console.log('-'.repeat(50));
+const curvePoints = S.generatePowerCurve(100, 0.05, 1.0, 3.0, 50);
+ok(Array.isArray(curvePoints), 'generatePowerCurve returns an array');
+ok(curvePoints.length === 50, `generatePowerCurve respects numPoints parameter (got ${curvePoints.length})`);
+
+const firstPoint = curvePoints[0];
+const lastPoint = curvePoints[curvePoints.length - 1];
+
+ok(firstPoint && typeof firstPoint.hr === 'number' && typeof firstPoint.power === 'number',
+  'curve objects have numeric hr and power properties');
+close(firstPoint.hr, 1.0, 1e-4, `first point hr is exactly hrMin (got ${firstPoint.hr})`);
+close(lastPoint.hr, 3.0, 1e-4, `last point hr is exactly hrMax (got ${lastPoint.hr})`);
+
+// Power for HR=1.0 should be approx alpha
+close(firstPoint.power, 0.05, 1e-4, 'power at hr=1.0 matches alpha (0.05)');
+
+const curveDefault = S.generatePowerCurve(100, 0.05);
+ok(curveDefault.length === 100, 'generatePowerCurve uses default numPoints=100');
+
+// ---------------------------------------------------------------------------
+console.log('\n12. Numerical stability / guards');
 console.log('-'.repeat(50));
 for (const [hr, d, a] of [[1.0001, 10, 0.05], [100, 10, 0.05], [1.5, 1, 0.05], [1.5, 100000, 0.05], [1.5, 100, 1e-15]]) {
   const v = S.calculateCoxPower(hr, d, a);
