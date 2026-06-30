@@ -312,6 +312,112 @@ ok(S.calculateLinearPower(0.3, 2, 1, 0.05) === 0, 'Linear: n<=2 guarded -> 0');
 ok(!Number.isFinite(S.calculateLogisticRequiredN(1.0, 0.8, 0.1, 0.05)), 'Logistic: required N at OR=1 -> Infinity');
 
 // ---------------------------------------------------------------------------
+console.log('\n12. Unified calculateMinEffect');
+console.log('-'.repeat(50));
+
+// Cox standard
+const minCox = S.calculateMinEffect({
+  analysisType: 'cox',
+  studyDesign: 'standard',
+  targetPower: 0.8,
+  alpha: 0.05,
+  events: 100
+});
+close(minCox, S.calculateCoxMinEffect(0.8, 100, 0.05), 1e-12, 'Unified calculateMinEffect: Cox standard');
+
+// Cox case-cohort
+const minCoxCC = S.calculateMinEffect({
+  analysisType: 'cox',
+  studyDesign: 'case-cohort',
+  targetPower: 0.8,
+  alpha: 0.05,
+  events: 100,
+  subcohortSize: 500,
+  totalCohort: 5000
+});
+close(minCoxCC, S.calculateCoxMinEffect(0.8, 100, 0.05, { caseCohort: { subcohortSize: 500, totalCohort: 5000 } }), 1e-12, 'Unified calculateMinEffect: Cox case-cohort');
+
+// Cox nested-case-control
+const minCoxNCC = S.calculateMinEffect({
+  analysisType: 'cox',
+  studyDesign: 'nested-case-control',
+  targetPower: 0.8,
+  alpha: 0.05,
+  events: 100,
+  matchingRatio: 4
+});
+close(minCoxNCC, S.calculateCoxMinEffect(0.8, 100, 0.05, { nestedCaseControl: { matchingRatio: 4 } }), 1e-12, 'Unified calculateMinEffect: Cox nested-case-control');
+
+// Linear
+const minLin = S.calculateMinEffect({
+  analysisType: 'linear',
+  studyDesign: 'standard',
+  targetPower: 0.8,
+  alpha: 0.05,
+  sampleSize: 100,
+  residualSD: 2,
+  covariateR2: 0.1
+});
+close(minLin, S.calculateLinearMinEffect(0.8, 100, 2, 0.05, 0.1), 1e-12, 'Unified calculateMinEffect: Linear');
+
+// Logistic standard
+const minLog = S.calculateMinEffect({
+  analysisType: 'logistic',
+  studyDesign: 'standard',
+  targetPower: 0.8,
+  alpha: 0.05,
+  sampleSize: 1000,
+  prevalence: 0.2
+});
+close(minLog, S.calculateLogisticMinEffect(0.8, 1000, 0.2, 0.05), 1e-12, 'Unified calculateMinEffect: Logistic standard');
+
+// Logistic case-control
+const minLogCC = S.calculateMinEffect({
+  analysisType: 'logistic',
+  studyDesign: 'case-control',
+  targetPower: 0.8,
+  alpha: 0.05,
+  cases: 200,
+  controls: 400
+});
+close(minLogCC, S.calculateLogisticMinEffect(0.8, 0, 0, 0.05, { cases: 200, controls: 400 }), 1e-12, 'Unified calculateMinEffect: Logistic case-control');
+
+// Poisson
+const minPois = S.calculateMinEffect({
+  analysisType: 'poisson',
+  studyDesign: 'standard',
+  targetPower: 0.8,
+  alpha: 0.05,
+  sampleSize: 500,
+  prevalence: 0.1,
+  covariateR2: 0.2
+});
+close(minPois, S.calculatePoissonMinEffect(0.8, 500, 0.1, 0.05, 0.2), 1e-12, 'Unified calculateMinEffect: Poisson');
+
+// GEE
+const minGee = S.calculateMinEffect({
+  analysisType: 'gee',
+  studyDesign: 'standard',
+  targetPower: 0.8,
+  alpha: 0.05,
+  sampleSize: 1000,
+  clusterSize: 5,
+  icc: 0.1,
+  residualSD: 1.5,
+  covariateR2: 0.05
+});
+close(minGee, S.calculateGEE_MinEffect(0.8, 1000, 5, 0.1, 1.5, 0.05, 0.05), 1e-12, 'Unified calculateMinEffect: GEE');
+
+// Default (Invalid)
+const minInvalid = S.calculateMinEffect({
+  analysisType: 'unknown',
+  studyDesign: 'standard',
+  targetPower: 0.8,
+  alpha: 0.05
+});
+ok(minInvalid === Infinity, 'Unified calculateMinEffect: Default analysis type -> Infinity');
+
+// ---------------------------------------------------------------------------
 console.log('\n' + '='.repeat(70));
 console.log(`REAL-SOURCE RESULTS: ${passed}/${total} passed, ${fails.length} failed`);
 console.log('='.repeat(70) + '\n');
