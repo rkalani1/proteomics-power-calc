@@ -544,14 +544,20 @@ function App() {
     // Create data points with power for each scenario
     const curveData: Array<Record<string, number>> = [];
 
+    // Pre-calculate alphas outside the loop for performance
+    const alphas = effectiveProteinCounts.map(count =>
+      calculateEffectiveAlpha(fdrQ, count, correctionMethod)
+    );
+
     for (let i = 0; i < numPoints; i++) {
       const effect = config.min + i * step;
       const dataPoint: Record<string, number> = { effect: Number(effect.toFixed(4)) };
 
-      effectiveProteinCounts.forEach((count) => {
-        const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
+      for (let j = 0; j < effectiveProteinCounts.length; j++) {
+        const count = effectiveProteinCounts[j];
+        const alpha = alphas[j];
         dataPoint[`power_${count}`] = calculatePowerForEffect(effect, alpha);
-      });
+      }
 
       curveData.push(dataPoint);
     }
@@ -566,12 +572,18 @@ function App() {
       Number((config.min + (config.max - config.min) * (i / 10)).toFixed(2))
     );
 
+    // Pre-calculate alphas outside the loop for performance
+    const alphas = effectiveProteinCounts.map(count =>
+      calculateEffectiveAlpha(fdrQ, count, correctionMethod)
+    );
+
     return effectValues.map(effect => {
       const row: Record<string, number> = { effect };
-      effectiveProteinCounts.forEach((count) => {
-        const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
+      for (let j = 0; j < effectiveProteinCounts.length; j++) {
+        const count = effectiveProteinCounts[j];
+        const alpha = alphas[j];
         row[`power_${count}`] = calculatePowerForEffect(effect, alpha);
-      });
+      }
       return row;
     });
   }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, calculatePowerForEffect]);
