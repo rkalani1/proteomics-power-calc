@@ -1578,13 +1578,6 @@ export const rrToOR = (relativeRisk: number, baselinePrevalence: number): number
 };
 
 /**
- * Convert beta to standardized beta (Cohen's d approximation)
- */
-export const betaToCohenD = (beta: number, residualSD: number): number => {
-  return beta / residualSD;
-};
-
-/**
  * Convert R² to Cohen's f²
  */
 export const r2ToF2 = (r2: number): number => {
