@@ -853,19 +853,6 @@ export const calculateDesignEffect = (
 };
 
 /**
- * Calculate effective sample size for GEE/Mixed Effects
- * n_eff = n / DE = n / (1 + (m - 1) × ICC)
- */
-export const calculateEffectiveSampleSize = (
-  totalObservations: number,
-  clusterSize: number,
-  icc: number
-): number => {
-  const de = calculateDesignEffect(clusterSize, icc);
-  return totalObservations / de;
-};
-
-/**
  * Calculate SE for GEE regression coefficient
  * SE(β) = σ_residual × √DE / √(n × (1 - R²_x))
  * For standardized predictor: SE(β) = √DE / √((n - 2) × (1 - R²_x))
