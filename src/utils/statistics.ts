@@ -1597,10 +1597,3 @@ export const betaToCohenD = (beta: number, residualSD: number): number => {
   return beta / residualSD;
 };
 
-/**
- * Convert R² to Cohen's f²
- */
-export const r2ToF2 = (r2: number): number => {
-  if (r2 >= 1) return Infinity;
-  return r2 / (1 - r2);
-};
