@@ -77,7 +77,7 @@ console.log('-'.repeat(50));
   'calculateLogisticSE', 'calculateLogisticCaseControlSE', 'calculateLogisticPower', 'calculateLogisticMinEffect', 'calculateLogisticRequiredN', 'calculateLogisticCaseControlRequiredN',
   'calculatePoissonSE', 'calculatePoissonPower', 'calculatePoissonMinEffect', 'calculatePoissonRequiredN',
   'calculateDesignEffect', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN', 'calculateGEE_RequiredClusters',
-  'orToRR', 'rrToOR', 'r2ToF2',
+  'orToRR', 'rrToOR', 'r2ToF2', 'calculateInflation',
 ].forEach((fn) => ok(typeof S[fn] === 'function', `exports ${fn}()`));
 
 // ---------------------------------------------------------------------------
@@ -300,6 +300,21 @@ const p0 = 0.1, orv = 2.0;
 const rr = S.orToRR(orv, p0);
 close(S.rrToOR(rr, p0), orv, 1e-9, 'orToRR <-> rrToOR round trip');
 close(S.r2ToF2(0.2), 0.2 / 0.8, 1e-12, 'r2ToF2: f^2 = R^2/(1-R^2)');
+
+// ---------------------------------------------------------------------------
+console.log('\n11. Inflation calculation');
+console.log('-'.repeat(50));
+// Returns 0 if either is <= 0 or === 1
+close(S.calculateInflation(0, 1.5), 0, 1e-12, 'calculateInflation: hrSingle <= 0 -> 0');
+close(S.calculateInflation(1.5, -1), 0, 1e-12, 'calculateInflation: hrMulti <= 0 -> 0');
+close(S.calculateInflation(1, 1.5), 0, 1e-12, 'calculateInflation: hrSingle === 1 -> 0');
+close(S.calculateInflation(1.5, 1), 0, 1e-12, 'calculateInflation: hrMulti === 1 -> 0');
+// Returns 0 if different directions (one > 1, one < 1)
+close(S.calculateInflation(1.5, 0.8), 0, 1e-12, 'calculateInflation: opposite directions -> 0');
+close(S.calculateInflation(0.8, 1.5), 0, 1e-12, 'calculateInflation: opposite directions -> 0');
+// Valid calculations
+close(S.calculateInflation(1.5, 1.8), ((1.8/1.5)-1)*100, 1e-12, 'calculateInflation: 1.5 -> 1.8');
+close(S.calculateInflation(0.8, 0.5), ((0.5/0.8)-1)*100, 1e-12, 'calculateInflation: 0.8 -> 0.5');
 
 // ---------------------------------------------------------------------------
 console.log('\n11. Numerical stability / guards');
