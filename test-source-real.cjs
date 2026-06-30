@@ -71,7 +71,7 @@ console.log('='.repeat(70));
 console.log('\n0. Module surface');
 console.log('-'.repeat(50));
 [
-  'normalCDF', 'normalQuantile', 'calculateEffectiveAlpha',
+  'normalCDF', 'normalQuantile', 'calculateEffectiveAlpha', 'calculateStage1Alpha',
   'calculateCoxSE', 'calculateCoxCaseCohortSE', 'calculateCoxNestedCaseControlSE', 'calculateCoxPower', 'calculateCoxMinEffect', 'calculateCoxRequiredEvents',
   'calculateLinearSE', 'calculateLinearPower', 'calculateLinearPowerFromR2', 'calculateLinearMinEffect', 'calculateLinearRequiredN',
   'calculateLogisticSE', 'calculateLogisticCaseControlSE', 'calculateLogisticPower', 'calculateLogisticMinEffect', 'calculateLogisticRequiredN', 'calculateLogisticCaseControlRequiredN',
@@ -96,6 +96,10 @@ close(S.calculateEffectiveAlpha(0.05, 1000), 5e-5, 1e-12, 'FDR q/m: 0.05/1000 = 
 close(S.calculateEffectiveAlpha(0.05, 1000, 'bonferroni'), 5e-5, 1e-12, 'Bonferroni alpha/m: 0.05/1000');
 close(S.calculateEffectiveAlpha(0.05, 1), 0.05, 1e-12, 'm=1 -> threshold unchanged');
 close(S.calculateEffectiveAlpha(0.05, 0), 0.05, 1e-12, 'm=0 guard -> threshold unchanged');
+
+close(S.calculateStage1Alpha(0.1, 1000), 1e-4, 1e-12, 'calculateStage1Alpha(0.1, 1000) = 0.0001');
+close(S.calculateStage1Alpha(0.05, 500), 1e-4, 1e-12, 'calculateStage1Alpha(0.05, 500) = 0.0001');
+close(S.calculateStage1Alpha(0.05, 0), 0.05, 1e-12, 'calculateStage1Alpha m=0 guard -> unchanged');
 
 // ---------------------------------------------------------------------------
 console.log('\n3. Cox proportional hazards');
