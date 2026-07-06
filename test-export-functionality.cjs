@@ -120,6 +120,14 @@ const geeCsv = E.generateCSV(geeData);
 ok(geeCsv.includes('Cluster Size (m),5'), 'GEE CSV includes cluster size');
 ok(geeCsv.includes('Intraclass Correlation (ICC),0.05'), 'GEE CSV includes ICC');
 
+// 6. Test formatStudyDesign
+console.log('\n6. Test formatStudyDesign');
+ok(E.formatStudyDesign('cohort') === 'Cohort', 'Formats cohort correctly');
+ok(E.formatStudyDesign('case-control') === 'Case-Control', 'Formats case-control correctly');
+ok(E.formatStudyDesign('cross-sectional') === 'Cross-Sectional', 'Formats cross-sectional correctly');
+ok(E.formatStudyDesign('case-cohort') === 'Case-Cohort', 'Formats case-cohort correctly');
+ok(E.formatStudyDesign('nested-case-control') === 'Nested Case-Control', 'Formats nested-case-control correctly');
+
 console.log('\n' + '='.repeat(70));
 console.log(`EXPORT RESULTS: ${passed}/${total} passed, ${fails.length} failed`);
 console.log('='.repeat(70) + '\n');
