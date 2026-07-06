@@ -1,7 +1,8 @@
 /**
  * ExportPanel Error Handling Test
  *
- * Verifies that the ExportPanel component gracefully handles errors in performCSVDownload
+ * Verifies that the ExportPanel component gracefully handles errors in performCSVDownload,
+ * generateCSV, and performCopy.
  */
 
 const path = require('path');
@@ -50,20 +51,41 @@ const mockReactRuntime = {
   jsxDEV: (type, props) => ({ type, props }),
 };
 
+// Flags for mocks
+let mockBehavior = {
+    generateCSVShouldThrow: false,
+    performCSVDownloadShouldThrow: false,
+    performCopyShouldThrow: false,
+};
+
 let performCSVDownloadCalled = false;
+let performCopyCalled = false;
+let generateCSVCalled = false;
 
 const mockExportUtils = {
   generateCSV: () => {
+    generateCSVCalled = true;
+    if (mockBehavior.generateCSVShouldThrow) {
+        throw new Error('Forced generateCSV error');
+    }
     return "csv,data";
   },
   generatePrintHTML: () => "<html>",
   generateTextSummary: () => "text",
   performCSVDownload: () => {
     performCSVDownloadCalled = true;
-    throw new Error('Forced CSV Download error');
+    if (mockBehavior.performCSVDownloadShouldThrow) {
+        throw new Error('Forced CSV Download error');
+    }
   },
   performPrint: () => {},
-  performCopy: () => Promise.resolve(),
+  performCopy: () => {
+      performCopyCalled = true;
+      if (mockBehavior.performCopyShouldThrow) {
+          return Promise.reject(new Error('Forced performCopy error'));
+      }
+      return Promise.resolve();
+  },
 };
 
 // 3. Inject mocks into require cache
@@ -89,10 +111,6 @@ try {
 }
 
 // 4. Test execution
-console.log('='.repeat(70));
-console.log('ExportPanel Error Handling Test');
-console.log('='.repeat(70));
-
 const mockProps = {
   analysisType: 'cox',
   studyDesign: 'cohort',
@@ -130,76 +148,147 @@ global.alert = (msg) => {
   capturedAlert = msg;
 };
 
-try {
-  const element = ExportPanel(mockProps);
+let exitCode = 0;
 
-  let downloadCSVFunc = null;
+async function runTest(testName, setupBehavior, findHandler, verify) {
+    console.log('='.repeat(70));
+    console.log(`Testing: ${testName}`);
+    console.log('='.repeat(70));
 
-  const findButton = (node) => {
-    if (!node) return;
-    if (node.type === 'button' && node.props && node.props.children && node.props.children.includes && node.props.children.includes('Download CSV')) {
-        downloadCSVFunc = node.props.onClick;
-    }
-    if (node.children) {
-        if (Array.isArray(node.children)) {
-            node.children.forEach(findButton);
-        } else {
-            findButton(node.children);
+    // Reset state
+    setIsExportingArgs = [];
+    performCSVDownloadCalled = false;
+    performCopyCalled = false;
+    generateCSVCalled = false;
+    capturedError = null;
+    capturedAlert = null;
+    mockBehavior = {
+        generateCSVShouldThrow: false,
+        performCSVDownloadShouldThrow: false,
+        performCopyShouldThrow: false,
+    };
+
+    setupBehavior();
+
+    try {
+        const element = ExportPanel(mockProps);
+
+        let targetFunc = null;
+        const findButton = (node) => {
+            if (!node) return;
+            if (node.type === 'button' && node.props && node.props.children) {
+                const text = Array.isArray(node.props.children)
+                    ? node.props.children.map(c => typeof c === 'string' ? c : '').join('')
+                    : (typeof node.props.children === 'string' ? node.props.children : '');
+
+                if (findHandler(text)) {
+                    targetFunc = node.props.onClick;
+                }
+            }
+            if (node.children) {
+                if (Array.isArray(node.children)) node.children.forEach(findButton);
+                else findButton(node.children);
+            }
+            if (node.props && node.props.children) {
+                if (Array.isArray(node.props.children)) node.props.children.forEach(findButton);
+                else findButton(node.props.children);
+            }
+        };
+
+        findButton(element);
+
+        if (!targetFunc) {
+            throw new Error(`Could not find handler for test: ${testName}`);
         }
-    }
-    if (node.props && node.props.children) {
-        if (Array.isArray(node.props.children)) {
-            node.props.children.forEach(findButton);
-        } else {
-            findButton(node.props.children);
+
+        let caught = false;
+        try {
+            const res = targetFunc();
+            if (res instanceof Promise) {
+                await res;
+            }
+        } catch (e) {
+            caught = true;
         }
+
+        const passed = verify(caught);
+        if (!passed) exitCode = 1;
+
+    } catch (err) {
+        console.error('\n✗ Test setup threw an unexpected error:');
+        console.error(err);
+        exitCode = 1;
     }
-  };
-
-  findButton(element);
-
-  let caught = false;
-  try {
-      downloadCSVFunc();
-  } catch (e) {
-      caught = true;
-  }
-
-  const catchBlockPresent = caught === false && capturedError !== null;
-
-  console.log(`  ${setIsExportingArgs[0] === true ? '✓' : '✗'} setIsExporting(true) was called`);
-  console.log(`  ${performCSVDownloadCalled ? '✓' : '✗'} performCSVDownload was called and threw`);
-  console.log(`  ${setIsExportingArgs[1] === false ? '✓' : '✗'} setIsExporting(false) was called in finally block`);
-
-  if (catchBlockPresent) {
-      console.log(`  ✓ Error was caught and logged to console`);
-  } else {
-      console.log(`  ✗ Error was NOT caught or logged to console`);
-  }
-
-  if (capturedAlert) {
-      console.log(`  ✓ Alert was shown: ${capturedAlert}`);
-  } else {
-      console.log(`  ✗ Alert was NOT shown`);
-  }
-
-  let exitCode = 0;
-  if (catchBlockPresent && capturedAlert && setIsExportingArgs[1] === false) {
-    console.log('\n✓ TEST PASSED');
-    exitCode = 0;
-  } else {
-    console.log('\n✗ TEST FAILED');
-    exitCode = 1;
-  }
-
-  console.error = originalConsoleError;
-  try { fs.unlinkSync(bundlePath); } catch (e) {}
-  process.exit(exitCode);
-
-} catch (err) {
-  console.error = originalConsoleError;
-  console.error('\n✗ Test threw an unexpected error:');
-  console.error(err);
-  try { fs.unlinkSync(bundlePath); } catch (e) {}
-  process.exit(1);
 }
+
+async function runAllTests() {
+    try {
+        await runTest(
+            'performCSVDownload Error',
+            () => { mockBehavior.performCSVDownloadShouldThrow = true; },
+            (text) => text.includes('Download CSV'),
+            (caught) => {
+                const catchBlockPresent = caught === false && capturedError !== null;
+                console.log(`  ${setIsExportingArgs[0] === true ? '✓' : '✗'} setIsExporting(true) was called`);
+                console.log(`  ${performCSVDownloadCalled ? '✓' : '✗'} performCSVDownload was called and threw`);
+                console.log(`  ${setIsExportingArgs[1] === false ? '✓' : '✗'} setIsExporting(false) was called in finally block`);
+                if (catchBlockPresent) console.log(`  ✓ Error was caught and logged to console`);
+                else console.log(`  ✗ Error was NOT caught or logged to console`);
+                if (capturedAlert === 'Failed to download CSV. Please try again.') console.log(`  ✓ Alert was shown correctly`);
+                else console.log(`  ✗ Alert was NOT shown correctly. Got: ${capturedAlert}`);
+
+                const passed = catchBlockPresent && capturedAlert === 'Failed to download CSV. Please try again.' && setIsExportingArgs[1] === false;
+                console.log(passed ? '\n✓ TEST PASSED\n' : '\n✗ TEST FAILED\n');
+                return passed;
+            }
+        );
+
+        await runTest(
+            'generateCSV Error',
+            () => { mockBehavior.generateCSVShouldThrow = true; },
+            (text) => text.includes('Download CSV'),
+            (caught) => {
+                const catchBlockPresent = caught === false && capturedError !== null;
+                console.log(`  ${setIsExportingArgs[0] === true ? '✓' : '✗'} setIsExporting(true) was called`);
+                console.log(`  ${generateCSVCalled ? '✓' : '✗'} generateCSV was called and threw`);
+                console.log(`  ${!performCSVDownloadCalled ? '✓' : '✗'} performCSVDownload was NOT called`);
+                console.log(`  ${setIsExportingArgs[1] === false ? '✓' : '✗'} setIsExporting(false) was called in finally block`);
+                if (catchBlockPresent) console.log(`  ✓ Error was caught and logged to console`);
+                else console.log(`  ✗ Error was NOT caught or logged to console`);
+                if (capturedAlert === 'Failed to download CSV. Please try again.') console.log(`  ✓ Alert was shown correctly`);
+                else console.log(`  ✗ Alert was NOT shown correctly. Got: ${capturedAlert}`);
+
+                const passed = catchBlockPresent && capturedAlert === 'Failed to download CSV. Please try again.' && setIsExportingArgs[1] === false && !performCSVDownloadCalled;
+                console.log(passed ? '\n✓ TEST PASSED\n' : '\n✗ TEST FAILED\n');
+                return passed;
+            }
+        );
+
+        await runTest(
+            'copyToClipboard Error',
+            () => { mockBehavior.performCopyShouldThrow = true; },
+            (text) => text.includes('Copy Summary'),
+            (caught) => {
+                const catchBlockPresent = caught === false && capturedError !== null;
+                console.log(`  ${setIsExportingArgs[0] === true ? '✓' : '✗'} setIsExporting(true) was called`);
+                console.log(`  ${performCopyCalled ? '✓' : '✗'} performCopy was called and rejected`);
+                console.log(`  ${setIsExportingArgs[1] === false ? '✓' : '✗'} setIsExporting(false) was called in finally block`);
+                if (catchBlockPresent) console.log(`  ✓ Error was caught and logged to console`);
+                else console.log(`  ✗ Error was NOT caught or logged to console`);
+                if (capturedAlert === 'Failed to copy to clipboard. Please try again.') console.log(`  ✓ Alert was shown correctly`);
+                else console.log(`  ✗ Alert was NOT shown correctly. Got: ${capturedAlert}`);
+
+                const passed = catchBlockPresent && capturedAlert === 'Failed to copy to clipboard. Please try again.' && setIsExportingArgs[1] === false;
+                console.log(passed ? '\n✓ TEST PASSED\n' : '\n✗ TEST FAILED\n');
+                return passed;
+            }
+        );
+
+    } finally {
+        console.error = originalConsoleError;
+        try { fs.unlinkSync(bundlePath); } catch (e) {}
+        process.exit(exitCode);
+    }
+}
+
+runAllTests();
