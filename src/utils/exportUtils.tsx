@@ -1,5 +1,5 @@
+import { renderToStaticMarkup } from 'react-dom/server';
 import { type CorrectionMethod, type AnalysisType, type StudyDesign } from './statistics';
-import { escapeHTML } from './security';
 
 export interface ScenarioResult {
   proteinCount: number;
@@ -172,6 +172,7 @@ export const generateCSV = (data: ExportData): string => {
   return lines.join('\n');
 };
 
+
 export const generatePrintHTML = (data: ExportData): string => {
   const {
     analysisType,
@@ -218,79 +219,106 @@ export const generatePrintHTML = (data: ExportData): string => {
     designParams.push(['Covariate R² (protein ~ covariates)', `${covariateR2}`]);
   }
 
-  const scenarioRows = scenarios.map(s => {
-    const powerClass = s.powerAtInput >= targetPower ? 'power-good' : s.powerAtInput >= 0.5 ? 'power-marginal' : 'power-low';
-    return `<tr>
-      <td>${escapeHTML(s.proteinCount.toLocaleString())}</td>
-      <td>${escapeHTML(s.alpha.toExponential(2))}</td>
-      <td>${escapeHTML(s.minEffect.toFixed(3))}</td>
-      <td class="${escapeHTML(powerClass)}">${escapeHTML((s.powerAtInput * 100).toFixed(1))}%</td>
-      <td>${escapeHTML(typeof s.sampleNeeded === 'string' ? s.sampleNeeded : s.sampleNeeded.toLocaleString())}</td>
-    </tr>`;
-  }).join('');
+  const html = renderToStaticMarkup(
+    <html lang="en">
+      <head>
+        <title>Power Analysis Summary</title>
+        <style dangerouslySetInnerHTML={{ __html: `
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; line-height: 1.6; }
+          h1 { color: #4f46e5; margin-bottom: 5px; }
+          h2 { color: #6b7280; font-size: 1.1em; margin-top: 30px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
+          .timestamp { color: #9ca3af; font-size: 0.9em; margin-bottom: 30px; }
+          table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+          th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+          th { background: #f9fafb; font-weight: 600; }
+          .param-table td:first-child { font-weight: 500; width: 40%; }
+          .power-good { color: #059669; font-weight: 600; }
+          .power-marginal { color: #d97706; }
+          .power-low { color: #dc2626; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 0.85em; color: #6b7280; }
+          @media print { body { margin: 20px; } }
+        ` }} />
+      </head>
+      <body>
+        <h1>Proteomics Power Analysis</h1>
+        <div className="timestamp">Generated: {new Date().toLocaleString()}</div>
 
-  const tableRows = tableData.map(row => {
-    const cells = scenarios.map(s => {
-      const power = row[`power_${s.proteinCount}`] || 0;
-      const powerClass = power >= targetPower ? 'power-good' : power >= 0.5 ? 'power-marginal' : 'power-low';
-      return `<td class="${escapeHTML(powerClass)}">${escapeHTML((power * 100).toFixed(1))}%</td>`;
-    }).join('');
-    return `<tr><td>${escapeHTML(row.effect.toFixed(2))}</td>${cells}</tr>`;
-  }).join('');
+        <h2>Study Parameters</h2>
+        <table className="param-table">
+          <tbody>
+            <tr><td>Analysis Type</td><td>{formatAnalysisType(analysisType)}</td></tr>
+            <tr><td>Study Design</td><td>{formatStudyDesign(studyDesign)}</td></tr>
+            <tr><td>Target Power</td><td>{(targetPower * 100).toFixed(0)}%</td></tr>
+            <tr><td>{thresholdLabel}</td><td>{fdrQ}</td></tr>
+            <tr><td>{effectLabel}</td><td>{effectSize}</td></tr>
+            {analysisType === 'cox' && <tr><td>Number of Events</td><td>{events}</td></tr>}
+            {showSampleSize && <tr><td>Sample Size</td><td>{sampleSize.toLocaleString()}</td></tr>}
+            {(analysisType === 'linear' || analysisType === 'gee') && <tr><td>Residual SD</td><td>{residualSD}</td></tr>}
+            {((analysisType === 'logistic' || analysisType === 'poisson') && !isCaseControl) && <tr><td>Outcome Prevalence</td><td>{(prevalence * 100).toFixed(1)}%</td></tr>}
+            {isCaseControl && <tr><td>Cases / Controls</td><td>{numCases} / {numControls}</td></tr>}
+            {designParams.map(([label, value], i) => <tr key={i}><td>{label}</td><td>{value}</td></tr>)}
+          </tbody>
+        </table>
 
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <title>Power Analysis Summary</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; line-height: 1.6; }
-    h1 { color: #4f46e5; margin-bottom: 5px; }
-    h2 { color: #6b7280; font-size: 1.1em; margin-top: 30px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
-    .timestamp { color: #9ca3af; font-size: 0.9em; margin-bottom: 30px; }
-    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-    th { background: #f9fafb; font-weight: 600; }
-    .param-table td:first-child { font-weight: 500; width: 40%; }
-    .power-good { color: #059669; font-weight: 600; }
-    .power-marginal { color: #d97706; }
-    .power-low { color: #dc2626; }
-    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 0.85em; color: #6b7280; }
-    @media print { body { margin: 20px; } }
-  </style>
-</head>
-<body>
-  <h1>Proteomics Power Analysis</h1>
-  <div class="timestamp">Generated: ${escapeHTML(new Date().toLocaleString())}</div>
-  <h2>Study Parameters</h2>
-  <table class="param-table">
-    <tr><td>Analysis Type</td><td>${escapeHTML(formatAnalysisType(analysisType))}</td></tr>
-    <tr><td>Study Design</td><td>${escapeHTML(formatStudyDesign(studyDesign))}</td></tr>
-    <tr><td>Target Power</td><td>${escapeHTML((targetPower * 100).toFixed(0))}%</td></tr>
-    <tr><td>${escapeHTML(thresholdLabel)}</td><td>${escapeHTML(fdrQ)}</td></tr>
-    <tr><td>${escapeHTML(effectLabel)}</td><td>${escapeHTML(effectSize)}</td></tr>
-    ${analysisType === 'cox' ? `<tr><td>Number of Events</td><td>${escapeHTML(events)}</td></tr>` : showSampleSize ? `<tr><td>Sample Size</td><td>${escapeHTML(sampleSize.toLocaleString())}</td></tr>` : ''}
-    ${analysisType === 'linear' || analysisType === 'gee' ? `<tr><td>Residual SD</td><td>${escapeHTML(residualSD)}</td></tr>` : ''}
-    ${(analysisType === 'logistic' || analysisType === 'poisson') && studyDesign !== 'case-control' && studyDesign !== 'nested-case-control' ? `<tr><td>Outcome Prevalence</td><td>${escapeHTML((prevalence * 100).toFixed(1))}%</td></tr>` : ''}
-    ${studyDesign === 'case-control' || studyDesign === 'nested-case-control' ? `<tr><td>Cases / Controls</td><td>${escapeHTML(numCases)} / ${escapeHTML(numControls)}</td></tr>` : ''}
-    ${designParams.map(([label, value]) => `<tr><td>${escapeHTML(label)}</td><td>${escapeHTML(value)}</td></tr>`).join('')}
-  </table>
-  <h2>Power Analysis Results</h2>
-  <table>
-    <thead><tr><th>Proteins Tested</th><th>Effective Alpha</th><th>Min Detectable ${escapeHTML(effectSymbol)}</th><th>Power at ${escapeHTML(effectSymbol)}=${escapeHTML(effectSize)}</th><th>Required ${analysisType === 'cox' ? 'Events' : 'N'}</th></tr></thead>
-    <tbody>${scenarioRows}</tbody>
-  </table>
-  <h2>Power by ${escapeHTML(effectLabel)}</h2>
-  <table>
-    <thead><tr><th>${escapeHTML(effectSymbol)}</th>${scenarios.map(s => `<th>${escapeHTML(s.proteinCount.toLocaleString())} proteins</th>`).join('')}</tr></thead>
-    <tbody>${tableRows}</tbody>
-  </table>
-  <div class="footer">
-    <p><strong>Note:</strong> This analysis assumes the predictor variable (protein level) is standardized with unit variance. Power calculations use the two-sided Wald-test framework with ${escapeHTML(correctionName)} correction for multiple testing (effective per-test &alpha; &asymp; threshold / number of proteins).</p>
-    <p>Generated by Proteomics Power Calculator</p>
-  </div>
-  <script>window.onload = function() { window.print(); };</script>
-</body>
-</html>`;
+        <h2>Power Analysis Results</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Proteins Tested</th>
+              <th>Effective Alpha</th>
+              <th>Min Detectable {effectSymbol}</th>
+              <th>Power at {effectSymbol}={effectSize}</th>
+              <th>Required {analysisType === 'cox' ? 'Events' : 'N'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {scenarios.map((s, i) => {
+              const powerClass = s.powerAtInput >= targetPower ? 'power-good' : s.powerAtInput >= 0.5 ? 'power-marginal' : 'power-low';
+              return (
+                <tr key={i}>
+                  <td>{s.proteinCount.toLocaleString()}</td>
+                  <td>{s.alpha.toExponential(2)}</td>
+                  <td>{s.minEffect.toFixed(3)}</td>
+                  <td className={powerClass}>{(s.powerAtInput * 100).toFixed(1)}%</td>
+                  <td>{typeof s.sampleNeeded === 'string' ? s.sampleNeeded : s.sampleNeeded.toLocaleString()}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        <h2>Power by {effectLabel}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>{effectSymbol}</th>
+              {scenarios.map((s, i) => <th key={i}>{s.proteinCount.toLocaleString()} proteins</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {tableData.map((row, i) => (
+              <tr key={i}>
+                <td>{row.effect.toFixed(2)}</td>
+                {scenarios.map((s, j) => {
+                  const power = row[`power_${s.proteinCount}`] || 0;
+                  const powerClass = power >= targetPower ? 'power-good' : power >= 0.5 ? 'power-marginal' : 'power-low';
+                  return <td key={j} className={powerClass}>{(power * 100).toFixed(1)}%</td>;
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="footer">
+          <p><strong>Note:</strong> This analysis assumes the predictor variable (protein level) is standardized with unit variance. Power calculations use the two-sided Wald-test framework with {correctionName} correction for multiple testing (effective per-test &alpha; &asymp; threshold / number of proteins).</p>
+          <p>Generated by Proteomics Power Calculator</p>
+        </div>
+        <script dangerouslySetInnerHTML={{ __html: 'window.onload = function() { window.print(); };' }} />
+      </body>
+    </html>
+  );
+
+  return `<!DOCTYPE html>\n${html}`;
 };
 
 export const generateTextSummary = (data: ExportData): string => {
@@ -370,7 +398,7 @@ export const performPrint = (html: string) => {
     printWindow.onload = () => {
       URL.revokeObjectURL(url);
     };
-  } catch (e) {
+  } catch {
     // Fallback for cross-origin or other restrictions
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }

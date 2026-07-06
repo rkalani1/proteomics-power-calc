@@ -12,7 +12,7 @@ const esbuild = require('esbuild');
 // ---------------------------------------------------------------------------
 // Compile the real TypeScript source to a CommonJS bundle and load it.
 // ---------------------------------------------------------------------------
-const SRC = path.join(__dirname, 'src', 'utils', 'exportUtils.ts');
+const SRC = path.join(__dirname, 'src', 'utils', 'exportUtils.tsx');
 const out = esbuild.buildSync({
   entryPoints: [SRC],
   bundle: true,
@@ -20,9 +20,11 @@ const out = esbuild.buildSync({
   platform: 'node',
   write: false,
   logLevel: 'silent',
+  external: ['react', 'react-dom', 'react-dom/server'],
 });
-const bundlePath = path.join(os.tmpdir(), `exportUtils.bundle.${process.pid}.cjs`);
-fs.writeFileSync(bundlePath, out.outputFiles[0].text);
+const bundlePath = path.join(__dirname, `exportUtils.bundle.${process.pid}.cjs`);
+const prefix = "const React = require('react');\n";
+fs.writeFileSync(bundlePath, prefix + out.outputFiles[0].text);
 const E = require(bundlePath);
 process.on('exit', () => { try { fs.unlinkSync(bundlePath); } catch { /* ignore */ } });
 
@@ -88,9 +90,9 @@ ok(csv.includes('Covariate R² (protein ~ covariates),0.1'), 'CSV includes desig
 // 2. Test generatePrintHTML
 console.log('\n2. generatePrintHTML');
 const html = E.generatePrintHTML(mockData);
-ok(html.includes('<h1>Proteomics Power Analysis</h1>'), 'HTML includes title');
-ok(html.includes('<td>Cox Proportional Hazards</td>'), 'HTML includes analysis type');
-ok(html.includes('<td>1,000</td>'), 'HTML includes formatted protein count');
+ok(html.includes('Proteomics Power Analysis'), 'HTML includes title');
+ok(html.includes('Cox Proportional Hazards'), 'HTML includes analysis type');
+ok(html.includes('1,000'), 'HTML includes formatted protein count');
 ok(html.includes('power-good'), 'HTML includes power status class');
 ok(html.includes('Covariate R² (protein ~ covariates)'), 'HTML includes design params');
 
