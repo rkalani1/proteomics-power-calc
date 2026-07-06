@@ -3,6 +3,20 @@ import { calculateEffectiveAlpha, type CorrectionMethod } from '../utils/statist
 
 const PROTEIN_COUNTS_FOR_TABLE = [1, 5, 10, 25, 50, 100, 200, 500, 1000, 3000, 5000];
 
+// Pre-compute arrays outside the component
+const LINEAR_COUNTS: number[] = [];
+for (let i = 1; i <= 1000; i += 1) LINEAR_COUNTS.push(i);
+
+const LOG_COUNTS: number[] = [];
+for (let i = 1; i <= 100; i += 1) LOG_COUNTS.push(i);
+for (let i = 110; i <= 500; i += 10) LOG_COUNTS.push(i);
+for (let i = 550; i <= 1000; i += 50) LOG_COUNTS.push(i);
+for (let i = 1100; i <= 5000; i += 100) LOG_COUNTS.push(i);
+
+// Pre-compute the unique counts across all visualizations
+const ALL_COUNTS = Array.from(new Set([...LINEAR_COUNTS, ...LOG_COUNTS, ...PROTEIN_COUNTS_FOR_TABLE]));
+const MAX_COUNT = Math.max(...ALL_COUNTS);
+
 interface UsePowerChartDataParams {
   fdrQ: number;
   effectSizes: number[];
@@ -29,50 +43,28 @@ export function usePowerChartData({
     return colors;
   }, [effectSizes]);
 
-  // Generate data for linear chart (1-1000 range)
-  const linearChartData = useMemo(() => {
-    const counts: number[] = [];
-    for (let i = 1; i <= 1000; i += 1) {
-      counts.push(i);
+  const { linearChartData, logChartData, sensitivityTableData } = useMemo(() => {
+    // Array pre-allocated to MAX_COUNT + 1 for O(1) integer index lookups.
+    // This is faster than ES6 Map or Object for integer keys in tight loops.
+    const cache = new Array<Record<string, number>>(MAX_COUNT + 1);
+
+    // Compute exact set of required protein counts once
+    for (let i = 0; i < ALL_COUNTS.length; i++) {
+      const numProteins = ALL_COUNTS[i];
+      const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
+      const dataPoint: Record<string, number> = { proteins: numProteins, alphaMulti };
+      for (let j = 0; j < effectSizes.length; j++) {
+        const es = effectSizes[j];
+        dataPoint[`es_${es}`] = calculatePower(es, alphaMulti);
+      }
+      cache[numProteins] = dataPoint;
     }
-    return counts.map((numProteins) => {
-      const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
-      const dataPoint: Record<string, number> = { proteins: numProteins, alphaMulti };
-      effectSizes.forEach((es) => {
-        dataPoint[`es_${es}`] = calculatePower(es, alphaMulti);
-      });
-      return dataPoint;
-    });
-  }, [fdrQ, correctionMethod, effectSizes, calculatePower]);
 
-  // Generate data for log chart (full 1-5000 range)
-  const logChartData = useMemo(() => {
-    const counts: number[] = [];
-    for (let i = 1; i <= 100; i += 1) counts.push(i);
-    for (let i = 110; i <= 500; i += 10) counts.push(i);
-    for (let i = 550; i <= 1000; i += 50) counts.push(i);
-    for (let i = 1100; i <= 5000; i += 100) counts.push(i);
-
-    return counts.map((numProteins) => {
-      const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
-      const dataPoint: Record<string, number> = { proteins: numProteins, alphaMulti };
-      effectSizes.forEach((es) => {
-        dataPoint[`es_${es}`] = calculatePower(es, alphaMulti);
-      });
-      return dataPoint;
-    });
-  }, [fdrQ, correctionMethod, effectSizes, calculatePower]);
-
-  // Generate sensitivity table data
-  const sensitivityTableData = useMemo(() => {
-    return PROTEIN_COUNTS_FOR_TABLE.map((numProteins) => {
-      const alphaMulti = calculateEffectiveAlpha(fdrQ, numProteins, correctionMethod);
-      const row: Record<string, number> = { proteins: numProteins, alphaMulti };
-      effectSizes.forEach((es) => {
-        row[`es_${es}`] = calculatePower(es, alphaMulti);
-      });
-      return row;
-    });
+    return {
+      linearChartData: LINEAR_COUNTS.map(count => cache[count]),
+      logChartData: LOG_COUNTS.map(count => cache[count]),
+      sensitivityTableData: PROTEIN_COUNTS_FOR_TABLE.map(count => cache[count]),
+    };
   }, [fdrQ, correctionMethod, effectSizes, calculatePower]);
 
   return {
