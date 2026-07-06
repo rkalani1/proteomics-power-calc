@@ -370,7 +370,7 @@ export const performPrint = (html: string) => {
     printWindow.onload = () => {
       URL.revokeObjectURL(url);
     };
-  } catch (e) {
+  } catch {
     // Fallback for cross-origin or other restrictions
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
