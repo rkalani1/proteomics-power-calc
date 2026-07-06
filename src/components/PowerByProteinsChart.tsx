@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { calculateEffectiveAlpha, type CorrectionMethod } from '../utils/statistics';
 import { usePowerChartData } from '../hooks/usePowerChartData';
+import { getPowerStatus, POWER_STATUS_BG_CLASSES } from '../utils/formatters';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
 type StudyDesign = 'cohort' | 'case-control' | 'cross-sectional' | 'case-cohort' | 'nested-case-control';
@@ -139,9 +140,8 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
   // Format power cell with color coding (green = meets the target power)
   const formatPowerCell = (power: number) => {
     const percentage = (power * 100).toFixed(0);
-    let bgColor = 'bg-red-100 text-red-800';
-    if (power >= targetPower) bgColor = 'bg-green-100 text-green-800';
-    else if (power >= 0.5) bgColor = 'bg-amber-100 text-amber-800';
+    const status = getPowerStatus(power, targetPower);
+    const bgColor = POWER_STATUS_BG_CLASSES[status];
 
     return (
       <span className={`px-2 py-0.5 rounded text-xs font-medium ${bgColor}`}>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { getPowerStatus, POWER_STATUS_TEXT_CLASSES } from '../utils/formatters';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
 
@@ -111,9 +112,8 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
   // Format power as percentage with color coding (green = meets target power)
   const formatPower = (power: number) => {
     const percentage = (power * 100).toFixed(1);
-    let statusClass = 'text-red-600';
-    if (power >= targetPower) statusClass = 'text-green-600 font-semibold';
-    else if (power >= 0.5) statusClass = 'text-amber-600';
+    const status = getPowerStatus(power, targetPower);
+    const statusClass = POWER_STATUS_TEXT_CLASSES[status];
 
     return (
       <span className={statusClass}>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { getPowerStatus, POWER_STATUS_COLORS } from '../utils/formatters';
 import {
   LineChart,
   Line,
@@ -214,9 +215,8 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
 
   // Power status color
   const getPowerColor = (power: number): string => {
-    if (power >= targetPower) return '#10b981';
-    if (power >= 0.5) return '#f59e0b';
-    return '#ef4444';
+    const status = getPowerStatus(power, targetPower);
+    return POWER_STATUS_COLORS[status];
   };
 
   return (
