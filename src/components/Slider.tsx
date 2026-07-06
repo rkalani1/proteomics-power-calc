@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export interface SliderProps {
+interface SliderProps {
   label: string;
   value: number;
   onChange: (v: number) => void;
