@@ -129,26 +129,4 @@ export const PowerFormula: React.FC<PowerFormulaProps> = ({
   );
 };
 
-/**
- * MinHRFormula Component
- *
- * Displays the formula for minimum detectable hazard ratio.
- * @deprecated Use PowerFormula which now includes this formula
- */
-export const MinHRFormula: React.FC = () => {
-  const formula = String.raw`
-    \text{HR}_{\min} = \exp\left( (z_{1-\alpha/2} + z_{\beta}) \cdot \sigma \right)
-  `;
-
-  return (
-    <div className="bg-amber-50/50 rounded-lg p-4 border border-amber-100">
-      <p className="text-sm text-gray-700 mb-2 font-medium">Minimum Detectable Effect Size:</p>
-      <MathEquation latex={formula} className="text-sm" />
-      <p className="text-xs text-gray-500 mt-2">
-        where z<sub>β</sub> = Φ<sup>-1</sup>(target power)
-      </p>
-    </div>
-  );
-};
-
 export default MathEquation;
