@@ -355,7 +355,7 @@ export const performCSVDownload = (csv: string, filename: string) => {
 export const performPrint = (html: string) => {
   const blob = new Blob([html], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
-  const printWindow = window.open(url, '_blank');
+  const printWindow = window.open(url, '_blank', 'noopener,noreferrer');
 
   if (!printWindow) {
     alert('Please allow popups to print the summary.');
