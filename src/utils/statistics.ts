@@ -300,11 +300,7 @@ export const calculateCoxPower = (
     se = calculateCoxSE(events, covariateR2);
   }
 
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const lambda = Math.abs(logHR) / se;
-  const power = normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha);
-
-  return Math.min(Math.max(power, 0), 1);
+  return calculatePowerFromSE(Math.abs(logHR), se, alpha);
 };
 
 /**
@@ -349,10 +345,7 @@ export const calculateCoxMinEffect = (
     se = calculateCoxSE(events, covariateR2);
   }
 
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const zBeta = normalQuantile(targetPower);
-  const minLogHR = (zAlpha + zBeta) * se;
-
+  const minLogHR = calculateMinEffectFromSE(se, targetPower, alpha);
   return Math.exp(minLogHR);
 };
 
@@ -380,12 +373,9 @@ export const calculateCoxRequiredEvents = (
   if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
 
   const logHR = Math.log(hazardRatio);
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const zBeta = normalQuantile(targetPower);
-  const sqrtD = (zAlpha + zBeta) / Math.abs(logHR);
-
   // Adjust for covariate correlation: need more events when protein correlates with covariates
-  return Math.ceil((sqrtD * sqrtD) / (1 - covariateR2));
+  const varianceFactor = 1 / (1 - covariateR2);
+  return calculateRequiredNFromVariance(Math.abs(logHR), targetPower, alpha, varianceFactor);
 };
 
 // ============================================================================
@@ -439,11 +429,7 @@ export const calculateLinearPower = (
   }
 
   const se = calculateLinearSE(sampleSize, residualSD, covariateR2);
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const lambda = Math.abs(beta) / se;
-  const power = normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha);
-
-  return Math.min(Math.max(power, 0), 1);
+  return calculatePowerFromSE(Math.abs(beta), se, alpha);
 };
 
 /**
@@ -496,10 +482,7 @@ export const calculateLinearMinEffect = (
   }
 
   const se = calculateLinearSE(sampleSize, residualSD, covariateR2);
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const zBeta = normalQuantile(targetPower);
-
-  return (zAlpha + zBeta) * se;
+  return calculateMinEffectFromSE(se, targetPower, alpha);
 };
 
 /**
@@ -523,12 +506,9 @@ export const calculateLinearRequiredN = (
   }
   if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
 
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const zBeta = normalQuantile(targetPower);
   // Adjust for covariate correlation
-  const n = Math.pow((zAlpha + zBeta) * residualSD / Math.abs(beta), 2) / (1 - covariateR2) + 2;
-
-  return Math.ceil(n);
+  const varianceFactor = (residualSD * residualSD) / (1 - covariateR2);
+  return calculateRequiredNFromVariance(Math.abs(beta), targetPower, alpha, varianceFactor, 2);
 };
 
 // ============================================================================
@@ -602,11 +582,7 @@ export const calculateLogisticPower = (
 
   if (se === Infinity) return 0;
 
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const lambda = Math.abs(logOR) / se;
-  const power = normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha);
-
-  return Math.min(Math.max(power, 0), 1);
+  return calculatePowerFromSE(Math.abs(logOR), se, alpha);
 };
 
 /**
@@ -637,10 +613,7 @@ export const calculateLogisticMinEffect = (
 
   if (se === Infinity) return Infinity;
 
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const zBeta = normalQuantile(targetPower);
-  const minLogOR = (zAlpha + zBeta) * se;
-
+  const minLogOR = calculateMinEffectFromSE(se, targetPower, alpha);
   return Math.exp(minLogOR);
 };
 
@@ -669,12 +642,9 @@ export const calculateLogisticRequiredN = (
   if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
 
   const logOR = Math.log(oddsRatio);
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const zBeta = normalQuantile(targetPower);
   // Adjust for covariate correlation
-  const n = Math.pow((zAlpha + zBeta) / Math.abs(logOR), 2) / (prevalence * (1 - prevalence) * (1 - covariateR2));
-
-  return Math.ceil(n);
+  const varianceFactor = 1 / (prevalence * (1 - prevalence) * (1 - covariateR2));
+  return calculateRequiredNFromVariance(Math.abs(logOR), targetPower, alpha, varianceFactor);
 };
 
 /**
@@ -707,11 +677,8 @@ export const calculateLogisticCaseControlRequiredN = (
 
   const r = controlsPerCase;
   const logOR = Math.log(oddsRatio);
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const zBeta = normalQuantile(targetPower);
-  const n = Math.pow((1 + r) * (zAlpha + zBeta) / Math.abs(logOR), 2) / (r * (1 - covariateR2));
-
-  return Math.ceil(n);
+  const varianceFactor = Math.pow(1 + r, 2) / (r * (1 - covariateR2));
+  return calculateRequiredNFromVariance(Math.abs(logOR), targetPower, alpha, varianceFactor);
 };
 
 // ============================================================================
@@ -766,11 +733,7 @@ export const calculatePoissonPower = (
 
   const logRR = Math.log(relativeRisk);
   const se = calculatePoissonSE(sampleSize, prevalence, covariateR2);
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const lambda = Math.abs(logRR) / se;
-  const power = normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha);
-
-  return Math.min(Math.max(power, 0), 1);
+  return calculatePowerFromSE(Math.abs(logRR), se, alpha);
 };
 
 /**
@@ -795,10 +758,7 @@ export const calculatePoissonMinEffect = (
   }
 
   const se = calculatePoissonSE(sampleSize, prevalence, covariateR2);
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const zBeta = normalQuantile(targetPower);
-  const minLogRR = (zAlpha + zBeta) * se;
-
+  const minLogRR = calculateMinEffectFromSE(se, targetPower, alpha);
   return Math.exp(minLogRR);
 };
 
@@ -827,12 +787,9 @@ export const calculatePoissonRequiredN = (
   if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
 
   const logRR = Math.log(relativeRisk);
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const zBeta = normalQuantile(targetPower);
   // Adjust for covariate correlation
-  const n = Math.pow((zAlpha + zBeta) / Math.abs(logRR), 2) / (prevalence * (1 - covariateR2));
-
-  return Math.ceil(n);
+  const varianceFactor = 1 / (prevalence * (1 - covariateR2));
+  return calculateRequiredNFromVariance(Math.abs(logRR), targetPower, alpha, varianceFactor);
 };
 
 // ============================================================================
@@ -919,11 +876,7 @@ export const calculateGEE_Power = (
   const se = calculateGEE_SE(totalObservations, clusterSize, icc, residualSD, covariateR2);
   if (se === Infinity) return 0;
 
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const lambda = Math.abs(beta) / se;
-  const power = normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha);
-
-  return Math.min(Math.max(power, 0), 1);
+  return calculatePowerFromSE(Math.abs(beta), se, alpha);
 };
 
 /**
@@ -953,12 +906,7 @@ export const calculateGEE_MinEffect = (
   }
 
   const se = calculateGEE_SE(totalObservations, clusterSize, icc, residualSD, covariateR2);
-  if (se === Infinity) return Infinity;
-
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const zBeta = normalQuantile(targetPower);
-
-  return (zAlpha + zBeta) * se;
+  return calculateMinEffectFromSE(se, targetPower, alpha);
 };
 
 /**
@@ -989,15 +937,10 @@ export const calculateGEE_RequiredN = (
   if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
 
   const de = calculateDesignEffect(clusterSize, icc);
-  const zAlpha = normalQuantile(1 - alpha / 2);
-  const zBeta = normalQuantile(targetPower);
+  const varianceFactor = (residualSD * residualSD) / (1 - covariateR2) * de;
+  const additiveConstant = 2 * de; // Because n = n_eff * DE, and n_eff has + 2
 
-  // n_eff = ((zα + zβ) × σ / |β|)² / (1 - R²_x) + 2
-  // n = n_eff × DE
-  const nEff = Math.pow((zAlpha + zBeta) * residualSD / Math.abs(beta), 2) / (1 - covariateR2) + 2;
-  const n = nEff * de;
-
-  return Math.ceil(n);
+  return calculateRequiredNFromVariance(Math.abs(beta), targetPower, alpha, varianceFactor, additiveConstant);
 };
 
 /**
@@ -1065,7 +1008,7 @@ export const calculatePower = (params: PowerParams): number => {
 
   switch (analysisType) {
     case 'cox': {
-      const designOptions: any = {};
+      const designOptions: { caseCohort?: { subcohortSize: number; totalCohort: number }; nestedCaseControl?: { matchingRatio: number } } = {};
       if (studyDesign === 'case-cohort' && params.subcohortSize && params.totalCohort) {
         designOptions.caseCohort = {
           subcohortSize: params.subcohortSize,
@@ -1139,7 +1082,7 @@ export const calculateMinEffect = (
 
   switch (analysisType) {
     case 'cox': {
-      const designOptions: any = {};
+      const designOptions: { caseCohort?: { subcohortSize: number; totalCohort: number }; nestedCaseControl?: { matchingRatio: number } } = {};
       if (studyDesign === 'case-cohort' && params.subcohortSize && params.totalCohort) {
         designOptions.caseCohort = {
           subcohortSize: params.subcohortSize,
@@ -1632,8 +1575,54 @@ export const calculateRequiredSample = (
 export const calculateRequiredEvents = calculateCoxRequiredEvents;
 
 // ============================================================================
+// Internal Core Math Helpers (Abstracted to reduce duplication)
+// ============================================================================
+
+/**
+ * Core generic calculation for statistical power using large sample approximation (Wald test).
+ * Power = Φ(|effect|/SE - z_{1-α/2}) + Φ(-|effect|/SE - z_{1-α/2})
+ */
+export const calculatePowerFromSE = (absoluteEffect: number, se: number, alpha: number): number => {
+  if (se === Infinity || se <= 0) return 0;
+  const zAlpha = normalQuantile(1 - alpha / 2);
+  const lambda = absoluteEffect / se;
+  const power = normalCDF(lambda - zAlpha) + normalCDF(-lambda - zAlpha);
+  return Math.min(Math.max(power, 0), 1);
+};
+
+/**
+ * Core generic calculation for minimum detectable effect (on the scale of the SE).
+ * Returns |effect| = (z_{1-α/2} + z_β) * SE
+ */
+export const calculateMinEffectFromSE = (se: number, targetPower: number, alpha: number): number => {
+  if (se === Infinity || se <= 0) return Infinity;
+  const zAlpha = normalQuantile(1 - alpha / 2);
+  const zBeta = normalQuantile(targetPower);
+  return (zAlpha + zBeta) * se;
+};
+
+/**
+ * Core generic calculation for required sample size (or events).
+ * Base formula: N = ((z_{1-α/2} + z_β) / |effect|)² * VarianceFactor + AdditiveConstant
+ */
+export const calculateRequiredNFromVariance = (
+  absoluteEffect: number,
+  targetPower: number,
+  alpha: number,
+  varianceFactor: number,
+  additiveConstant: number = 0
+): number => {
+  if (varianceFactor === Infinity || varianceFactor <= 0 || absoluteEffect <= 0) return Infinity;
+  const zAlpha = normalQuantile(1 - alpha / 2);
+  const zBeta = normalQuantile(targetPower);
+  const n = Math.pow((zAlpha + zBeta) / absoluteEffect, 2) * varianceFactor + additiveConstant;
+  return Math.ceil(n);
+};
+
+// ============================================================================
 // Effect Size Conversion Utilities
 // ============================================================================
+
 
 /**
  * Convert OR to approximate RR given baseline prevalence
