@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { PowerFormula } from './components/MathEquation';
 import MultiScenarioPowerChart from './components/MultiScenarioPowerChart';
 import MultiScenarioResultsTable from './components/MultiScenarioResultsTable';
@@ -17,7 +17,6 @@ import {
   type AnalysisType,
   type StudyDesign,
   type CorrectionMethod,
-  type PowerParams,
   calculateCoxSE,
   calculateCoxCaseCohortSE,
   calculateCoxNestedCaseControlSE,
@@ -25,13 +24,12 @@ import {
   calculateLogisticSE,
   calculateLogisticCaseControlSE,
   calculatePoissonSE,
-  calculatePower,
-  calculateMinEffect,
-  calculateRequiredSample,
   // GEE/Mixed Effects imports
   calculateGEE_SE,
   calculateDesignEffect,
 } from './utils/statistics';
+import { usePowerCalculations } from './hooks/usePowerCalculations';
+
 
 // Model configuration for UI
 const ANALYSIS_TYPE_OPTIONS: { value: AnalysisType; label: string; description: string }[] = [
@@ -252,104 +250,32 @@ function App() {
   // (Cox/logistic/Poisson) report HR/OR/RR to 2 decimals.
   const effectDecimals = analysisType === 'linear' || analysisType === 'gee' ? 3 : 2;
 
-  // Helper function to calculate power for a given effect size and alpha
-  const calculatePowerForEffect = useCallback((effect: number, alpha: number): number => {
-    return calculatePower({
-      analysisType,
-      studyDesign,
-      effectSize: effect,
-      alpha,
-      events,
-      sampleSize,
-      residualSD,
-      prevalence,
-      cases: numCases,
-      controls: numControls,
-      subcohortSize,
-      totalCohort,
-      matchingRatio,
-      clusterSize,
-      icc,
-      covariateR2,
-    });
-  }, [analysisType, studyDesign, events, subcohortSize, totalCohort, covariateR2, matchingRatio, sampleSize, residualSD, numCases, numControls, prevalence, clusterSize, icc]);
-
-  // Power as a function of the primary sample dimension (events for Cox, total
-  // sample size otherwise), holding every other parameter fixed. Used by the
-  // sensitivity analysis so its curves use the exact same design-aware power
-  // formula as the headline results rather than an approximation.
-  const calculatePowerAtSampleSize = useCallback((effect: number, alpha: number, dimension: number): number => {
-    const params: PowerParams = {
-      analysisType,
-      studyDesign,
-      effectSize: effect,
-      alpha,
-      residualSD,
-      prevalence,
-      subcohortSize,
-      totalCohort,
-      matchingRatio,
-      clusterSize,
-      icc,
-      covariateR2,
-    };
-
-    if (analysisType === 'cox') {
-      params.events = dimension;
-    } else if (studyDesign === 'case-control' || studyDesign === 'nested-case-control') {
-      const r = numControls / numCases;
-      params.cases = dimension / (1 + r);
-      params.controls = (dimension * r) / (1 + r);
-    } else {
-      params.sampleSize = dimension;
-    }
-
-    return calculatePower(params);
-  }, [analysisType, studyDesign, subcohortSize, totalCohort, covariateR2, matchingRatio, residualSD, numCases, numControls, prevalence, clusterSize, icc]);
-
-  // Helper function to calculate min effect for a given alpha
-  const calculateMinEffectForAlpha = useCallback((alpha: number): number => {
-    return calculateMinEffect({
-      analysisType,
-      studyDesign,
-      targetPower,
-      alpha,
-      events,
-      sampleSize,
-      residualSD,
-      prevalence,
-      cases: numCases,
-      controls: numControls,
-      subcohortSize,
-      totalCohort,
-      matchingRatio,
-      clusterSize,
-      icc,
-      covariateR2,
-    });
-  }, [analysisType, studyDesign, targetPower, events, subcohortSize, totalCohort, covariateR2, matchingRatio, sampleSize, residualSD, numCases, numControls, prevalence, clusterSize, icc]);
-
-  // Helper function to calculate required sample/events for a given alpha.
-  // Must stay consistent with the SE used for power / minimum-effect: in
-  // particular the case-cohort and nested-case-control variance inflation must
-  // be applied so the "required" number actually achieves the target power.
-  const calculateRequiredSampleForAlpha = useCallback((alpha: number): number => {
-    return calculateRequiredSample({
-      analysisType,
-      studyDesign,
-      effectSize,
-      targetPower,
-      alpha,
-      residualSD,
-      prevalence,
-      subcohortSize,
-      totalCohort,
-      matchingRatio: studyDesign === 'nested-case-control' ? matchingRatio : numControls / numCases,
-      clusterSize,
-      icc,
-      covariateR2,
-    });
-  }, [analysisType, studyDesign, effectSize, targetPower, covariateR2, residualSD, numCases, numControls, prevalence, clusterSize, icc, subcohortSize, totalCohort, matchingRatio]);
+  // Setup generic power calculation hooks
+  const {
+    calculatePowerForEffect,
+    calculatePowerAtSampleSize,
+    calculateMinEffectForAlpha,
+    calculateRequiredSampleForAlpha,
+    calculateRequiredEventsForViz,
+    calculateRequiredSampleSizeForViz,
+  } = usePowerCalculations({
+    analysisType,
+    studyDesign,
+    effectSize,
+    targetPower,
+    events,
+    sampleSize,
+    residualSD,
+    prevalence,
+    numCases,
+    numControls,
+    subcohortSize,
+    totalCohort,
+    matchingRatio,
+    clusterSize,
+    icc,
+    covariateR2,
+  });
 
   // Calculate SE (standard error) - independent of alpha/protein count
   const standardError = useMemo(() => {
@@ -377,35 +303,6 @@ function App() {
   }, [analysisType, studyDesign, sampleSize, events, subcohortSize, totalCohort, residualSD, prevalence, numCases, numControls, matchingRatio, clusterSize, icc, covariateR2]);
 
   // Helper functions for AdvancedVisualizations
-  const calculateRequiredEventsForViz = useCallback((effect: number, alpha: number, power: number): number => {
-    return calculateRequiredSample({
-      analysisType,
-      studyDesign,
-      effectSize: effect,
-      targetPower: power,
-      alpha,
-      subcohortSize,
-      totalCohort,
-      matchingRatio,
-      covariateR2,
-    });
-  }, [analysisType, studyDesign, subcohortSize, totalCohort, matchingRatio, covariateR2]);
-
-  const calculateRequiredSampleSizeForViz = useCallback((effect: number, alpha: number, power: number): number => {
-    return calculateRequiredSample({
-      analysisType,
-      studyDesign,
-      effectSize: effect,
-      targetPower: power,
-      alpha,
-      residualSD,
-      prevalence,
-      matchingRatio: studyDesign === 'nested-case-control' ? matchingRatio : numControls / numCases,
-      clusterSize,
-      icc,
-      covariateR2,
-    });
-  }, [analysisType, studyDesign, residualSD, prevalence, clusterSize, icc, covariateR2, numCases, numControls, matchingRatio]);
 
   // Calculate results for each protein count scenario
   const scenarioResults = useMemo(() => {
