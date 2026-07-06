@@ -1065,7 +1065,7 @@ export const calculatePower = (params: PowerParams): number => {
 
   switch (analysisType) {
     case 'cox': {
-      const designOptions: any = {};
+      const designOptions: Record<string, unknown> = {};
       if (studyDesign === 'case-cohort' && params.subcohortSize && params.totalCohort) {
         designOptions.caseCohort = {
           subcohortSize: params.subcohortSize,
@@ -1139,7 +1139,7 @@ export const calculateMinEffect = (
 
   switch (analysisType) {
     case 'cox': {
-      const designOptions: any = {};
+      const designOptions: Record<string, unknown> = {};
       if (studyDesign === 'case-cohort' && params.subcohortSize && params.totalCohort) {
         designOptions.caseCohort = {
           subcohortSize: params.subcohortSize,

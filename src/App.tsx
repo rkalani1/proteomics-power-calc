@@ -441,21 +441,43 @@ function App() {
       calculateEffectiveAlpha(fdrQ, count, correctionMethod)
     );
 
+    // Hoist base parameters outside the loops to avoid repeated object creation
+    // and spread operations in the calculatePowerForEffect wrapper.
+    const baseParams: PowerParams = {
+      analysisType,
+      studyDesign,
+      effectSize: 0, // Will be mutated in loop
+      alpha: 0,      // Will be mutated in loop
+      events,
+      sampleSize,
+      residualSD,
+      prevalence,
+      cases: numCases,
+      controls: numControls,
+      subcohortSize,
+      totalCohort,
+      matchingRatio,
+      clusterSize,
+      icc,
+      covariateR2,
+    };
+
     for (let i = 0; i < numPoints; i++) {
       const effect = config.min + i * step;
       const dataPoint: Record<string, number> = { effect: Number(effect.toFixed(4)) };
+      baseParams.effectSize = effect;
 
       for (let j = 0; j < effectiveProteinCounts.length; j++) {
         const count = effectiveProteinCounts[j];
-        const alpha = alphas[j];
-        dataPoint[`power_${count}`] = calculatePowerForEffect(effect, alpha);
+        baseParams.alpha = alphas[j];
+        dataPoint[`power_${count}`] = calculatePower(baseParams);
       }
 
       curveData.push(dataPoint);
     }
 
     return curveData;
-  }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, calculatePowerForEffect]);
+  }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, studyDesign, events, sampleSize, residualSD, prevalence, numCases, numControls, subcohortSize, totalCohort, matchingRatio, clusterSize, icc, covariateR2]);
 
   // Generate table data for all scenarios
   const tableData = useMemo(() => {
@@ -469,16 +491,38 @@ function App() {
       calculateEffectiveAlpha(fdrQ, count, correctionMethod)
     );
 
+    // Hoist base parameters to avoid redundant object allocations in the nested loop
+    const baseParams: PowerParams = {
+      analysisType,
+      studyDesign,
+      effectSize: 0,
+      alpha: 0,
+      events,
+      sampleSize,
+      residualSD,
+      prevalence,
+      cases: numCases,
+      controls: numControls,
+      subcohortSize,
+      totalCohort,
+      matchingRatio,
+      clusterSize,
+      icc,
+      covariateR2,
+    };
+
     return effectValues.map(effect => {
       const row: Record<string, number> = { effect };
+      baseParams.effectSize = effect;
+
       for (let j = 0; j < effectiveProteinCounts.length; j++) {
         const count = effectiveProteinCounts[j];
-        const alpha = alphas[j];
-        row[`power_${count}`] = calculatePowerForEffect(effect, alpha);
+        baseParams.alpha = alphas[j];
+        row[`power_${count}`] = calculatePower(baseParams);
       }
       return row;
     });
-  }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, calculatePowerForEffect]);
+  }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, studyDesign, events, sampleSize, residualSD, prevalence, numCases, numControls, subcohortSize, totalCohort, matchingRatio, clusterSize, icc, covariateR2]);
 
   // Slider is defined at module scope (see top of file) so it keeps a stable
   // component identity across App re-renders. Defining it inline here would
