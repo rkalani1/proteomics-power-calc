@@ -116,8 +116,7 @@ for (const analysisType of ['cox', 'linear', 'logistic', 'poisson', 'gee']) {
 // Render the tab-hidden Advanced Visualizations (power grid + forest plot) for
 // every model. The power grid is a plain HTML table (fully server-rendered), so
 // we can confirm GEE/linear use additive β effect rows (0.10–0.50) while the
-// ratio models use multiplicative rows (1.20–2.50) — the bug that previously
-// made the GEE forest plot / power grid use the wrong effect axis.
+// ratio models use multiplicative rows (1.20–2.50).
 const advizScenario = (analysisType) => ([{
   proteinCount: 5000, alpha: 1e-5,
   minDetectableEffect: analysisType === 'linear' || analysisType === 'gee' ? 0.2 : 1.5,
