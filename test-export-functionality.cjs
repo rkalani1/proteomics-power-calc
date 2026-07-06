@@ -76,6 +76,14 @@ const mockData = {
   ]
 };
 
+// 0. Test formatAnalysisType
+console.log('\n0. formatAnalysisType');
+ok(E.formatAnalysisType('cox') === 'Cox Proportional Hazards', 'formatAnalysisType handles cox');
+ok(E.formatAnalysisType('linear') === 'Linear Regression', 'formatAnalysisType handles linear');
+ok(E.formatAnalysisType('logistic') === 'Logistic Regression', 'formatAnalysisType handles logistic');
+ok(E.formatAnalysisType('poisson') === 'Modified Poisson Regression', 'formatAnalysisType handles poisson');
+ok(E.formatAnalysisType('gee') === 'GEE/Mixed Effects', 'formatAnalysisType handles gee');
+
 // 1. Test generateCSV
 console.log('\n1. generateCSV');
 const csv = E.generateCSV(mockData);
