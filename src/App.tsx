@@ -427,14 +427,15 @@ function App() {
     });
   }, [effectiveProteinCounts, fdrQ, correctionMethod, effectSize, calculateMinEffectForAlpha, calculatePowerForEffect, calculateRequiredSampleForAlpha]);
 
-  // Generate power curves for all scenarios
-  const powerCurves = useMemo(() => {
+  // Generate power curves and table data for all scenarios together to avoid redundant computation
+  const { powerCurves, tableData } = useMemo(() => {
     const config = EFFECT_SIZE_CONFIG[analysisType];
-    const numPoints = 100;
+    const numPoints = 101; // 101 points so steps overlap nicely with 10% increments for the table
     const step = (config.max - config.min) / (numPoints - 1);
 
     // Create data points with power for each scenario
     const curveData: Array<Record<string, number>> = [];
+    const tData: Array<Record<string, number>> = [];
 
     // Pre-calculate alphas outside the loop for performance
     const alphas = effectiveProteinCounts.map(count =>
@@ -452,32 +453,17 @@ function App() {
       }
 
       curveData.push(dataPoint);
+
+      // Extract every 10th point for the table data (11 points total: 0, 10, ..., 100)
+      if (i % 10 === 0) {
+        tData.push({
+          ...dataPoint,
+          effect: Number(effect.toFixed(2)) // Keep 2 decimal format for the table
+        });
+      }
     }
 
-    return curveData;
-  }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, calculatePowerForEffect]);
-
-  // Generate table data for all scenarios
-  const tableData = useMemo(() => {
-    const config = EFFECT_SIZE_CONFIG[analysisType];
-    const effectValues = Array.from({ length: 11 }, (_, i) =>
-      Number((config.min + (config.max - config.min) * (i / 10)).toFixed(2))
-    );
-
-    // Pre-calculate alphas outside the loop for performance
-    const alphas = effectiveProteinCounts.map(count =>
-      calculateEffectiveAlpha(fdrQ, count, correctionMethod)
-    );
-
-    return effectValues.map(effect => {
-      const row: Record<string, number> = { effect };
-      for (let j = 0; j < effectiveProteinCounts.length; j++) {
-        const count = effectiveProteinCounts[j];
-        const alpha = alphas[j];
-        row[`power_${count}`] = calculatePowerForEffect(effect, alpha);
-      }
-      return row;
-    });
+    return { powerCurves: curveData, tableData: tData };
   }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, calculatePowerForEffect]);
 
   // Slider is defined at module scope (see top of file) so it keeps a stable
