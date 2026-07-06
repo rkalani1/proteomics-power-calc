@@ -10,11 +10,10 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import { calculateEffectiveAlpha, type CorrectionMethod } from '../utils/statistics';
+import { calculateEffectiveAlpha, type CorrectionMethod, type AnalysisType, type StudyDesign } from '../utils/statistics';
+import { getParameterDescription } from '../utils/formatters';
 import { usePowerChartData } from '../hooks/usePowerChartData';
 
-type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
-type StudyDesign = 'cohort' | 'case-control' | 'cross-sectional' | 'case-cohort' | 'nested-case-control';
 type ScaleType = 'linear' | 'log';
 
 interface PowerByProteinsChartProps {
@@ -156,27 +155,20 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     return analysisType === 'linear' || analysisType === 'gee' ? es.toFixed(2) : es.toFixed(1);
   };
 
-  // Get parameter description for subtitle
-  const getParameterDescription = () => {
-    switch (analysisType) {
-      case 'cox':
-        return studyDesign === 'case-cohort'
-          ? `d = ${events} events, subcohort = ${subcohortSize}/${totalCohort}`
-          : `d = ${events} events`;
-      case 'linear':
-        return `n = ${sampleSize}, σ = ${residualSD}`;
-      case 'logistic':
-        return studyDesign === 'case-control'
-          ? `${numCases} cases, ${numControls} controls`
-          : `n = ${sampleSize}, prevalence = ${(prevalence * 100).toFixed(0)}%`;
-      case 'poisson':
-        return `n = ${sampleSize}, prevalence = ${(prevalence * 100).toFixed(0)}%`;
-      case 'gee':
-        return `n = ${sampleSize}, cluster size = ${clusterSize}, ICC = ${icc.toFixed(2)}`;
-      default:
-        return '';
-    }
-  };
+  const parameterDescription = getParameterDescription({
+    analysisType,
+    studyDesign,
+    events,
+    subcohortSize,
+    totalCohort,
+    sampleSize,
+    residualSD,
+    numCases,
+    numControls,
+    prevalence,
+    clusterSize,
+    icc,
+  });
 
   return (
     <div className="space-y-6">
@@ -191,7 +183,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
             Power Sensitivity: {effectSymbol} × Number of Proteins
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            Power (%) for each combination (FDR q = {fdrQ}, {getParameterDescription()})
+            Power (%) for each combination (FDR q = {fdrQ}, {parameterDescription})
           </p>
         </div>
 
