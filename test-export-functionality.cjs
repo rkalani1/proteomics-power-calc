@@ -136,6 +136,88 @@ ok(E.formatStudyDesign('cross-sectional') === 'Cross-Sectional', 'Formats cross-
 ok(E.formatStudyDesign('case-cohort') === 'Case-Cohort', 'Formats case-cohort correctly');
 ok(E.formatStudyDesign('nested-case-control') === 'Nested Case-Control', 'Formats nested-case-control correctly');
 
+// 7. Test performPrint success and error fallback paths
+console.log('\n7. performPrint Fallback Path');
+
+// Setup global mocks
+let revokeUrlArgs = [];
+let setTimeoutArgs = [];
+let alertArgs = [];
+
+global.URL = {
+  createObjectURL: (blob) => 'mock-blob-url',
+  revokeObjectURL: (url) => revokeUrlArgs.push(url),
+};
+global.Blob = class Blob {
+  constructor(content, options) {
+    this.content = content;
+    this.options = options;
+  }
+};
+global.alert = (msg) => alertArgs.push(msg);
+
+const originalSetTimeout = global.setTimeout;
+global.setTimeout = (cb, delay) => {
+  setTimeoutArgs.push({ cb, delay });
+  return 1; // Return a dummy timer ID to avoid hanging the event loop for 60 seconds
+};
+
+// 6a. Test successful window.open without onload error
+let mockWindow = {};
+global.window = {
+  open: (url, target) => {
+    mockWindow = { onload: null };
+    return mockWindow;
+  }
+};
+
+revokeUrlArgs = [];
+setTimeoutArgs = [];
+E.performPrint('<html></html>');
+
+ok(setTimeoutArgs.length === 0, 'setTimeout is not called on successful print initialization');
+if (typeof mockWindow.onload === 'function') {
+  mockWindow.onload();
+  ok(revokeUrlArgs.includes('mock-blob-url'), 'revokeObjectURL is called from onload');
+} else {
+  ok(false, 'onload handler was not assigned', 'Expected function, got ' + typeof mockWindow.onload);
+}
+
+// 6b. Test window.open returning null (popup blocker)
+global.window.open = () => null;
+revokeUrlArgs = [];
+alertArgs = [];
+E.performPrint('<html></html>');
+ok(alertArgs.length > 0 && alertArgs[0].includes('allow popups'), 'alert is called when window is null');
+ok(revokeUrlArgs.includes('mock-blob-url'), 'revokeObjectURL is called when window is null');
+
+
+// 6c. Test error when assigning to printWindow.onload
+global.window.open = () => {
+  return {
+    get onload() { return null; },
+    set onload(val) {
+      throw new Error('Cross-origin restriction mock error');
+    }
+  };
+};
+
+revokeUrlArgs = [];
+setTimeoutArgs = [];
+E.performPrint('<html></html>');
+
+ok(setTimeoutArgs.length === 1, 'setTimeout fallback is called on onload error');
+if (setTimeoutArgs.length === 1) {
+  ok(setTimeoutArgs[0].delay === 60000, 'setTimeout fallback uses 60000ms delay');
+
+  // trigger the callback
+  setTimeoutArgs[0].cb();
+  ok(revokeUrlArgs.includes('mock-blob-url'), 'revokeObjectURL is called from setTimeout fallback callback');
+}
+
+// restore
+global.setTimeout = originalSetTimeout;
+
 console.log('\n' + '='.repeat(70));
 console.log(`EXPORT RESULTS: ${passed}/${total} passed, ${fails.length} failed`);
 console.log('='.repeat(70) + '\n');

@@ -129,6 +129,7 @@ try {
 
   const fallbackOk = fallbackOk1 && fallbackOk2 && fallbackOk3;
   const errorLoggedOk = capturedError.includes('KaTeX rendering error');
+  const errorObjectLoggedOk = capturedError.includes('Error: Forced KaTeX error');
 
   console.log(`  ${fallbackOk ? '✓' : '✗'} Fallback text rendered correctly`);
   if (!fallbackOk) {
@@ -140,8 +141,13 @@ try {
     console.log(`    Captured log: ${capturedError}`);
   }
 
+  console.log(`  ${errorObjectLoggedOk ? '✓' : '✗'} Actual error object was logged`);
+  if (!errorObjectLoggedOk) {
+    console.log(`    Captured log didn't contain "Error: Forced KaTeX error": ${capturedError}`);
+  }
+
   let exitCode = 0;
-  if (fallbackOk && errorLoggedOk) {
+  if (fallbackOk && errorLoggedOk && errorObjectLoggedOk) {
     console.log('\n✓ TEST PASSED');
     exitCode = 0;
   } else {

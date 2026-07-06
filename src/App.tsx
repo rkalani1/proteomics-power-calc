@@ -17,6 +17,7 @@ import {
   type AnalysisType,
   type StudyDesign,
   type CorrectionMethod,
+  type PowerParams,
   calculateCoxSE,
   calculateCoxCaseCohortSE,
   calculateCoxNestedCaseControlSE,
@@ -24,6 +25,7 @@ import {
   calculateLogisticSE,
   calculateLogisticCaseControlSE,
   calculatePoissonSE,
+  calculatePower,
   // GEE/Mixed Effects imports
   calculateGEE_SE,
   calculateDesignEffect,
@@ -339,14 +341,36 @@ function App() {
       calculateEffectiveAlpha(fdrQ, count, correctionMethod)
     );
 
+    // Hoist base parameters outside the loops to avoid repeated object creation
+    // and spread operations in the calculatePowerForEffect wrapper.
+    const baseParams: PowerParams = {
+      analysisType,
+      studyDesign,
+      effectSize: 0, // Will be mutated in loop
+      alpha: 0,      // Will be mutated in loop
+      events,
+      sampleSize,
+      residualSD,
+      prevalence,
+      cases: numCases,
+      controls: numControls,
+      subcohortSize,
+      totalCohort,
+      matchingRatio,
+      clusterSize,
+      icc,
+      covariateR2,
+    };
+
     for (let i = 0; i < numPoints; i++) {
       const effect = config.min + i * step;
       const dataPoint: Record<string, number> = { effect: Number(effect.toFixed(4)) };
+      baseParams.effectSize = effect;
 
       for (let j = 0; j < effectiveProteinCounts.length; j++) {
         const count = effectiveProteinCounts[j];
-        const alpha = alphas[j];
-        dataPoint[`power_${count}`] = calculatePowerForEffect(effect, alpha);
+        baseParams.alpha = alphas[j];
+        dataPoint[`power_${count}`] = calculatePower(baseParams);
       }
 
       curveData.push(dataPoint);
