@@ -150,5 +150,3 @@ export const MinHRFormula: React.FC = () => {
     </div>
   );
 };
-
-export default MathEquation;

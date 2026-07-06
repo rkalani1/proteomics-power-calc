@@ -10,15 +10,15 @@ const fs = require('fs');
 const esbuild = require('esbuild');
 const Module = require('module');
 
-// 1. Bundle MathEquation.tsx but keep react and katex external
+// 1. Bundle MathEquation.tsx but keep react, katex, and formulas external
 const SRC = path.join(__dirname, 'src', 'components', 'MathEquation.tsx');
 const out = esbuild.buildSync({
   entryPoints: [SRC],
   bundle: true,
   format: 'cjs',
   platform: 'node',
-  external: ['react', 'katex'],
-  jsx: 'automatic', // Ensure React is used for JSX if needed
+  external: ['react', 'katex', '../constants/formulas'],
+  jsx: 'automatic',
   write: false,
   logLevel: 'silent',
 });
@@ -28,16 +28,16 @@ const bundlePath = path.join(__dirname, `.test-mathequation-err.${process.pid}.c
 fs.writeFileSync(bundlePath, bundleText);
 
 // 2. Setup mocks
-const container = {
-  textContent: '',
-  innerHTML: ''
-};
-
+const containers = [];
 const mockReact = {
-  useRef: () => ({ current: container }),
+  useRef: () => {
+    const container = { textContent: '', innerHTML: '' };
+    containers.push(container);
+    return { current: container };
+  },
+  effects: [],
   useEffect: (fn, deps) => {
-    // Store the effect to run it manually
-    mockReact.lastEffect = fn;
+    mockReact.effects.push(fn);
   },
   useState: (initial) => [initial, () => {}],
   createElement: (type, props, ...children) => ({ type, props, children }),
@@ -45,9 +45,25 @@ const mockReact = {
 };
 
 const mockReactRuntime = {
-  jsx: (type, props) => ({ type, props }),
-  jsxs: (type, props) => ({ type, props }),
-  jsxDEV: (type, props) => ({ type, props }),
+  jsx: (type, props) => {
+    // When PowerFormula renders MathEquation, we just call it directly to simulate rendering
+    if (typeof type === 'function') {
+      type(props);
+    }
+    return { type, props };
+  },
+  jsxs: (type, props) => {
+    if (typeof type === 'function') {
+      type(props);
+    }
+    return { type, props };
+  },
+  jsxDEV: (type, props) => {
+    if (typeof type === 'function') {
+      type(props);
+    }
+    return { type, props };
+  },
 };
 
 const mockKatex = {
@@ -56,58 +72,67 @@ const mockKatex = {
   }
 };
 
+const mockFormulas = {
+  FORMULA_CONFIGS: {
+    cox: {
+      title: 'Cox',
+      mainFormula: '\\invalid{main}',
+      minEffectLabel: 'Min Effect',
+      minEffectFormula: '\\invalid{min}',
+    }
+  },
+  definitionsFor: () => '\\invalid{def}'
+};
+
 // 3. Inject mocks into require cache
 const originalLoad = Module._load;
 Module._load = function(request, parent, isMain) {
   if (request === 'react') return mockReact;
   if (request === 'react/jsx-runtime' || request === 'react/jsx-dev-runtime') return mockReactRuntime;
   if (request === 'katex') return mockKatex;
+  if (request.endsWith('../constants/formulas')) return mockFormulas;
   return originalLoad.apply(this, arguments);
 };
 
-// Global React mock for any code that expects it globally (though it should be imported)
 global.React = mockReact;
 
-let MathEquation;
+let PowerFormula;
 try {
   const mod = require(bundlePath);
-  MathEquation = mod.default;
+  PowerFormula = mod.PowerFormula;
 } finally {
-  // Restore original loader
   Module._load = originalLoad;
 }
 
 // 4. Test execution
 console.log('='.repeat(70));
-console.log('MathEquation Error Handling Test');
+console.log('MathEquation Error Handling Test (via PowerFormula)');
 console.log('='.repeat(70));
 
-let capturedError = null;
+let capturedError = '';
 const originalConsoleError = console.error;
 console.error = (...args) => {
-  capturedError = args.join(' ');
+  capturedError += args.join(' ') + '\n';
 };
 
 try {
-  const testLatex = '\\invalid{latex}';
+  // Trigger "render"
+  PowerFormula({ analysisType: 'cox', studyDesign: 'cohort' });
 
-  // Trigger "render" (calls the component function)
-  // This will call useRef and useEffect
-  MathEquation({ latex: testLatex });
+  // Run the effects manually
+  mockReact.effects.forEach(fn => fn());
 
-  // Run the effect manually
-  if (typeof mockReact.lastEffect === 'function') {
-    mockReact.lastEffect();
-  } else {
-    throw new Error('useEffect was not called by the component');
-  }
+  // We expect 3 MathEquations to be rendered
+  const fallbackOk1 = containers[0]?.textContent === '\\invalid{main}';
+  const fallbackOk2 = containers[1]?.textContent === '\\invalid{min}';
+  const fallbackOk3 = containers[2]?.textContent === '\\invalid{def}';
 
-  const fallbackOk = container.textContent === testLatex;
-  const errorLoggedOk = capturedError && capturedError.includes('KaTeX rendering error');
+  const fallbackOk = fallbackOk1 && fallbackOk2 && fallbackOk3;
+  const errorLoggedOk = capturedError.includes('KaTeX rendering error');
 
   console.log(`  ${fallbackOk ? '✓' : '✗'} Fallback text rendered correctly`);
   if (!fallbackOk) {
-    console.log(`    Expected: "${testLatex}", Got: "${container.textContent}"`);
+    console.log(`    Expected fallbacks not found. Containers:`, containers.map(c => c.textContent));
   }
 
   console.log(`  ${errorLoggedOk ? '✓' : '✗'} Error was logged to console`);
