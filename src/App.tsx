@@ -10,9 +10,10 @@ import AdvancedVisualizations from './components/AdvancedVisualizations';
 import { Header } from './components/Header';
 import { AnalysisFramework } from './components/AnalysisFramework';
 import { StudyParameters } from './components/StudyParameters';
+import { MinEffectCards } from './components/MinEffectCards';
+import { PowerAtInputCards } from './components/PowerAtInputCards';
 import {
   calculateEffectiveAlpha,
-  calculateInflation,
   // Multi-model imports
   type AnalysisType,
   type StudyDesign,
@@ -28,118 +29,9 @@ import {
   calculatePower,
   // GEE/Mixed Effects imports
   calculateGEE_SE,
-  calculateDesignEffect,
 } from './utils/statistics';
 import { usePowerCalculations } from './hooks/usePowerCalculations';
-
-
-// Model configuration for UI
-const ANALYSIS_TYPE_OPTIONS: { value: AnalysisType; label: string; description: string }[] = [
-  { value: 'cox', label: 'Cox Proportional Hazards', description: 'Time-to-event outcomes (Hazard Ratio)' },
-  { value: 'linear', label: 'Linear Regression', description: 'Continuous outcomes (Beta coefficient)' },
-  { value: 'logistic', label: 'Logistic Regression', description: 'Binary outcomes (Odds Ratio)' },
-  { value: 'poisson', label: 'Modified Poisson', description: 'Binary outcomes, prevalence >10% (Relative Risk)' },
-  { value: 'gee', label: 'GEE/Mixed Effects', description: 'Clustered/longitudinal data (Beta with ICC)' },
-];
-
-const STUDY_DESIGN_OPTIONS: Record<AnalysisType, { value: StudyDesign; label: string; description: string }[]> = {
-  cox: [
-    { value: 'cohort', label: 'Cohort', description: 'Prospective or retrospective cohort study' },
-    { value: 'case-cohort', label: 'Case-Cohort', description: 'Subcohort sampling from full cohort' },
-    { value: 'nested-case-control', label: 'Nested Case-Control', description: 'Case-control within cohort' },
-  ],
-  linear: [
-    { value: 'cohort', label: 'Cohort', description: 'Prospective or retrospective cohort study' },
-    { value: 'cross-sectional', label: 'Cross-Sectional', description: 'Single time-point measurement' },
-  ],
-  logistic: [
-    { value: 'cohort', label: 'Cohort', description: 'Prospective or retrospective cohort study' },
-    { value: 'case-control', label: 'Case-Control', description: 'Case-control study design' },
-    { value: 'cross-sectional', label: 'Cross-Sectional', description: 'Single time-point measurement' },
-    { value: 'nested-case-control', label: 'Nested Case-Control', description: 'Case-control within cohort' },
-  ],
-  poisson: [
-    { value: 'cohort', label: 'Cohort', description: 'Prospective or retrospective cohort study' },
-    { value: 'cross-sectional', label: 'Cross-Sectional', description: 'Single time-point measurement' },
-  ],
-  gee: [
-    { value: 'cohort', label: 'Longitudinal Cohort', description: 'Repeated measures over time' },
-    { value: 'cross-sectional', label: 'Clustered Cross-Sectional', description: 'Observations clustered within groups' },
-  ],
-};
-
-// Color palette for protein count scenarios
-const SCENARIO_COLORS = [
-  { bg: 'bg-emerald-500', text: 'text-emerald-700', light: 'bg-emerald-50', border: 'border-emerald-200', hex: '#10b981' },
-  { bg: 'bg-blue-500', text: 'text-blue-700', light: 'bg-blue-50', border: 'border-blue-200', hex: '#3b82f6' },
-  { bg: 'bg-purple-500', text: 'text-purple-700', light: 'bg-purple-50', border: 'border-purple-200', hex: '#8b5cf6' },
-  { bg: 'bg-orange-500', text: 'text-orange-700', light: 'bg-orange-50', border: 'border-orange-200', hex: '#f97316' },
-  { bg: 'bg-pink-500', text: 'text-pink-700', light: 'bg-pink-50', border: 'border-pink-200', hex: '#ec4899' },
-  { bg: 'bg-teal-500', text: 'text-teal-700', light: 'bg-teal-50', border: 'border-teal-200', hex: '#14b8a6' },
-];
-
-// Effect size labels by analysis type
-const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
-  label: string;
-  symbol: string;
-  min: number;
-  max: number;
-  default: number;
-  step: number;
-  inputLabel: string;
-  inputDescription: string;
-}> = {
-  cox: {
-    label: 'Hazard Ratio',
-    symbol: 'HR',
-    min: 1.0,
-    max: 3.0,
-    default: 1.2,
-    step: 0.01,
-    inputLabel: 'Target Hazard Ratio (HR)',
-    inputDescription: '',
-  },
-  linear: {
-    label: 'Standardized Beta',
-    symbol: 'β',
-    min: 0.0,
-    max: 1.0,
-    default: 0.2,
-    step: 0.01,
-    inputLabel: 'Target Beta (β)',
-    inputDescription: '',
-  },
-  logistic: {
-    label: 'Odds Ratio',
-    symbol: 'OR',
-    min: 1.0,
-    max: 3.0,
-    default: 1.3,
-    step: 0.01,
-    inputLabel: 'Target Odds Ratio (OR)',
-    inputDescription: '',
-  },
-  poisson: {
-    label: 'Relative Risk',
-    symbol: 'RR',
-    min: 1.0,
-    max: 3.0,
-    default: 1.2,
-    step: 0.01,
-    inputLabel: 'Target Relative Risk (RR)',
-    inputDescription: '',
-  },
-  gee: {
-    label: 'Standardized Beta',
-    symbol: 'β',
-    min: 0.0,
-    max: 1.0,
-    default: 0.2,
-    step: 0.01,
-    inputLabel: 'Target Beta (β)',
-    inputDescription: '',
-  },
-};
+import { ANALYSIS_TYPE_OPTIONS, EFFECT_SIZE_CONFIG, SCENARIO_COLORS, STUDY_DESIGN_OPTIONS } from './constants/config';
 
 
 /**
@@ -385,7 +277,25 @@ function App() {
     }
 
     return { powerCurves: curveData, tableData: tData };
-  }, [effectiveProteinCounts, fdrQ, correctionMethod, analysisType, calculatePowerForEffect]);
+  }, [
+    effectiveProteinCounts,
+    fdrQ,
+    correctionMethod,
+    analysisType,
+    studyDesign,
+    events,
+    sampleSize,
+    residualSD,
+    prevalence,
+    numCases,
+    numControls,
+    subcohortSize,
+    totalCohort,
+    matchingRatio,
+    clusterSize,
+    icc,
+    covariateR2,
+  ]);
 
   // Slider is defined at module scope (see top of file) so it keeps a stable
   // component identity across App re-renders. Defining it inline here would
@@ -466,153 +376,31 @@ function App() {
           effectDecimals={effectDecimals}
         />
 
-        {/* Key Results Cards - Min Effect by Scenario */}
-        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Minimum Detectable {effectConfig.label} for {(targetPower * 100).toFixed(0)}% Power
-          </h3>
+        <MinEffectCards
+          analysisType={analysisType}
+          effectConfig={effectConfig}
+          effectDecimals={effectDecimals}
+          events={events}
+          icc={icc}
+          clusterSize={clusterSize}
+          numCases={numCases}
+          numControls={numControls}
+          prevalence={prevalence}
+          sampleSize={sampleSize}
+          scenarioResults={scenarioResults}
+          standardError={standardError}
+          studyDesign={studyDesign}
+          targetPower={targetPower}
+        />
 
-          <div className={`grid grid-cols-1 sm:grid-cols-2 ${scenarioResults.length > 2 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-4`}>
-            {scenarioResults.map((scenario) => (
-              <div
-                key={scenario.proteinCount}
-                className={`p-4 rounded-lg border ${scenario.color.border} ${scenario.color.light}`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`w-3 h-3 rounded-full ${scenario.color.bg}`}></span>
-                  <span className={`text-sm font-medium ${scenario.color.text}`}>
-                    {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className={`text-2xl font-bold ${scenario.color.text}`}>
-                  {effectConfig.symbol} ≥ {scenario.minEffect.toFixed(effectDecimals)}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  α ≈ {scenario.alpha.toExponential(1)}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Effect Size Inflation (comparing first vs last scenario) */}
-          {scenarioResults.length >= 2 && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <span className="font-medium">Effect Size Inflation:</span>
-                {(() => {
-                  const first = scenarioResults[0];
-                  const last = scenarioResults[scenarioResults.length - 1];
-                  const inflation = calculateInflation(first.minEffect, last.minEffect);
-                  return (
-                    <span className="text-amber-600 font-semibold">
-                      {isFinite(inflation) ? `~${inflation.toFixed(1)}%` : 'N/A'}
-                      <span className="font-normal text-gray-500 ml-2">
-                        ({first.proteinCount.toLocaleString()} → {last.proteinCount.toLocaleString()} proteins)
-                      </span>
-                    </span>
-                  );
-                })()}
-              </div>
-            </div>
-          )}
-
-          {/* Standard Error - always show */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex items-center gap-4 text-sm text-gray-600">
-              <span className="font-medium">
-                {analysisType === 'linear' || analysisType === 'gee' ? 'SE(β)' : `SE(log ${effectConfig.symbol})`}:
-              </span>
-              <span className="text-purple-600 font-semibold">
-                {isFinite(standardError) ? standardError.toFixed(4) : '∞'}
-              </span>
-              <span className="text-gray-500">
-                {analysisType === 'cox'
-                  ? `(${events} events)`
-                  : analysisType === 'linear'
-                  ? `(n = ${sampleSize})`
-                  : analysisType === 'gee'
-                  ? `(n = ${sampleSize}, m = ${clusterSize}, ICC = ${icc.toFixed(2)}, DE = ${calculateDesignEffect(clusterSize, icc).toFixed(2)})`
-                  : (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
-                  ? `(${numCases} cases, ${numControls} controls)`
-                  : `(n = ${sampleSize}, prev = ${(prevalence * 100).toFixed(0)}%)`}
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* Power at Input Effect Size */}
-        <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Power for {effectConfig.symbol} = {effectSize.toFixed(effectDecimals)}
-          </h3>
-
-          {/* Power bars for each scenario */}
-          <div className={`grid grid-cols-1 ${scenarioResults.length > 1 ? 'md:grid-cols-2' : ''} ${scenarioResults.length > 2 ? 'lg:grid-cols-3' : ''} gap-4`}>
-            {scenarioResults.map((scenario) => (
-              <div
-                key={scenario.proteinCount}
-                className={`rounded-lg p-4 border ${scenario.color.border} ${scenario.color.light}`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full ${scenario.color.bg}`}></span>
-                    <span className={`text-sm font-medium ${scenario.color.text}`}>
-                      {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-500">α ≈ {scenario.alpha.toExponential(1)}</span>
-                </div>
-                <div className={`text-3xl font-bold ${scenario.color.text}`}>
-                  {(scenario.powerAtInput * 100).toFixed(1)}%
-                </div>
-                <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${scenario.color.bg} rounded-full transition-all duration-300`}
-                    style={{ width: `${Math.min(scenario.powerAtInput * 100, 100)}%` }}
-                  />
-                </div>
-                <p className={`text-xs ${scenario.color.text} mt-2`}>
-                  {scenario.powerAtInput >= targetPower
-                    ? `✓ Meets ${(targetPower * 100).toFixed(0)}% target`
-                    : scenario.powerAtInput >= 0.5
-                    ? `⚠ Below ${(targetPower * 100).toFixed(0)}% target`
-                    : '✗ Underpowered'}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Sample/Events needed */}
-          <div className="mt-6 bg-gray-50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">
-              {analysisType === 'cox' ? 'Events' : 'Sample Size'} Required for {(targetPower * 100).toFixed(0)}% Power at {effectConfig.symbol} = {effectSize.toFixed(effectDecimals)}
-            </h4>
-            <div className={`grid grid-cols-2 ${scenarioResults.length > 2 ? 'md:grid-cols-3' : ''} ${scenarioResults.length > 4 ? 'lg:grid-cols-6' : ''} gap-4`}>
-              {scenarioResults.map((scenario) => (
-                <div key={scenario.proteinCount} className="text-center">
-                  <p className={`text-xl font-bold ${scenario.color.text}`}>
-                    {typeof scenario.sampleNeeded === 'string'
-                      ? scenario.sampleNeeded
-                      : scenario.sampleNeeded === Infinity
-                      ? '∞'
-                      : typeof scenario.sampleNeeded === 'number'
-                      ? scenario.sampleNeeded.toLocaleString()
-                      : '—'}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <PowerAtInputCards
+          analysisType={analysisType}
+          effectConfig={effectConfig}
+          effectDecimals={effectDecimals}
+          effectSize={effectSize}
+          scenarioResults={scenarioResults}
+          targetPower={targetPower}
+        />
 
         {/* Power Chart - multi-scenario comparison */}
         <MultiScenarioPowerChart
