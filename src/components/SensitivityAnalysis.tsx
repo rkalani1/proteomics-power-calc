@@ -65,6 +65,178 @@ const SensitivityTooltip: React.FC<{
   );
 };
 
+interface SensitivityControlsProps {
+  activeVariable: SensitivityVariable;
+  analysisType: Parameters<typeof normalizeSensitivityVariable>[0];
+  effectLabel: string;
+  setSelectedVariable: (variable: SensitivityVariable) => void;
+}
+
+const SensitivityControls: React.FC<SensitivityControlsProps> = ({
+  activeVariable,
+  analysisType,
+  effectLabel,
+  setSelectedVariable,
+}) => (
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+    <div>
+      <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+        <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        Sensitivity Analysis
+      </h3>
+    </div>
+
+    <div className="flex items-center gap-2">
+      <label className="text-sm text-gray-600">Vary:</label>
+      <select
+        value={activeVariable}
+        onChange={(e) => setSelectedVariable(e.target.value as SensitivityVariable)}
+        className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+      >
+        {analysisType === 'cox' && (
+          <option value="events">Number of Events</option>
+        )}
+        {analysisType !== 'cox' && (
+          <option value="sampleSize">Sample Size</option>
+        )}
+        <option value="effectSize">{effectLabel}</option>
+        <option value="proteinCount">Proteins Tested</option>
+      </select>
+    </div>
+  </div>
+);
+
+interface SensitivityChartProps {
+  activeVariable: SensitivityVariable;
+  analysisType: Parameters<typeof normalizeSensitivityVariable>[0];
+  getAxisLabel: () => string;
+  getCurrentValue: () => number;
+  proteinCounts: number[];
+  sensitivityData: Array<Record<string, number>>;
+  targetPower: number;
+}
+
+const SENSITIVITY_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f97316', '#ec4899', '#14b8a6'];
+
+const SensitivityChart: React.FC<SensitivityChartProps> = ({
+  activeVariable,
+  analysisType,
+  getAxisLabel,
+  getCurrentValue,
+  proteinCounts,
+  sensitivityData,
+  targetPower,
+}) => (
+  <ResponsiveContainer width="100%" height={350}>
+    <LineChart data={sensitivityData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+
+      <XAxis
+        dataKey="x"
+        type="number"
+        scale={activeVariable === 'proteinCount' ? 'log' : 'linear'}
+        domain={['dataMin', 'dataMax']}
+        tickFormatter={(value) =>
+          activeVariable === 'effectSize'
+            ? value.toFixed(analysisType === 'linear' || analysisType === 'gee' ? 2 : 1)
+            : value.toLocaleString()
+        }
+        label={{
+          value: getAxisLabel(),
+          position: 'insideBottom',
+          offset: -10,
+          style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
+        }}
+        tick={{ fill: '#6b7280', fontSize: 11 }}
+      />
+
+      <YAxis
+        domain={[0, 1]}
+        tickCount={11}
+        tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+        label={{
+          value: 'Statistical Power',
+          angle: -90,
+          position: 'insideLeft',
+          style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
+        }}
+        tick={{ fill: '#6b7280', fontSize: 11 }}
+      />
+
+      <Tooltip content={<SensitivityTooltip axisLabel={getAxisLabel()} selectedVariable={activeVariable} />} />
+
+      <ReferenceLine
+        y={targetPower}
+        stroke="#f59e0b"
+        strokeDasharray="8 4"
+        strokeWidth={2}
+        label={{
+          value: `Target: ${(targetPower * 100).toFixed(0)}%`,
+          position: 'right',
+          fill: '#f59e0b',
+          fontSize: 11,
+        }}
+      />
+
+      <ReferenceLine
+        x={getCurrentValue()}
+        stroke="#8b5cf6"
+        strokeDasharray="4 4"
+        strokeWidth={2}
+        label={{
+          value: 'Current',
+          position: 'top',
+          fill: '#8b5cf6',
+          fontSize: 11,
+        }}
+      />
+
+      <Legend
+        verticalAlign="top"
+        height={36}
+        formatter={(value: string) => {
+          if (activeVariable === 'proteinCount') {
+            return <span className="text-sm text-gray-700">Power</span>;
+          }
+          const count = parseInt(value.split('_')[1]);
+          return (
+            <span className="text-sm text-gray-700">
+              {count.toLocaleString()} protein{count !== 1 ? 's' : ''}
+            </span>
+          );
+        }}
+      />
+
+      {activeVariable === 'proteinCount' ? (
+        <Line
+          type="monotone"
+          dataKey="power"
+          name="power"
+          stroke="#6366f1"
+          strokeWidth={3}
+          dot={{ r: 4, fill: '#6366f1' }}
+          activeDot={{ r: 6, fill: '#6366f1', stroke: '#fff', strokeWidth: 2 }}
+        />
+      ) : (
+        proteinCounts.map((count, index) => (
+          <Line
+            key={count}
+            type="monotone"
+            dataKey={`power_${count}`}
+            name={`power_${count}`}
+            stroke={SENSITIVITY_COLORS[index % SENSITIVITY_COLORS.length]}
+            strokeWidth={2}
+            dot={false}
+            activeDot={{ r: 5, fill: SENSITIVITY_COLORS[index % SENSITIVITY_COLORS.length], stroke: '#fff', strokeWidth: 2 }}
+          />
+        ))
+      )}
+    </LineChart>
+  </ResponsiveContainer>
+);
+
 /**
  * SensitivityAnalysis Component
  *
@@ -164,9 +336,6 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
     return data;
   }, [activeVariable, proteinCounts, fdrQ, correctionMethod, currentEffectSize, analysisType, calculatePowerForEffect, calculatePowerAtSampleSize]);
 
-  // Color palette for lines
-  const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f97316', '#ec4899', '#14b8a6'];
-
   // Get axis labels based on selected variable
   const getAxisLabel = (): string => {
     switch (activeVariable) {
@@ -189,144 +358,21 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
 
   return (
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Sensitivity Analysis
-          </h3>
-        </div>
-
-        {/* Variable selector */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600">Vary:</label>
-          <select
-            value={activeVariable}
-            onChange={(e) => setSelectedVariable(e.target.value as SensitivityVariable)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            {analysisType === 'cox' && (
-              <option value="events">Number of Events</option>
-            )}
-            {analysisType !== 'cox' && (
-              <option value="sampleSize">Sample Size</option>
-            )}
-            <option value="effectSize">{effectLabel}</option>
-            <option value="proteinCount">Proteins Tested</option>
-          </select>
-        </div>
-      </div>
-
-      <ResponsiveContainer width="100%" height={350}>
-        <LineChart data={sensitivityData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-
-          <XAxis
-            dataKey="x"
-            type="number"
-            scale={activeVariable === 'proteinCount' ? 'log' : 'linear'}
-            domain={['dataMin', 'dataMax']}
-            tickFormatter={(value) =>
-              activeVariable === 'effectSize'
-                ? value.toFixed(analysisType === 'linear' || analysisType === 'gee' ? 2 : 1)
-                : value.toLocaleString()
-            }
-            label={{
-              value: getAxisLabel(),
-              position: 'insideBottom',
-              offset: -10,
-              style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
-            }}
-            tick={{ fill: '#6b7280', fontSize: 11 }}
-          />
-
-          <YAxis
-            domain={[0, 1]}
-            tickCount={11}
-            tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
-            label={{
-              value: 'Statistical Power',
-              angle: -90,
-              position: 'insideLeft',
-              style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
-            }}
-            tick={{ fill: '#6b7280', fontSize: 11 }}
-          />
-
-          <Tooltip content={<SensitivityTooltip axisLabel={getAxisLabel()} selectedVariable={activeVariable} />} />
-
-          {/* Target power line */}
-          <ReferenceLine
-            y={targetPower}
-            stroke="#f59e0b"
-            strokeDasharray="8 4"
-            strokeWidth={2}
-            label={{
-              value: `Target: ${(targetPower * 100).toFixed(0)}%`,
-              position: 'right',
-              fill: '#f59e0b',
-              fontSize: 11,
-            }}
-          />
-
-          {/* Current value reference line */}
-          <ReferenceLine
-            x={getCurrentValue()}
-            stroke="#8b5cf6"
-            strokeDasharray="4 4"
-            strokeWidth={2}
-            label={{
-              value: 'Current',
-              position: 'top',
-              fill: '#8b5cf6',
-              fontSize: 11,
-            }}
-          />
-
-          <Legend
-            verticalAlign="top"
-            height={36}
-            formatter={(value: string) => {
-              if (activeVariable === 'proteinCount') {
-                return <span className="text-sm text-gray-700">Power</span>;
-              }
-              const count = parseInt(value.split('_')[1]);
-              return (
-                <span className="text-sm text-gray-700">
-                  {count.toLocaleString()} protein{count !== 1 ? 's' : ''}
-                </span>
-              );
-            }}
-          />
-
-          {activeVariable === 'proteinCount' ? (
-            <Line
-              type="monotone"
-              dataKey="power"
-              name="power"
-              stroke="#6366f1"
-              strokeWidth={3}
-              dot={{ r: 4, fill: '#6366f1' }}
-              activeDot={{ r: 6, fill: '#6366f1', stroke: '#fff', strokeWidth: 2 }}
-            />
-          ) : (
-            proteinCounts.map((count, index) => (
-              <Line
-                key={count}
-                type="monotone"
-                dataKey={`power_${count}`}
-                name={`power_${count}`}
-                stroke={COLORS[index % COLORS.length]}
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 5, fill: COLORS[index % COLORS.length], stroke: '#fff', strokeWidth: 2 }}
-              />
-            ))
-          )}
-        </LineChart>
-      </ResponsiveContainer>
+      <SensitivityControls
+        activeVariable={activeVariable}
+        analysisType={analysisType}
+        effectLabel={effectLabel}
+        setSelectedVariable={setSelectedVariable}
+      />
+      <SensitivityChart
+        activeVariable={activeVariable}
+        analysisType={analysisType}
+        getAxisLabel={getAxisLabel}
+        getCurrentValue={getCurrentValue}
+        proteinCounts={proteinCounts}
+        sensitivityData={sensitivityData}
+        targetPower={targetPower}
+      />
     </section>
   );
 };
