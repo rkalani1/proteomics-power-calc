@@ -45,6 +45,8 @@ interface AdvancedVisualizationsProps {
   calculatePower: (effect: number, alpha: number, n: number) => number;
   /** Initial visualization shown (defaults to the events/sample-size curve). */
   initialViz?: VisualizationType;
+  /** Start expanded instead of collapsed (used by render tests). */
+  initialExpanded?: boolean;
 }
 
 interface ForestDatum {
@@ -134,8 +136,10 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
   calculateRequiredSampleSize,
   calculatePower,
   initialViz = 'sample-size-curve',
+  initialExpanded = false,
 }) => {
   const [activeViz, setActiveViz] = useState<VisualizationType>(initialViz);
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
 
   // Linear and GEE estimate an additive coefficient β (null effect = 0); the
   // others estimate a multiplicative ratio (null effect = 1). This drives the
@@ -222,18 +226,35 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
       {/* Header with visualization selector */}
-      <div className="p-4 border-b border-gray-200">
+      <div className={`p-4 ${isExpanded ? 'border-b border-gray-200' : ''}`}>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            aria-expanded={isExpanded}
+            aria-controls="advanced-viz-content"
+            className="flex items-center gap-2 text-left"
+          >
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
               Advanced Visualizations
-            </h3>
-          </div>
+            </h2>
+            <svg
+              aria-hidden="true"
+              focusable="false"
+              className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
           {/* Visualization type selector */}
+          {isExpanded && (
           <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
             <button
               onClick={() => setActiveViz('sample-size-curve')}
@@ -266,11 +287,13 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
               Power Grid
             </button>
           </div>
+          )}
         </div>
       </div>
 
       {/* Visualization content */}
-      <div className="p-4">
+      {isExpanded && (
+      <div id="advanced-viz-content" className="p-4">
         {/* Sample Size Curve */}
         {activeViz === 'sample-size-curve' && (
           <div>
@@ -359,6 +382,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                     stroke={scenario.color.hex}
                     strokeWidth={3}
                     dot={{ r: 4, fill: scenario.color.hex }}
+                    isAnimationActive={false}
                     activeDot={{ r: 6, fill: scenario.color.hex, stroke: '#fff', strokeWidth: 2 }}
                   />
                 ))}
@@ -431,7 +455,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                   }}
                 />
 
-                <Bar dataKey="effect" radius={[0, 4, 4, 0]}>
+                <Bar dataKey="effect" radius={[0, 4, 4, 0]} isAnimationActive={false}>
                   {forestPlotData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -511,6 +535,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

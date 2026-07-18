@@ -63,6 +63,8 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
             {ANALYSIS_TYPE_OPTIONS.map((option) => (
               <button
                 key={option.value}
+                type="button"
+                aria-pressed={analysisType === option.value}
                 onClick={() => handleAnalysisTypeChange(option.value)}
                 className={`p-3 rounded-lg border-2 text-left transition-all ${
                   analysisType === option.value
@@ -84,6 +86,8 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
             {STUDY_DESIGN_OPTIONS[analysisType].map((option) => (
               <button
                 key={option.value}
+                type="button"
+                aria-pressed={studyDesign === option.value}
                 onClick={() => setStudyDesign(option.value)}
                 className={`p-3 rounded-lg border-2 text-left transition-all ${
                   studyDesign === option.value
@@ -102,7 +106,7 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
       {/* Protein Count */}
       <div className="mt-6 pt-6 border-t border-gray-200">
         <div className="flex items-center justify-between mb-3">
-          <label className="block text-sm font-medium text-gray-700">
+          <label htmlFor="protein-count-input" className="block text-sm font-medium text-gray-700">
             Number of Proteins
           </label>
           <button
@@ -125,6 +129,7 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
           <div>
             <div className="flex items-center gap-4">
               <input
+                id="protein-count-input"
                 type="number"
                 min={1}
                 max={100000}
@@ -202,6 +207,7 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 onChange={(e) => setNewProteinCount(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addProteinCount()}
                 placeholder="Enter protein count..."
+                aria-label="Add a protein-count scenario"
                 className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
               <button

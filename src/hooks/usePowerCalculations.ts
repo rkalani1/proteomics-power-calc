@@ -136,7 +136,14 @@ export function usePowerCalculations({
       prevalence,
       subcohortSize,
       totalCohort,
-      matchingRatio: studyDesign === 'nested-case-control' ? matchingRatio : numControls / numCases,
+      // The matching-ratio input is Cox-only (the slider is hidden for other
+      // models), so only Cox nested-case-control should size from it. Every
+      // other design — including logistic nested-case-control — derives the
+      // controls-per-case ratio from the case/control counts the user set, so
+      // that required-N inverts the same SE shown for power and min-effect.
+      matchingRatio: analysisType === 'cox' && studyDesign === 'nested-case-control'
+        ? matchingRatio
+        : numControls / numCases,
       clusterSize,
       icc,
       covariateR2,
@@ -167,7 +174,11 @@ export function usePowerCalculations({
       alpha,
       residualSD,
       prevalence,
-      matchingRatio: studyDesign === 'nested-case-control' ? matchingRatio : numControls / numCases,
+      // Cox-only matching-ratio input (see calculateRequiredSampleForAlpha);
+      // other models derive the ratio from the case/control counts.
+      matchingRatio: analysisType === 'cox' && studyDesign === 'nested-case-control'
+        ? matchingRatio
+        : numControls / numCases,
       clusterSize,
       icc,
       covariateR2,

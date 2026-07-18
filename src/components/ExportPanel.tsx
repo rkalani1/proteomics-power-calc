@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import {
   generateCSV,
+  generateJSON,
   generatePrintHTML,
   generateTextSummary,
   performCSVDownload,
+  performJSONDownload,
   performPrint,
   performCopy,
   type ExportData,
@@ -30,6 +32,21 @@ const ExportPanel: React.FC<ExportData> = (props) => {
     } catch (err) {
       console.error('Failed to download CSV:', err);
       alert('Failed to download CSV. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Download structured JSON (machine-parseable)
+  const downloadJSON = () => {
+    setIsExporting(true);
+    try {
+      const json = generateJSON(props);
+      const filename = `power-analysis-${new Date().toISOString().split('T')[0]}.json`;
+      performJSONDownload(json, filename);
+    } catch (err) {
+      console.error('Failed to download JSON:', err);
+      alert('Failed to download JSON. Please try again.');
     } finally {
       setIsExporting(false);
     }
@@ -69,16 +86,21 @@ const ExportPanel: React.FC<ExportData> = (props) => {
   return (
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <button
+        type="button"
+        aria-expanded={isExpanded}
+        aria-controls="export-panel-content"
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
       >
-        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-          <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
           Export Results
-        </h3>
+        </h2>
         <svg
+          aria-hidden="true"
+          focusable="false"
           className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
@@ -89,6 +111,8 @@ const ExportPanel: React.FC<ExportData> = (props) => {
       </button>
 
       <div
+        id="export-panel-content"
+        inert={!isExpanded}
         className={`transition-all duration-300 ease-in-out ${
           isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
         } overflow-hidden`}
@@ -100,10 +124,21 @@ const ExportPanel: React.FC<ExportData> = (props) => {
               disabled={isExporting}
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" focusable="false" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Download CSV
+            </button>
+
+            <button
+              onClick={downloadJSON}
+              disabled={isExporting}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 transition-colors"
+            >
+              <svg aria-hidden="true" focusable="false" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+              Download JSON
             </button>
 
             <button

@@ -36,12 +36,12 @@ export function PowerAtInputCards({
 }: PowerAtInputCardsProps) {
   return (
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+      <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
         <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
         Power for {effectConfig.symbol} = {effectSize.toFixed(effectDecimals)}
-      </h3>
+      </h2>
 
       <div className={`grid grid-cols-1 ${scenarioResults.length > 1 ? 'md:grid-cols-2' : ''} ${scenarioResults.length > 2 ? 'lg:grid-cols-3' : ''} gap-4`}>
         {scenarioResults.map((scenario) => (
@@ -56,7 +56,7 @@ export function PowerAtInputCards({
                   {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
                 </span>
               </div>
-              <span className="text-xs text-gray-500">α ≈ {scenario.alpha.toExponential(1)}</span>
+              <span className="text-xs text-gray-500">Effective α ≈ {scenario.alpha.toExponential(1)}</span>
             </div>
             <div className={`text-3xl font-bold ${scenario.color.text}`}>
               {(scenario.powerAtInput * 100).toFixed(1)}%
@@ -79,9 +79,9 @@ export function PowerAtInputCards({
       </div>
 
       <div className="mt-6 bg-gray-50 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-gray-700 mb-3">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">
           {analysisType === 'cox' ? 'Events' : 'Sample Size'} Required for {(targetPower * 100).toFixed(0)}% Power at {effectConfig.symbol} = {effectSize.toFixed(effectDecimals)}
-        </h4>
+        </h3>
         <div className={`grid grid-cols-2 ${scenarioResults.length > 2 ? 'md:grid-cols-3' : ''} ${scenarioResults.length > 4 ? 'lg:grid-cols-6' : ''} gap-4`}>
           {scenarioResults.map((scenario) => (
             <div key={scenario.proteinCount} className="text-center">

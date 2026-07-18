@@ -359,6 +359,81 @@ export const generateTextSummary = (data: ExportData): string => {
 };
 
 /**
+ * Build a structured, machine-parseable JSON export of the analysis. Unlike the
+ * CSV (which stores human-formatted strings), every value here is raw: power and
+ * alpha are proportions in [0, 1], effect sizes and counts are numbers, so
+ * downstream code/agents can consume the results without re-parsing.
+ */
+export const generateJSON = (data: ExportData): string => {
+  const {
+    analysisType, studyDesign, scenarios, effectSize, targetPower, fdrQ,
+    correctionMethod, sampleSize, events, prevalence, residualSD, numCases,
+    numControls, subcohortSize, totalCohort, matchingRatio, clusterSize, icc,
+    covariateR2, effectSymbol, effectLabel, tableData,
+  } = data;
+
+  const isCaseControl = studyDesign === 'case-control' || studyDesign === 'nested-case-control';
+
+  const parameters: Record<string, number> = { covariateR2 };
+  if (analysisType === 'cox') parameters.events = events;
+  else if (!isCaseControl) parameters.sampleSize = sampleSize;
+  if (isCaseControl) { parameters.cases = numCases; parameters.controls = numControls; }
+  if (analysisType === 'linear' || analysisType === 'gee') parameters.residualSD = residualSD;
+  if ((analysisType === 'logistic' || analysisType === 'poisson') && !isCaseControl) parameters.prevalence = prevalence;
+  if (analysisType === 'cox' && studyDesign === 'case-cohort') { parameters.subcohortSize = subcohortSize; parameters.totalCohort = totalCohort; }
+  if (analysisType === 'cox' && studyDesign === 'nested-case-control') parameters.matchingRatio = matchingRatio;
+  if (analysisType === 'gee') { parameters.clusterSize = clusterSize; parameters.icc = icc; }
+
+  const requiredKey = analysisType === 'cox' ? 'requiredEvents' : 'requiredN';
+
+  const payload = {
+    tool: 'Proteomics Power Calculator',
+    generatedAt: new Date().toISOString(),
+    disclaimer: 'Methodological planning tool; assumes a standardized (unit-variance) predictor and a two-sided Wald large-sample test. Not medical, regulatory, or statistical-consulting advice.',
+    analysis: {
+      type: analysisType,
+      typeLabel: formatAnalysisType(analysisType),
+      studyDesign,
+      studyDesignLabel: formatStudyDesign(studyDesign),
+      targetPower,
+      multipleTesting: { method: correctionMethod, threshold: fdrQ },
+      effect: { label: effectLabel, symbol: effectSymbol, value: effectSize },
+    },
+    parameters,
+    scenarios: scenarios.map((s) => ({
+      proteinsTested: s.proteinCount,
+      effectiveAlpha: s.alpha,
+      minDetectableEffect: s.minEffect,
+      powerAtInputEffect: s.powerAtInput,
+      [requiredKey]: s.sampleNeeded,
+    })),
+    powerByEffectSize: tableData.map((row) => {
+      const power: Record<string, number> = {};
+      scenarios.forEach((s) => { power[String(s.proteinCount)] = row[`power_${s.proteinCount}`] ?? 0; });
+      return { effect: row.effect, power };
+    }),
+  };
+
+  return JSON.stringify(payload, null, 2);
+};
+
+/**
+ * Trigger browser download of a JSON file
+ */
+export const performJSONDownload = (json: string, filename: string) => {
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+/**
  * Trigger browser download of a CSV file
  */
 export const performCSVDownload = (csv: string, filename: string) => {

@@ -3,9 +3,12 @@ import { calculateEffectiveAlpha, type CorrectionMethod } from '../utils/statist
 
 const PROTEIN_COUNTS_FOR_TABLE = [1, 5, 10, 25, 50, 100, 200, 500, 1000, 3000, 5000];
 
-// Pre-compute arrays outside the component
+// Pre-compute arrays outside the component. The linear-scale axis stays dense
+// where the power curve moves fastest (few proteins) and thins out above 50, so
+// the chart is visually identical with ~4x fewer points to compute and render.
 const LINEAR_COUNTS: number[] = [];
-for (let i = 1; i <= 1000; i += 1) LINEAR_COUNTS.push(i);
+for (let i = 1; i <= 50; i += 1) LINEAR_COUNTS.push(i);
+for (let i = 55; i <= 1000; i += 5) LINEAR_COUNTS.push(i);
 
 const LOG_COUNTS: number[] = [];
 for (let i = 1; i <= 100; i += 1) LOG_COUNTS.push(i);

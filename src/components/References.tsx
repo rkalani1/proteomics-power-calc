@@ -202,6 +202,17 @@ const References: React.FC<ReferencesProps> = ({ analysisType, studyDesign }) =>
       doi: '',
       analysisTypes: ['gee'],
     },
+    {
+      id: 16,
+      authors: 'Hsieh FY, Lavori PW',
+      year: 2000,
+      title: 'Sample-size calculations for the Cox proportional hazards regression model with nonbinary covariates',
+      journal: 'Controlled Clinical Trials',
+      volume: '21(6)',
+      pages: '552-560',
+      doi: '10.1016/S0197-2456(00)00104-5',
+      analysisTypes: ['cox', 'linear', 'logistic', 'poisson', 'gee'],
+    },
   ];
 
   // Filter references relevant to current analysis type and study design
@@ -214,16 +225,21 @@ const References: React.FC<ReferencesProps> = ({ analysisType, studyDesign }) =>
   return (
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <button
+        type="button"
+        aria-expanded={isExpanded}
+        aria-controls="references-content"
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
       >
         <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-          <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
           Methodology & References
         </h2>
         <svg
+          aria-hidden="true"
+          focusable="false"
           className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
@@ -234,6 +250,8 @@ const References: React.FC<ReferencesProps> = ({ analysisType, studyDesign }) =>
       </button>
 
       <div
+        id="references-content"
+        inert={!isExpanded}
         className={`transition-all duration-300 ease-in-out ${
           isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
         } overflow-hidden`}

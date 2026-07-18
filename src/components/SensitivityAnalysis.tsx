@@ -70,6 +70,8 @@ interface SensitivityControlsProps {
   analysisType: Parameters<typeof normalizeSensitivityVariable>[0];
   effectLabel: string;
   setSelectedVariable: (variable: SensitivityVariable) => void;
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
 const SensitivityControls: React.FC<SensitivityControlsProps> = ({
@@ -77,34 +79,55 @@ const SensitivityControls: React.FC<SensitivityControlsProps> = ({
   analysisType,
   effectLabel,
   setSelectedVariable,
+  isExpanded,
+  onToggle,
 }) => (
-  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-    <div>
-      <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-        <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={isExpanded}
+      aria-controls="sensitivity-content"
+      className="flex items-center gap-2 text-left"
+    >
+      <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+        <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
         Sensitivity Analysis
-      </h3>
-    </div>
-
-    <div className="flex items-center gap-2">
-      <label className="text-sm text-gray-600">Vary:</label>
-      <select
-        value={activeVariable}
-        onChange={(e) => setSelectedVariable(e.target.value as SensitivityVariable)}
-        className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+      </h2>
+      <svg
+        aria-hidden="true"
+        focusable="false"
+        className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
       >
-        {analysisType === 'cox' && (
-          <option value="events">Number of Events</option>
-        )}
-        {analysisType !== 'cox' && (
-          <option value="sampleSize">Sample Size</option>
-        )}
-        <option value="effectSize">{effectLabel}</option>
-        <option value="proteinCount">Proteins Tested</option>
-      </select>
-    </div>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+
+    {isExpanded && (
+      <div className="flex items-center gap-2">
+        <label htmlFor="sensitivity-vary" className="text-sm text-gray-600">Vary:</label>
+        <select
+          id="sensitivity-vary"
+          value={activeVariable}
+          onChange={(e) => setSelectedVariable(e.target.value as SensitivityVariable)}
+          className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        >
+          {analysisType === 'cox' && (
+            <option value="events">Number of Events</option>
+          )}
+          {analysisType !== 'cox' && (
+            <option value="sampleSize">Sample Size</option>
+          )}
+          <option value="effectSize">{effectLabel}</option>
+          <option value="proteinCount">Proteins Tested</option>
+        </select>
+      </div>
+    )}
   </div>
 );
 
@@ -217,6 +240,7 @@ const SensitivityChart: React.FC<SensitivityChartProps> = ({
           stroke="#6366f1"
           strokeWidth={3}
           dot={{ r: 4, fill: '#6366f1' }}
+          isAnimationActive={false}
           activeDot={{ r: 6, fill: '#6366f1', stroke: '#fff', strokeWidth: 2 }}
         />
       ) : (
@@ -229,6 +253,7 @@ const SensitivityChart: React.FC<SensitivityChartProps> = ({
             stroke={SENSITIVITY_COLORS[index % SENSITIVITY_COLORS.length]}
             strokeWidth={2}
             dot={false}
+            isAnimationActive={false}
             activeDot={{ r: 5, fill: SENSITIVITY_COLORS[index % SENSITIVITY_COLORS.length], stroke: '#fff', strokeWidth: 2 }}
           />
         ))
@@ -260,6 +285,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
   const [selectedVariable, setSelectedVariable] = useState<SensitivityVariable>(
     analysisType === 'cox' ? 'events' : 'sampleSize'
   );
+  const [isExpanded, setIsExpanded] = useState(false);
   const activeVariable = normalizeSensitivityVariable(analysisType, selectedVariable);
 
   // Generate sensitivity data based on selected variable
@@ -363,16 +389,27 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
         analysisType={analysisType}
         effectLabel={effectLabel}
         setSelectedVariable={setSelectedVariable}
+        isExpanded={isExpanded}
+        onToggle={() => setIsExpanded(!isExpanded)}
       />
-      <SensitivityChart
-        activeVariable={activeVariable}
-        analysisType={analysisType}
-        getAxisLabel={getAxisLabel}
-        getCurrentValue={getCurrentValue}
-        proteinCounts={proteinCounts}
-        sensitivityData={sensitivityData}
-        targetPower={targetPower}
-      />
+      {isExpanded && (
+        <div
+          id="sensitivity-content"
+          className="mt-6"
+          role="img"
+          aria-label={`Line chart: statistical power versus ${getAxisLabel()}, with the ${(targetPower * 100).toFixed(0)}% target and current value marked.`}
+        >
+          <SensitivityChart
+            activeVariable={activeVariable}
+            analysisType={analysisType}
+            getAxisLabel={getAxisLabel}
+            getCurrentValue={getCurrentValue}
+            proteinCounts={proteinCounts}
+            sensitivityData={sensitivityData}
+            targetPower={targetPower}
+          />
+        </div>
+      )}
     </section>
   );
 };

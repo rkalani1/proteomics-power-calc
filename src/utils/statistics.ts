@@ -387,7 +387,8 @@ export const calculateCoxRequiredEvents = (
  *
  * Full formula: SE(β) = σ_residual / √(n × Var(X) × (1 - R²_x))
  *
- * For standardized predictor (Var(X) = 1):
+ * For standardized predictor (Var(X) = 1) the Var(X) factor drops out, and a
+ * residual degrees-of-freedom correction replaces n with (n - 2):
  *   SE(β) = σ_residual / √((n - 2) × (1 - R²_x))
  *
  * Where R²_x = proportion of variance in protein explained by other covariates
@@ -706,7 +707,9 @@ export const calculatePoissonSE = (
 ): number => {
   if (sampleSize <= 0 || prevalence <= 0 || prevalence >= 1) return Infinity;
   if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
-  // Robust SE approximation for modified Poisson, adjusted for covariate correlation
+  // Conservative naive-Poisson information SE, adjusted for covariate correlation.
+  // The modified-Poisson robust (sandwich) SE is smaller (≈ √((1-p)/(n·p))), so
+  // this deliberately over-states the SE — see the docstring and README.
   return Math.sqrt(1 / (sampleSize * prevalence * (1 - covariateR2)));
 };
 
@@ -825,7 +828,8 @@ export const calculateEffectiveSampleSize = (
 /**
  * Calculate SE for GEE regression coefficient
  * SE(β) = σ_residual × √DE / √(n × (1 - R²_x))
- * For standardized predictor: SE(β) = √DE / √((n - 2) × (1 - R²_x))
+ * For standardized predictor (Var(X) = 1, with the (n - 2) df correction):
+ *   SE(β) = σ_residual × √DE / √((n - 2) × (1 - R²_x))
  *
  * @param totalObservations - Total number of observations
  * @param clusterSize - Average observations per cluster
@@ -938,7 +942,12 @@ export const calculateGEE_RequiredN = (
 
   const de = calculateDesignEffect(clusterSize, icc);
   const varianceFactor = (residualSD * residualSD) / (1 - covariateR2) * de;
-  const additiveConstant = 2 * de; // Because n = n_eff * DE, and n_eff has + 2
+  // The additive constant is the exact inverse of the displayed SE, which uses
+  // (n - 2) total observations (see calculateGEE_SE): solving
+  // SE = σ√DE / √((n - 2)(1 - R²_x)) for n gives n = (z-sum/β)²·σ²·DE/(1-R²_x) + 2.
+  // A DE-scaled constant would instead correspond to an (n - 2·DE) SE, which is
+  // not what the tool renders, so the required N must add exactly 2.
+  const additiveConstant = 2;
 
   return calculateRequiredNFromVariance(Math.abs(beta), targetPower, alpha, varianceFactor, additiveConstant);
 };
@@ -1197,6 +1206,15 @@ export const generateTableData = (
 // ============================================================================
 // Two-Stage Design Functions
 // ============================================================================
+//
+// EXPERIMENTAL / not surfaced in the UI. These functions model a discovery →
+// validation two-stage proteomics design. They are covered by unit tests
+// (test-two-stage-power.cjs, test-required-stage2-size.cjs,
+// test-find-optimal-stage1-fdr.cjs) but are NOT wired into any component, and
+// they rely on planning heuristics (e.g. the sample-overlap penalty and the
+// Bonferroni-on-expected-advancing Stage-2 alpha) that have not been validated
+// against simulation. Treat the outputs as rough planning approximations until
+// the design is either wired in with a validated model or removed.
 
 /**
  * Two-Stage Design Parameters

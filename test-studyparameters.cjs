@@ -112,7 +112,9 @@ try {
   const { unmount, container } = render(React.createElement(StudyParameters, baseProps));
 
   ok(container.innerHTML.includes('Study Parameters'), 'Renders component title');
-  ok(container.innerHTML.includes('Sample Size (n)'), 'Renders Sample Size slider');
+  // Cox power depends on the number of events, not total n, so the Sample Size
+  // slider is intentionally hidden for Cox (see StudyParameters.tsx).
+  ok(!container.innerHTML.includes('Sample Size (n)'), 'Hides Sample Size slider for Cox (events drive power)');
   ok(container.innerHTML.includes('Number of Events (d)'), 'Renders Events slider');
   ok(container.innerHTML.includes('Covariate R²'), 'Renders Covariate R2 slider');
   ok(container.innerHTML.includes('Target Power'), 'Renders Target Power slider');
@@ -147,6 +149,7 @@ try {
   const linearRender = render(React.createElement(StudyParameters, linearProps));
 
   ok(linearRender.container.innerHTML.includes('Residual SD'), 'Renders Residual SD');
+  ok(linearRender.container.innerHTML.includes('Sample Size (n)'), 'Renders Sample Size slider for non-Cox (linear)');
   linearRender.unmount();
 
   console.log('\n5. Analysis Type: Logistic / Poisson');

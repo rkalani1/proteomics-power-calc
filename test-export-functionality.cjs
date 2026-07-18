@@ -111,6 +111,21 @@ ok(text.includes('Analysis: Cox Proportional Hazards (Cohort)'), 'Text includes 
 ok(text.includes('Events: 400'), 'Text includes events for Cox');
 ok(text.includes('- 1,000 proteins: Power=80.0%, Min HR=1.500'), 'Text includes scenario summary');
 
+// 3b. Test generateJSON (structured, raw-valued, parseable)
+console.log('\n3b. generateJSON');
+const jsonStr = E.generateJSON(mockData);
+let parsed = null;
+try { parsed = JSON.parse(jsonStr); } catch { /* parsed stays null */ }
+ok(parsed !== null, 'JSON output parses');
+ok(parsed && parsed.tool === 'Proteomics Power Calculator', 'JSON has tool name');
+ok(parsed && parsed.analysis && parsed.analysis.type === 'cox' && parsed.analysis.effect.value === 1.2, 'JSON analysis block carries raw effect value');
+ok(parsed && parsed.scenarios[0].requiredEvents === 400, 'JSON uses requiredEvents for Cox');
+ok(parsed && parsed.scenarios[0].powerAtInputEffect === 0.8, 'JSON keeps power as a raw proportion (not a percent string)');
+ok(parsed && parsed.parameters.events === 400 && parsed.parameters.covariateR2 === 0.1, 'JSON parameters are numeric');
+ok(parsed && parsed.powerByEffectSize[0].power['1000'] === 0.5, 'JSON power-by-effect keeps raw proportions');
+const nonCoxJson = JSON.parse(E.generateJSON({ ...mockData, analysisType: 'linear', studyDesign: 'cohort' }));
+ok('requiredN' in nonCoxJson.scenarios[0] && !('requiredEvents' in nonCoxJson.scenarios[0]), 'JSON uses requiredN for non-Cox');
+
 // 4. Test Case-Control Specifics
 console.log('\n4. Case-Control Specifics');
 const ccData = { ...mockData, studyDesign: 'case-control', analysisType: 'logistic' };

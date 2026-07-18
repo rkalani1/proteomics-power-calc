@@ -66,7 +66,7 @@ export const FORMULA_CONFIGS: Record<FormulaAnalysisType, FormulaConfig> = {
     p &= \text{outcome prevalence} \\[0.5em]
     R^2_x &= \text{proportion of protein variance explained by covariates} \\[0.5em]
     \Phi(z) &= P(Z \leq z) \text{ for } Z \sim N(0,1) \quad \text{(standard normal CDF)} \\[0.5em]
-    &\text{Note: the modified-Poisson robust SE } \sqrt{\tfrac{1-p}{n p}} \text{ is smaller, so this is conservative.}
+    &\text{Note: the modified-Poisson robust SE } \sqrt{\tfrac{1-p}{n p (1 - R^2_x)}} \text{ is smaller, so this is conservative.}
     \end{aligned}`,
   },
   gee: {

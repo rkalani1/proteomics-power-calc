@@ -332,3 +332,6 @@ if (failedTests.length === 0) {
 }
 
 console.log('\n');
+
+// Gate CI/deploy on these assertions (matches test-source-real.cjs / test-smoke-render.cjs).
+if (failedTests.length > 0) process.exit(1);

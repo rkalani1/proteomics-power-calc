@@ -413,8 +413,9 @@ function App() {
           analysisType={analysisType}
         />
 
-        {/* Results Table - show when comparing scenarios */}
-        {scenarioResults.length >= 1 && (
+        {/* Results Table - only adds value when comparing multiple scenarios;
+            the single-scenario curve is already shown by the chart above. */}
+        {scenarioResults.length >= 2 && (
           <MultiScenarioResultsTable
             data={tableData}
             scenarios={scenarioResults}

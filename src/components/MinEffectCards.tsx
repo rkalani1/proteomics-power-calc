@@ -52,12 +52,12 @@ export function MinEffectCards({
 }: MinEffectCardsProps) {
   return (
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+      <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
         <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         Minimum Detectable {effectConfig.label} for {(targetPower * 100).toFixed(0)}% Power
-      </h3>
+      </h2>
 
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${scenarioResults.length > 2 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-4`}>
         {scenarioResults.map((scenario) => (
@@ -75,11 +75,18 @@ export function MinEffectCards({
               {effectConfig.symbol} ≥ {scenario.minEffect.toFixed(effectDecimals)}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              α ≈ {scenario.alpha.toExponential(1)}
+              Effective α ≈ {scenario.alpha.toExponential(1)}
             </p>
           </div>
         ))}
       </div>
+
+      {(analysisType === 'cox' || analysisType === 'logistic' || analysisType === 'poisson') && (
+        <p className="mt-3 text-xs text-gray-500">
+          Detectability is symmetric on the log scale: a minimum detectable {effectConfig.symbol} of x is
+          equivalent to a protective {effectConfig.symbol} of 1/x (e.g. {effectConfig.symbol} 1.25 ↔ 0.80).
+        </p>
+      )}
 
       {scenarioResults.length >= 2 && (
         <div className="mt-4 pt-4 border-t border-gray-200">

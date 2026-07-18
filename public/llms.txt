@@ -1,0 +1,63 @@
+# Proteomics Power Calculator
+
+> Interactive, client-side power and sample-size calculator for proteome-wide
+> association studies (PWAS). It reports statistical power, minimum detectable
+> effect, and required sample size / events for a single protein–outcome
+> association tested across many proteins, under multiple-testing correction.
+> This is a methodological planning tool only — not medical, regulatory, or
+> statistical-consulting advice, and not a substitute for a statistician.
+
+## Scope and intended use
+
+- Purpose: study planning with aggregate or synthetic assumptions.
+- Do NOT enter PHI, patient identifiers, or restricted/proprietary cohort data;
+  all computation happens in the browser, but the tool is a public demo (see
+  COMPLIANCE.md and the in-app data guardrail).
+- Outputs are large-sample approximations for planning, not guarantees.
+
+## Regression models (effect measure)
+
+- Cox proportional hazards — hazard ratio (HR), sized by number of events d.
+- Linear regression — standardized beta (β), sized by sample size n.
+- Logistic regression — odds ratio (OR), sized by n and outcome prevalence, or
+  by case/control counts.
+- Modified Poisson / log-binomial — relative risk (RR), sized by n and prevalence.
+- GEE / mixed effects — standardized beta (β) with a design effect for clustering.
+
+## Study designs
+
+Cohort, cross-sectional, case-control, case-cohort, nested case-control
+(availability depends on the model, per the app's options).
+
+## Core assumptions and conventions
+
+- The predictor (protein level) is standardized to mean 0, variance 1; effects
+  are per 1 SD increase.
+- Two-sided Wald large-sample test. Power = Φ(λ − z_{1−α/2}) + Φ(−λ − z_{1−α/2}),
+  with λ = |effect on the log/linear scale| / σ.
+- R²_x is the proportion of PREDICTOR (protein) variance explained by adjustment
+  covariates; it inflates every standard error by 1/√(1 − R²_x).
+- Modified-Poisson uses a deliberately CONSERVATIVE naive-Poisson SE
+  √(1/(n·p·(1 − R²_x))); the robust/sandwich SE is smaller, so power is slightly
+  under-stated (required N slightly over-stated) except as p → 0.
+- Multiple testing: Benjamini–Hochberg FDR uses a conservative per-test
+  α ≈ q/m planning bound (true BH power is typically higher); Bonferroni uses
+  α = α/m exactly. m = number of proteins tested.
+
+## Source of truth
+
+- Canonical math: src/utils/statistics.ts
+- Rendered formulas (KaTeX): src/constants/formulas.ts
+- Method write-up and equation definitions: README.md ("Key Calculations")
+- Primary references with DOIs: README.md and the in-app "Methodology &
+  References" section. Core methods: Schoenfeld 1983 (Cox); Hsieh, Bloch &
+  Larsen 1998 (linear/logistic); Hsieh & Lavori 2000 (covariate/R²ₓ
+  adjustment); Zou 2004 (modified Poisson); Liang & Zeger 1986 (GEE);
+  Benjamini & Hochberg 1995 (FDR). Design-specific references are listed
+  in-app: Prentice 1986 and Self & Prentice 1988 (case-cohort),
+  Dupont 1988 (matched/nested case-control).
+
+## Repository
+
+- Code: https://github.com/rkalani1/proteomics-power-calc
+- Live: https://rkalani1.github.io/proteomics-power-calc/
