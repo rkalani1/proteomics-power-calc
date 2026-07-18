@@ -117,8 +117,11 @@ export const StudyParameters: React.FC<StudyParametersProps> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {/* Sample Size - shown for most designs except case-control/nested-case-control */}
-        {studyDesign !== 'case-control' && studyDesign !== 'nested-case-control' && (
+        {/* Sample Size - shown for models sized by total n. Cox power depends on
+            the number of EVENTS, not total n, so the slider is hidden for Cox to
+            avoid an inert control (and, in case-cohort, a third size slider that
+            does nothing). */}
+        {analysisType !== 'cox' && studyDesign !== 'case-control' && studyDesign !== 'nested-case-control' && (
           <Slider
             label="Sample Size (n)"
             value={sampleSize}
@@ -247,7 +250,7 @@ export const StudyParameters: React.FC<StudyParametersProps> = ({
               min={2}
               max={50}
               step={1}
-              description={`Observations per cluster/subject (DE = ${calculateDesignEffect(clusterSize, icc).toFixed(2)})`}
+              description={`Observations per cluster/subject (design effect DE = ${calculateDesignEffect(clusterSize, icc).toFixed(2)})`}
             />
             <Slider
               label="Intraclass Correlation (ICC)"
@@ -281,7 +284,7 @@ export const StudyParameters: React.FC<StudyParametersProps> = ({
           max={0.80}
           step={0.01}
           decimals={2}
-          description={`Proportion of protein variance explained by adjustment covariates (${(covariateR2 * 100).toFixed(0)}%)`}
+          description={`Variance of the protein (predictor) explained by adjustment covariates (${(covariateR2 * 100).toFixed(0)}%). Higher values inflate the SE by 1/√(1−R²ₓ) and therefore reduce power.`}
         />
 
         {/* Multiple Testing Correction */}
@@ -292,6 +295,8 @@ export const StudyParameters: React.FC<StudyParametersProps> = ({
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
+                type="button"
+                aria-pressed={correctionMethod === 'fdr'}
                 onClick={() => setCorrectionMethod('fdr')}
                 className={`p-2.5 rounded-lg border-2 text-left transition-all ${
                   correctionMethod === 'fdr'
@@ -303,6 +308,8 @@ export const StudyParameters: React.FC<StudyParametersProps> = ({
                 <div className="text-xs text-gray-500">False Discovery Rate</div>
               </button>
               <button
+                type="button"
+                aria-pressed={correctionMethod === 'bonferroni'}
                 onClick={() => setCorrectionMethod('bonferroni')}
                 className={`p-2.5 rounded-lg border-2 text-left transition-all ${
                   correctionMethod === 'bonferroni'

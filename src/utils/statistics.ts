@@ -387,7 +387,8 @@ export const calculateCoxRequiredEvents = (
  *
  * Full formula: SE(β) = σ_residual / √(n × Var(X) × (1 - R²_x))
  *
- * For standardized predictor (Var(X) = 1):
+ * For standardized predictor (Var(X) = 1) the Var(X) factor drops out, and a
+ * residual degrees-of-freedom correction replaces n with (n - 2):
  *   SE(β) = σ_residual / √((n - 2) × (1 - R²_x))
  *
  * Where R²_x = proportion of variance in protein explained by other covariates
@@ -827,7 +828,8 @@ export const calculateEffectiveSampleSize = (
 /**
  * Calculate SE for GEE regression coefficient
  * SE(β) = σ_residual × √DE / √(n × (1 - R²_x))
- * For standardized predictor: SE(β) = √DE / √((n - 2) × (1 - R²_x))
+ * For standardized predictor (Var(X) = 1, with the (n - 2) df correction):
+ *   SE(β) = σ_residual × √DE / √((n - 2) × (1 - R²_x))
  *
  * @param totalObservations - Total number of observations
  * @param clusterSize - Average observations per cluster

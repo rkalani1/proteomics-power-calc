@@ -6,11 +6,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Proteomics Power Calculator</title>
     <meta name="description" content="Interactive power and sample-size calculator for proteome-wide association studies (Cox, linear, logistic, modified Poisson, and GEE/mixed-effects models) with FDR / Bonferroni correction." />
+    <link rel="canonical" href="https://rkalani1.github.io/proteomics-power-calc/" />
+    <!-- Plain-text descriptor for machine consumers (purpose, models, assumptions, planning-tool only). -->
+    <link rel="alternate" type="text/markdown" href="/proteomics-power-calc/llms.txt" title="Machine-readable summary (llms.txt)" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Proteomics Power Calculator" />
+    <meta property="og:description" content="Power and sample-size calculator for proteome-wide association studies (Cox, linear, logistic, modified Poisson, GEE) with FDR / Bonferroni correction. Methodological planning tool." />
+    <meta property="og:url" content="https://rkalani1.github.io/proteomics-power-calc/" />
+    <meta name="twitter:card" content="summary" />
+    <!-- Structured metadata so crawlers/agents can extract facts without executing the SPA. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Proteomics Power Calculator",
+      "applicationCategory": "Statistical power and sample-size calculator for proteome-wide association studies (PWAS)",
+      "description": "Client-side power, minimum-detectable-effect, and required-sample-size calculator for a single protein-outcome association tested across many proteins, under FDR or Bonferroni multiple-testing correction. Methodological planning tool only; not medical, regulatory, or statistical-consulting advice.",
+      "operatingSystem": "Any (web browser)",
+      "isAccessibleForFree": true,
+      "license": "https://opensource.org/licenses/MIT",
+      "url": "https://rkalani1.github.io/proteomics-power-calc/",
+      "codeRepository": "https://github.com/rkalani1/proteomics-power-calc",
+      "about": ["Proteome-wide association study", "Statistical power analysis", "Sample size determination"],
+      "isBasedOn": [
+        { "@type": "ScholarlyArticle", "name": "Sample-size formula for the proportional-hazards regression model", "sameAs": "https://doi.org/10.2307/2531021" },
+        { "@type": "ScholarlyArticle", "name": "A simple method of sample size calculation for linear and logistic regression", "sameAs": "https://doi.org/10.1002/(SICI)1097-0258(19980730)17:14<1623::AID-SIM871>3.0.CO;2-S" },
+        { "@type": "ScholarlyArticle", "name": "A modified Poisson regression approach to prospective studies with binary data", "sameAs": "https://doi.org/10.1093/aje/kwh090" },
+        { "@type": "ScholarlyArticle", "name": "Longitudinal data analysis using generalized linear models", "sameAs": "https://doi.org/10.1093/biomet/73.1.13" },
+        { "@type": "ScholarlyArticle", "name": "Controlling the false discovery rate: a practical and powerful approach to multiple testing", "sameAs": "https://doi.org/10.1111/j.2517-6161.1995.tb02031.x" }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <footer style="margin-top: 40px; padding: 20px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb;">
+  <p style="margin: 0 auto; max-width: 700px;">
+    <strong>Data guardrail:</strong> use aggregate or synthetic planning assumptions only &mdash; do not enter patient identifiers or restricted/proprietary cohort data. Results are methodological estimates for study planning, not medical, regulatory, or statistical-consulting advice.
+  </p>
   <p style="margin-top: 8px;">
     <a href="https://www.washington.edu/online/terms/" target="_blank" rel="noopener noreferrer" style="color: #4f46e5; text-decoration: underline; margin-right: 15px;">University Website Terms</a>
     <a href="https://www.washington.edu/online/privacy/" target="_blank" rel="noopener noreferrer" style="color: #4f46e5; text-decoration: underline;">University Online Privacy Policy</a>

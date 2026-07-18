@@ -50,8 +50,12 @@ Cohort, cross-sectional, case-control, case-cohort, nested case-control
 - Rendered formulas (KaTeX): src/constants/formulas.ts
 - Method write-up and equation definitions: README.md ("Key Calculations")
 - Primary references with DOIs: README.md and the in-app "Methodology &
-  References" section (Schoenfeld 1983; Hsieh, Bloch & Larsen 1998; Zou 2004;
-  Liang & Zeger 1986; Benjamini & Hochberg 1995; Prentice 1986; Dupont 1988).
+  References" section. Core methods: Schoenfeld 1983 (Cox); Hsieh, Bloch &
+  Larsen 1998 (linear/logistic); Hsieh & Lavori 2000 (covariate/R²ₓ
+  adjustment); Zou 2004 (modified Poisson); Liang & Zeger 1986 (GEE);
+  Benjamini & Hochberg 1995 (FDR). Design-specific references are listed
+  in-app: Prentice 1986 and Self & Prentice 1988 (case-cohort),
+  Dupont 1988 (matched/nested case-control).
 
 ## Repository
 

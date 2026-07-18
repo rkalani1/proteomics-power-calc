@@ -6,6 +6,8 @@ Interactive web application for power calculations in proteome-wide association 
 
 🔗 **<https://rkalani1.github.io/proteomics-power-calc/>**
 
+Machine-readable summary: [`llms.txt`](https://rkalani1.github.io/proteomics-power-calc/llms.txt) (purpose, models, assumptions, planning-tool boundary).
+
 ## Data Guardrail
 
 Use aggregate or synthetic planning assumptions in the public demo. Do not paste patient identifiers, restricted research data, unpublished proprietary cohort details, or confidential institutional information. Calculations are methodological estimates and are not medical, regulatory, or statistical-consulting advice.
@@ -185,6 +187,8 @@ The app automatically deploys to GitHub Pages on push to `main` branch via GitHu
 1. Schoenfeld, D. A. (1983). Sample-size formula for the proportional-hazards regression model. *Biometrics*, 39(2), 499-503. [DOI: 10.2307/2531021](https://doi.org/10.2307/2531021)
 
 2. Hsieh, F. Y., Bloch, D. A., & Larsen, M. D. (1998). A simple method of sample size calculation for linear and logistic regression. *Statistics in Medicine*, 17(14), 1623-1634. [DOI: 10.1002/(SICI)1097-0258(19980730)17:14<1623::AID-SIM871>3.0.CO;2-S](https://doi.org/10.1002/(SICI)1097-0258(19980730)17:14%3C1623::AID-SIM871%3E3.0.CO;2-S)
+
+   *Note:* covariate adjustment via R²ₓ (inflating the SE by 1/√(1−R²ₓ)) follows Hsieh, F. Y., & Lavori, P. W. (2000). Sample-size calculations for the Cox proportional hazards regression model with nonbinary covariates. *Controlled Clinical Trials*, 21(6), 552-560. [DOI: 10.1016/S0197-2456(00)00104-5](https://doi.org/10.1016/S0197-2456(00)00104-5)
 
 3. Zou, G. (2004). A modified Poisson regression approach to prospective studies with binary data. *American Journal of Epidemiology*, 159(7), 702-706. [DOI: 10.1093/aje/kwh090](https://doi.org/10.1093/aje/kwh090)
 

@@ -476,6 +476,59 @@ ok(customTable[0].powerSingle === S.calculateCoxPower(1.5, 50, 0.01), 'generateT
 ok(customTable[1].powerMulti === S.calculateCoxPower(2.5, 50, 0.001), 'generateTableData: calculates correct powerMulti');
 
 // ---------------------------------------------------------------------------
+console.log('\n16. Unified calculatePower dispatcher (routing matches leaf functions)');
+console.log('-'.repeat(50));
+// Every displayed power flows through calculatePower; assert each analysis
+// type/design routes to the same SE the leaf function uses (incl. covariateR2).
+close(S.calculatePower({ analysisType: 'cox', studyDesign: 'cohort', effectSize: 1.5, alpha: 0.05, events: 100, covariateR2: 0.1 }),
+  S.calculateCoxPower(1.5, 100, 0.05, {}, 0.1), 1e-12, 'calculatePower: Cox cohort (R2x)');
+close(S.calculatePower({ analysisType: 'cox', studyDesign: 'case-cohort', effectSize: 1.5, alpha: 0.05, events: 100, subcohortSize: 500, totalCohort: 5000 }),
+  S.calculateCoxPower(1.5, 100, 0.05, { caseCohort: { subcohortSize: 500, totalCohort: 5000 } }, 0), 1e-12, 'calculatePower: Cox case-cohort');
+close(S.calculatePower({ analysisType: 'cox', studyDesign: 'nested-case-control', effectSize: 1.5, alpha: 0.05, events: 100, matchingRatio: 4 }),
+  S.calculateCoxPower(1.5, 100, 0.05, { nestedCaseControl: { matchingRatio: 4 } }, 0), 1e-12, 'calculatePower: Cox nested-case-control');
+close(S.calculatePower({ analysisType: 'linear', studyDesign: 'cohort', effectSize: 0.2, alpha: 0.05, sampleSize: 500, residualSD: 2, covariateR2: 0.1 }),
+  S.calculateLinearPower(0.2, 500, 2, 0.05, 0.1), 1e-12, 'calculatePower: Linear (R2x)');
+close(S.calculatePower({ analysisType: 'logistic', studyDesign: 'cohort', effectSize: 1.5, alpha: 0.05, sampleSize: 1000, prevalence: 0.2 }),
+  S.calculateLogisticPower(1.5, 1000, 0.2, 0.05, undefined, 0), 1e-12, 'calculatePower: Logistic cohort');
+close(S.calculatePower({ analysisType: 'logistic', studyDesign: 'case-control', effectSize: 1.5, alpha: 0.05, cases: 200, controls: 400 }),
+  S.calculateLogisticPower(1.5, 0, 0, 0.05, { cases: 200, controls: 400 }, 0), 1e-12, 'calculatePower: Logistic case-control');
+close(S.calculatePower({ analysisType: 'poisson', studyDesign: 'cohort', effectSize: 1.3, alpha: 0.05, sampleSize: 800, prevalence: 0.15, covariateR2: 0.2 }),
+  S.calculatePoissonPower(1.3, 800, 0.15, 0.05, 0.2), 1e-12, 'calculatePower: Poisson (R2x)');
+close(S.calculatePower({ analysisType: 'gee', studyDesign: 'cohort', effectSize: 0.2, alpha: 0.05, sampleSize: 1000, clusterSize: 5, icc: 0.1, residualSD: 1.5, covariateR2: 0.05 }),
+  S.calculateGEE_Power(0.2, 1000, 5, 0.1, 1.5, 0.05, 0.05), 1e-12, 'calculatePower: GEE (R2x)');
+
+// ---------------------------------------------------------------------------
+console.log('\n17. Unified calculateRequiredSample dispatcher + round trips');
+console.log('-'.repeat(50));
+close(S.calculateRequiredSample({ analysisType: 'cox', studyDesign: 'cohort', effectSize: 1.5, targetPower: 0.8, alpha: 0.05, covariateR2: 0.1 }),
+  S.calculateCoxRequiredEvents(1.5, 0.8, 0.05, 0.1), 0, 'calculateRequiredSample: Cox cohort == required events');
+const baseEv = S.calculateCoxRequiredEvents(1.5, 0.8, 0.05, 0);
+close(S.calculateRequiredSample({ analysisType: 'cox', studyDesign: 'case-cohort', effectSize: 1.5, targetPower: 0.8, alpha: 0.05, subcohortSize: 500, totalCohort: 5000 }),
+  Math.ceil(baseEv / (500 / 5000)), 0, 'calculateRequiredSample: Cox case-cohort scales events by 1/f');
+close(S.calculateRequiredSample({ analysisType: 'cox', studyDesign: 'nested-case-control', effectSize: 1.5, targetPower: 0.8, alpha: 0.05, matchingRatio: 4 }),
+  Math.ceil(baseEv * (1 + 1 / 4)), 0, 'calculateRequiredSample: Cox nested scales events by (1 + 1/m)');
+close(S.calculateRequiredSample({ analysisType: 'linear', studyDesign: 'cohort', effectSize: 0.2, targetPower: 0.8, alpha: 0.05, residualSD: 2, covariateR2: 0.1 }),
+  S.calculateLinearRequiredN(0.2, 0.8, 2, 0.05, 0.1), 0, 'calculateRequiredSample: Linear');
+close(S.calculateRequiredSample({ analysisType: 'logistic', studyDesign: 'cohort', effectSize: 1.5, targetPower: 0.8, alpha: 0.05, prevalence: 0.2 }),
+  S.calculateLogisticRequiredN(1.5, 0.8, 0.2, 0.05, 0), 0, 'calculateRequiredSample: Logistic cohort');
+close(S.calculateRequiredSample({ analysisType: 'logistic', studyDesign: 'case-control', effectSize: 1.5, targetPower: 0.8, alpha: 0.05, matchingRatio: 2 }),
+  S.calculateLogisticCaseControlRequiredN(1.5, 0.8, 2, 0.05, 0), 0, 'calculateRequiredSample: Logistic case-control (total N)');
+close(S.calculateRequiredSample({ analysisType: 'poisson', studyDesign: 'cohort', effectSize: 1.3, targetPower: 0.8, alpha: 0.05, prevalence: 0.15, covariateR2: 0.2 }),
+  S.calculatePoissonRequiredN(1.3, 0.8, 0.15, 0.05, 0.2), 0, 'calculateRequiredSample: Poisson');
+close(S.calculateRequiredSample({ analysisType: 'gee', studyDesign: 'cohort', effectSize: 0.2, targetPower: 0.8, alpha: 0.05, clusterSize: 5, icc: 0.1, residualSD: 1.5, covariateR2: 0.05 }),
+  S.calculateGEE_RequiredN(0.2, 0.8, 5, 0.1, 1.5, 0.05, 0.05), 0, 'calculateRequiredSample: GEE');
+// End-to-end round trips: the dispatcher's required size, fed back through the
+// dispatcher's power, must achieve the target.
+{
+  const evCox = S.calculateRequiredSample({ analysisType: 'cox', studyDesign: 'cohort', effectSize: 1.5, targetPower: 0.8, alpha: 0.05 });
+  ok(S.calculatePower({ analysisType: 'cox', studyDesign: 'cohort', effectSize: 1.5, alpha: 0.05, events: evCox }) >= 0.8, 'round trip: Cox required events -> >=80% power');
+  const nLin = S.calculateRequiredSample({ analysisType: 'linear', studyDesign: 'cohort', effectSize: 0.2, targetPower: 0.8, alpha: 0.05, residualSD: 2 });
+  ok(S.calculatePower({ analysisType: 'linear', studyDesign: 'cohort', effectSize: 0.2, alpha: 0.05, sampleSize: nLin, residualSD: 2 }) >= 0.8, 'round trip: Linear required N -> >=80% power');
+  const nCC = S.calculateRequiredSample({ analysisType: 'logistic', studyDesign: 'case-control', effectSize: 1.5, targetPower: 0.8, alpha: 0.05, matchingRatio: 2 });
+  ok(S.calculatePower({ analysisType: 'logistic', studyDesign: 'case-control', effectSize: 1.5, alpha: 0.05, cases: nCC / 3, controls: (nCC * 2) / 3 }) >= 0.8, 'round trip: Logistic case-control required N -> >=80% power');
+}
+
+// ---------------------------------------------------------------------------
 console.log('\n' + '='.repeat(70));
 console.log(`REAL-SOURCE RESULTS: ${passed}/${total} passed, ${fails.length} failed`);
 console.log('='.repeat(70) + '\n');
