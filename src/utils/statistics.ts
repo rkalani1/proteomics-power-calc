@@ -706,7 +706,9 @@ export const calculatePoissonSE = (
 ): number => {
   if (sampleSize <= 0 || prevalence <= 0 || prevalence >= 1) return Infinity;
   if (covariateR2 < 0 || covariateR2 >= 1) covariateR2 = 0;
-  // Robust SE approximation for modified Poisson, adjusted for covariate correlation
+  // Conservative naive-Poisson information SE, adjusted for covariate correlation.
+  // The modified-Poisson robust (sandwich) SE is smaller (≈ √((1-p)/(n·p))), so
+  // this deliberately over-states the SE — see the docstring and README.
   return Math.sqrt(1 / (sampleSize * prevalence * (1 - covariateR2)));
 };
 
@@ -938,7 +940,12 @@ export const calculateGEE_RequiredN = (
 
   const de = calculateDesignEffect(clusterSize, icc);
   const varianceFactor = (residualSD * residualSD) / (1 - covariateR2) * de;
-  const additiveConstant = 2 * de; // Because n = n_eff * DE, and n_eff has + 2
+  // The additive constant is the exact inverse of the displayed SE, which uses
+  // (n - 2) total observations (see calculateGEE_SE): solving
+  // SE = σ√DE / √((n - 2)(1 - R²_x)) for n gives n = (z-sum/β)²·σ²·DE/(1-R²_x) + 2.
+  // A DE-scaled constant would instead correspond to an (n - 2·DE) SE, which is
+  // not what the tool renders, so the required N must add exactly 2.
+  const additiveConstant = 2;
 
   return calculateRequiredNFromVariance(Math.abs(beta), targetPower, alpha, varianceFactor, additiveConstant);
 };

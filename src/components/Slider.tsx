@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 
 interface SliderProps {
   label: string;
@@ -24,6 +24,13 @@ export const Slider: React.FC<SliderProps> = ({
   decimals = 0,
 }) => {
   const format = (v: number) => (decimals > 0 ? v.toFixed(decimals) : String(v));
+
+  // Stable ids so the visible label names the range control and the description
+  // is exposed to assistive tech (the inputs would otherwise be unlabeled).
+  const uid = useId();
+  const rangeId = `${uid}-range`;
+  const descId = description ? `${uid}-desc` : undefined;
+  const valueText = `${format(value)}${unit}`;
 
   // Raw text while the field is focused; otherwise the field shows format(value).
   const [draft, setDraft] = useState('');
@@ -66,7 +73,7 @@ export const Slider: React.FC<SliderProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <label className="text-sm font-medium text-gray-700">{label}</label>
+        <label htmlFor={rangeId} className="text-sm font-medium text-gray-700">{label}</label>
         <input
           type="text"
           inputMode="decimal"
@@ -75,16 +82,21 @@ export const Slider: React.FC<SliderProps> = ({
           onFocus={handleFocus}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
+          aria-label={`${label} (exact value)`}
+          aria-describedby={descId}
           className="w-28 px-2 py-1.5 text-right text-sm font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
         />
       </div>
       <input
+        id={rangeId}
         type="range"
         min={min}
         max={max}
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        aria-valuetext={valueText}
+        aria-describedby={descId}
         className="w-full h-2 rounded-lg appearance-none cursor-pointer slider-thumb"
         style={{
           background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${percentage}%, #e2e8f0 ${percentage}%, #e2e8f0 100%)`
@@ -94,7 +106,7 @@ export const Slider: React.FC<SliderProps> = ({
         <span>{decimals > 0 ? min.toFixed(decimals) : min.toLocaleString()}{unit}</span>
         <span>{decimals > 0 ? max.toFixed(decimals) : max.toLocaleString()}{unit}</span>
       </div>
-      {description && <p className="text-xs text-gray-500">{description}</p>}
+      {description && <p id={descId} className="text-xs text-gray-500">{description}</p>}
     </div>
   );
 };

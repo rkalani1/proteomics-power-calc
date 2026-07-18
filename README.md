@@ -4,7 +4,7 @@ Interactive web application for power calculations in proteome-wide association 
 
 ## Live Demo
 
-🔗 **[ /proteomics-power-calc](/proteomics-power-calc)**
+🔗 **<https://rkalani1.github.io/proteomics-power-calc/>**
 
 ## Data Guardrail
 
@@ -141,7 +141,7 @@ to the HR/OR/RR scale via exp(·), or used directly for β.
 
 ```bash
 # Clone the repository
-git clone https://github.com/example/proteomics-power-calc.git
+git clone https://github.com/rkalani1/proteomics-power-calc.git
 cd proteomics-power-calc
 
 # Install dependencies

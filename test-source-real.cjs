@@ -288,6 +288,15 @@ close(S.calculateGEE_RequiredClusters(0.2, 0.8, 5, 0.05, 1.0, 0.05), Math.ceil(n
   'GEE required clusters = ceil(required N / cluster size)');
 // Required N <-> power and min-effect <-> power round trips
 ok(S.calculateGEE_Power(0.2, nGee, 5, 0.05, 1.0, 0.05) >= 0.8, 'GEE required-N round trip achieves >=80%');
+// Required-N is the TIGHT inverse of the displayed (n - 2) SE, even at a large
+// design effect. A DE-scaled small-sample constant (n - 2*DE) would overshoot
+// the target here (power well above 0.80 for the same beta/alpha).
+{
+  const mBig = 50, iccBig = 0.5;
+  const nBig = S.calculateGEE_RequiredN(0.2, 0.8, mBig, iccBig, 1.0, 0.05);
+  const pBig = S.calculateGEE_Power(0.2, nBig, mBig, iccBig, 1.0, 0.05);
+  ok(pBig >= 0.8 && pBig < 0.802, `GEE required-N is a tight inverse at high DE (n=${nBig}, power=${pBig.toFixed(4)})`);
+}
 for (const m of [3, 10]) {
   const bMin = S.calculateGEE_MinEffect(0.8, 1000, m, 0.05, 1.0, 0.05);
   close(S.calculateGEE_Power(bMin, 1000, m, 0.05, 1.0, 0.05), 0.8, 1e-6, `GEE min-effect round trip m=${m}`);
