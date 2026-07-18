@@ -1206,6 +1206,15 @@ export const generateTableData = (
 // ============================================================================
 // Two-Stage Design Functions
 // ============================================================================
+//
+// EXPERIMENTAL / not surfaced in the UI. These functions model a discovery →
+// validation two-stage proteomics design. They are covered by unit tests
+// (test-two-stage-power.cjs, test-required-stage2-size.cjs,
+// test-find-optimal-stage1-fdr.cjs) but are NOT wired into any component, and
+// they rely on planning heuristics (e.g. the sample-overlap penalty and the
+// Bonferroni-on-expected-advancing Stage-2 alpha) that have not been validated
+// against simulation. Treat the outputs as rough planning approximations until
+// the design is either wired in with a validated model or removed.
 
 /**
  * Two-Stage Design Parameters

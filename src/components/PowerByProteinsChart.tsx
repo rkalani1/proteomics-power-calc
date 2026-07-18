@@ -353,6 +353,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
                 stroke={effectColors[es]}
                 strokeWidth={2}
                 dot={false}
+                isAnimationActive={false}
                 activeDot={{ r: 4, fill: effectColors[es], stroke: '#fff', strokeWidth: 1 }}
               />
             ))}

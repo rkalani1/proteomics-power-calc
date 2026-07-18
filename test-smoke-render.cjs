@@ -131,7 +131,7 @@ for (const analysisType of ['cox', 'linear', 'logistic', 'poisson', 'gee']) {
         effectSymbol: symbols[analysisType], effectLabel: 'Effect',
         currentEffectSize: isBeta ? 0.2 : 1.5, currentEvents: 200, currentSampleSize: 1000,
         calculateRequiredEvents: () => 300, calculateRequiredSampleSize: () => 1500,
-        calculatePower: () => 0.8, initialViz,
+        calculatePower: () => 0.8, initialViz, initialExpanded: true,
       }));
       let ok = html.length > 200;
       if (initialViz === 'power-contour') {

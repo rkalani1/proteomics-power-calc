@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import {
   generateCSV,
+  generateJSON,
   generatePrintHTML,
   generateTextSummary,
   performCSVDownload,
+  performJSONDownload,
   performPrint,
   performCopy,
   type ExportData,
@@ -30,6 +32,21 @@ const ExportPanel: React.FC<ExportData> = (props) => {
     } catch (err) {
       console.error('Failed to download CSV:', err);
       alert('Failed to download CSV. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Download structured JSON (machine-parseable)
+  const downloadJSON = () => {
+    setIsExporting(true);
+    try {
+      const json = generateJSON(props);
+      const filename = `power-analysis-${new Date().toISOString().split('T')[0]}.json`;
+      performJSONDownload(json, filename);
+    } catch (err) {
+      console.error('Failed to download JSON:', err);
+      alert('Failed to download JSON. Please try again.');
     } finally {
       setIsExporting(false);
     }
@@ -107,10 +124,21 @@ const ExportPanel: React.FC<ExportData> = (props) => {
               disabled={isExporting}
               className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" focusable="false" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Download CSV
+            </button>
+
+            <button
+              onClick={downloadJSON}
+              disabled={isExporting}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:bg-gray-100 transition-colors"
+            >
+              <svg aria-hidden="true" focusable="false" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+              Download JSON
             </button>
 
             <button

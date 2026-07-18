@@ -137,6 +137,10 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
         </p>
       </div>
 
+      <div
+        role="img"
+        aria-label={`Line chart: statistical power versus ${effectLabel} (${effectSymbol}) for ${scenarios.length} protein-count scenario${scenarios.length !== 1 ? 's' : ''}, with the ${(targetPower * 100).toFixed(0)}% power target and the input ${effectSymbol}=${inputEffect.toFixed(decimals)} marked.`}
+      >
       <ResponsiveContainer width="100%" height={400}>
         <LineChart
           data={data}
@@ -227,6 +231,7 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
               stroke={scenario.color.hex}
               strokeWidth={3}
               dot={false}
+              isAnimationActive={false}
               activeDot={{ r: 6, fill: scenario.color.hex, stroke: '#fff', strokeWidth: 2 }}
             />
           ))}
@@ -241,6 +246,7 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
           />
         </LineChart>
       </ResponsiveContainer>
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
         <div className="flex items-center gap-2">

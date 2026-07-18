@@ -64,14 +64,14 @@ export const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
     inputDescription: '',
   },
   linear: {
-    label: 'Standardized Beta',
+    label: 'Per-SD Beta',
     symbol: 'β',
     min: 0.0,
     max: 1.0,
     default: 0.2,
     step: 0.01,
     inputLabel: 'Target Beta (β)',
-    inputDescription: '',
+    inputDescription: 'Change in outcome per 1 SD increase in protein (outcome in its own units; set Residual SD to match).',
   },
   logistic: {
     label: 'Odds Ratio',
@@ -94,13 +94,13 @@ export const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
     inputDescription: '',
   },
   gee: {
-    label: 'Standardized Beta',
+    label: 'Per-SD Beta',
     symbol: 'β',
     min: 0.0,
     max: 1.0,
     default: 0.2,
     step: 0.01,
     inputLabel: 'Target Beta (β)',
-    inputDescription: '',
+    inputDescription: 'Change in outcome per 1 SD increase in protein (outcome in its own units; set Residual SD to match).',
   },
 };
