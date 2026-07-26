@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   LineChart,
   Line,
@@ -9,7 +9,6 @@ import {
   Legend,
   ReferenceLine,
   ResponsiveContainer,
-  Brush,
 } from 'recharts';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
@@ -120,6 +119,28 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
   // Get x-axis domain based on data
   const xMin = data.length > 0 ? data[0].effect : 1;
   const xMax = data.length > 0 ? data[data.length - 1].effect : 3;
+  const rangeStep = data.length > 1
+    ? Number(Math.max(Number.EPSILON, data[1].effect - data[0].effect).toFixed(6))
+    : (isBetaEffect ? 0.01 : 0.02);
+  const [range, setRange] = useState({
+    min: xMin,
+    max: xMax,
+    domainMin: xMin,
+    domainMax: xMax,
+  });
+  const rangeMatchesDomain = range.domainMin === xMin && range.domainMax === xMax;
+  const currentRangeMin = rangeMatchesDomain
+    ? Math.max(xMin, Math.min(range.min, xMax))
+    : xMin;
+  const currentRangeMax = rangeMatchesDomain
+    ? Math.min(xMax, Math.max(range.max, xMin))
+    : xMax;
+  const visibleData = useMemo(
+    () => data.filter(point => point.effect >= currentRangeMin && point.effect <= currentRangeMax),
+    [data, currentRangeMin, currentRangeMax]
+  );
+  const rangePrecision = isBetaEffect ? 3 : 2;
+  const rangeSummary = `${effectLabel} range ${currentRangeMin.toFixed(rangePrecision)} to ${currentRangeMax.toFixed(rangePrecision)}`;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -139,19 +160,19 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
 
       <div
         role="img"
-        aria-label={`Line chart: statistical power versus ${effectLabel} (${effectSymbol}) for ${scenarios.length} protein-count scenario${scenarios.length !== 1 ? 's' : ''}, with the ${(targetPower * 100).toFixed(0)}% power target and the input ${effectSymbol}=${inputEffect.toFixed(decimals)} marked.`}
+        aria-label={`Line chart: statistical power versus ${effectLabel} (${effectSymbol}) for ${scenarios.length} protein-count scenario${scenarios.length !== 1 ? 's' : ''}, showing ${rangeSummary}, with the ${(targetPower * 100).toFixed(0)}% power target and the input ${effectSymbol}=${inputEffect.toFixed(decimals)} marked.`}
       >
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={360}>
         <LineChart
-          data={data}
-          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+          data={visibleData}
+          margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
 
           <XAxis
             dataKey="effect"
             type="number"
-            domain={[xMin, xMax]}
+            domain={[currentRangeMin, currentRangeMax]}
             tickCount={11}
             tickFormatter={(value) => value.toFixed(isBetaEffect ? 2 : 1)}
             label={{
@@ -236,17 +257,83 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
             />
           ))}
 
-          {/* Brush for zoom/pan functionality */}
-          <Brush
-            dataKey="effect"
-            height={30}
-            stroke="#6366f1"
-            fill="#eef2ff"
-            tickFormatter={(value) => value.toFixed(1)}
-          />
         </LineChart>
       </ResponsiveContainer>
       </div>
+
+      <fieldset className="chart-range-controls">
+        <legend>Visible chart range</legend>
+        <div className="chart-range-control">
+          <label htmlFor="chart-range-minimum">
+            Minimum {effectSymbol}
+            <output htmlFor="chart-range-minimum">{currentRangeMin.toFixed(rangePrecision)}</output>
+          </label>
+          <input
+            id="chart-range-minimum"
+            className="chart-range-slider"
+            type="range"
+            min={xMin}
+            max={xMax}
+            step={rangeStep}
+            value={currentRangeMin}
+            aria-valuemin={xMin}
+            aria-valuemax={xMax}
+            aria-valuenow={currentRangeMin}
+            aria-valuetext={`${effectLabel} minimum ${currentRangeMin.toFixed(rangePrecision)}`}
+            disabled={xMin === xMax}
+            onChange={(event) => {
+              const requested = Number(event.target.value);
+              setRange({
+                min: Number(Math.min(requested, currentRangeMax - rangeStep).toFixed(6)),
+                max: currentRangeMax,
+                domainMin: xMin,
+                domainMax: xMax,
+              });
+            }}
+          />
+        </div>
+        <div className="chart-range-control">
+          <label htmlFor="chart-range-maximum">
+            Maximum {effectSymbol}
+            <output htmlFor="chart-range-maximum">{currentRangeMax.toFixed(rangePrecision)}</output>
+          </label>
+          <input
+            id="chart-range-maximum"
+            className="chart-range-slider"
+            type="range"
+            min={xMin}
+            max={xMax}
+            step={rangeStep}
+            value={currentRangeMax}
+            aria-valuemin={xMin}
+            aria-valuemax={xMax}
+            aria-valuenow={currentRangeMax}
+            aria-valuetext={`${effectLabel} maximum ${currentRangeMax.toFixed(rangePrecision)}`}
+            disabled={xMin === xMax}
+            onChange={(event) => {
+              const requested = Number(event.target.value);
+              setRange({
+                min: currentRangeMin,
+                max: Number(Math.max(requested, currentRangeMin + rangeStep).toFixed(6)),
+                domainMin: xMin,
+                domainMax: xMax,
+              });
+            }}
+          />
+        </div>
+        <div className="chart-range-footer">
+          <p role="status" aria-live="polite" aria-atomic="true">{rangeSummary}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setRange({ min: xMin, max: xMax, domainMin: xMin, domainMax: xMax });
+            }}
+            disabled={currentRangeMin === xMin && currentRangeMax === xMax}
+          >
+            Reset full range
+          </button>
+        </div>
+      </fieldset>
 
       <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
         <div className="flex items-center gap-2">
@@ -258,7 +345,7 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
           <span>Input {effectSymbol} = {inputEffect.toFixed(decimals)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-gray-400">Drag the brush below to zoom</span>
+          <span className="text-gray-400">Use the labelled range controls to zoom the chart.</span>
         </div>
       </div>
     </div>

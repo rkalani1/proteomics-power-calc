@@ -84,11 +84,10 @@ const mockProps = {
   setComparisonMode: () => {},
   setProteinCount: () => {},
   setNewProteinCount: () => {},
-  addProteinCount: () => {},
+  addProteinScenario: () => true,
   removeProteinCount: () => {},
   calculateEffectiveAlpha: (alpha, m, method) => 0.05 / 5000,
   SCENARIO_COLORS,
-  setProteinCounts: () => {}
 };
 
 try {
