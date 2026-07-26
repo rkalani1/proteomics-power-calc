@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: "Aptos", "Segoe UI Variable", system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light;
@@ -9,12 +9,24 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --assay-ink: #142f3a;
+  --assay-ink-soft: #49616a;
+  --assay-teal: #17656f;
+  --assay-teal-bright: #2f8f91;
+  --assay-teal-wash: #eaf4f2;
+  --assay-coral: #a64d43;
+  --assay-gold: #9a6b1c;
+  --assay-line: #d4dfdf;
+  --assay-paper: #fbfcfa;
+  --assay-canvas: #edf2ef;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  color: var(--assay-ink);
+  background: var(--assay-canvas);
 }
 
 /* Custom scrollbar */
@@ -62,9 +74,9 @@ input[type="range"]::-webkit-slider-thumb {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--assay-teal-bright) 0%, var(--assay-teal) 100%);
   border: 3px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4), 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 6px rgba(23, 101, 111, 0.35), 0 1px 3px rgba(0,0,0,0.2);
   cursor: grab;
   margin-top: -8px;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -74,7 +86,7 @@ input[type="range"]::-webkit-slider-thumb {
 .slider-thumb::-webkit-slider-thumb:hover,
 input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.5), 0 2px 4px rgba(0,0,0,0.25);
+  box-shadow: 0 3px 10px rgba(23, 101, 111, 0.42), 0 2px 4px rgba(0,0,0,0.25);
 }
 
 .range-slider::-webkit-slider-thumb:active,
@@ -99,9 +111,9 @@ input[type="range"]::-moz-range-thumb {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--assay-teal-bright) 0%, var(--assay-teal) 100%);
   border: 3px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4), 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 6px rgba(23, 101, 111, 0.35), 0 1px 3px rgba(0,0,0,0.2);
   cursor: grab;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
@@ -110,7 +122,7 @@ input[type="range"]::-moz-range-thumb {
 .slider-thumb::-moz-range-thumb:hover,
 input[type="range"]::-moz-range-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.5), 0 2px 4px rgba(0,0,0,0.25);
+  box-shadow: 0 3px 10px rgba(23, 101, 111, 0.42), 0 2px 4px rgba(0,0,0,0.25);
 }
 
 .range-slider::-moz-range-thumb:active,
@@ -151,12 +163,12 @@ input[type="number"] {
 
 /* Recharts brush styling */
 .recharts-brush-slide {
-  fill: #6366f1;
+  fill: var(--assay-teal);
   fill-opacity: 0.1;
 }
 
 .recharts-brush-traveller rect {
-  fill: #6366f1;
+  fill: var(--assay-teal);
 }
 
 /* Mobile responsiveness improvements */
@@ -205,7 +217,7 @@ button, .range-slider {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 3px solid rgba(23, 101, 111, 0.55);
   outline-offset: 2px;
 }
 
@@ -215,15 +227,20 @@ select:focus-visible {
 
 /* Smooth transitions for all interactive elements */
 button, a, input, select, .card {
-  transition: all 0.2s ease-in-out;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
 
 /* Card hover effects */
 section, .bg-white {
-  transition: box-shadow 0.3s ease, transform 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-section:hover, .card:hover {
+.card:hover {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08),
               0 8px 10px -6px rgba(0, 0, 0, 0.04);
 }
@@ -274,7 +291,7 @@ button:not(:disabled):active {
 
 /* Enhanced input focus states */
 input:focus, select:focus {
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(23, 101, 111, 0.14);
 }
 
 /* Smooth checkbox/toggle transitions */
@@ -310,7 +327,7 @@ table tbody tr {
 }
 
 table tbody tr:hover {
-  background-color: rgba(99, 102, 241, 0.04) !important;
+  background-color: rgba(23, 101, 111, 0.045) !important;
 }
 
 /* Chart container subtle border */
@@ -380,5 +397,199 @@ table tbody tr:hover {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Scientific planning workspace */
+.assay-shell {
+  color: var(--assay-ink);
+  background:
+    linear-gradient(rgba(20, 47, 58, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 47, 58, 0.03) 1px, transparent 1px),
+    var(--assay-canvas);
+  background-size: 32px 32px;
+}
+
+.assay-header {
+  box-shadow: 0 18px 42px -38px rgba(20, 47, 58, 0.8);
+}
+
+.assay-header-rule {
+  background: var(--assay-teal);
+}
+
+.assay-mark {
+  color: #ffffff;
+  background: var(--assay-ink);
+  box-shadow: 0 0 0 4px var(--assay-teal-wash);
+}
+
+.assay-header h1 {
+  font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  color: var(--assay-ink);
+}
+
+.assay-chip {
+  border-color: var(--assay-line);
+  box-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.assay-chip--analysis {
+  color: var(--assay-teal);
+  background: var(--assay-teal-wash);
+}
+
+.assay-chip--design {
+  color: #36566a;
+  background: #edf3f6;
+}
+
+.assay-chip--scope {
+  color: var(--assay-gold);
+  background: #fbf5e8;
+}
+
+.assay-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+.assay-inputs,
+.assay-results {
+  display: grid;
+  min-width: 0;
+  gap: 2rem;
+}
+
+.assay-inputs > *,
+.assay-results > * {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.assay-workspace section {
+  border-color: var(--assay-line);
+  border-radius: 10px;
+  box-shadow: 0 18px 40px -36px rgba(20, 47, 58, 0.72);
+}
+
+.assay-workspace section:hover {
+  box-shadow: 0 18px 40px -36px rgba(20, 47, 58, 0.72);
+}
+
+.assay-framework,
+.assay-parameters {
+  border-top: 3px solid var(--assay-teal);
+}
+
+.assay-workspace h2 {
+  color: var(--assay-ink);
+  letter-spacing: -0.015em;
+}
+
+.assay-workspace h2 svg {
+  color: var(--assay-teal);
+}
+
+.data-guardrail {
+  margin-top: 2.5rem;
+  padding: 1.25rem 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--assay-ink-soft);
+  border-top: 1px solid var(--assay-line);
+  background: var(--assay-paper);
+}
+
+.data-guardrail p {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.data-guardrail p + p {
+  margin-top: 0.5rem;
+}
+
+.data-guardrail a {
+  color: var(--assay-teal) !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 3px;
+}
+
+@media (min-width: 1280px) {
+  .assay-workspace {
+    grid-template-columns: minmax(400px, 440px) minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .assay-inputs {
+    position: sticky;
+    top: 88px;
+    max-height: calc(100vh - 104px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.5rem;
+    scrollbar-width: thin;
+  }
+
+  .assay-inputs section {
+    padding: 1.25rem;
+  }
+
+  .assay-parameters > .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.15rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .assay-workspace {
+    padding-top: 1.25rem;
+    gap: 1.25rem;
+  }
+
+  .assay-inputs,
+  .assay-results {
+    gap: 1.25rem;
+  }
+
+  .assay-workspace section {
+    border-radius: 8px;
+  }
+
+  .assay-header .assay-chip {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+  }
+}
+
+@media print {
+  .assay-workspace {
+    display: block;
+    padding: 0 !important;
+  }
+
+  .assay-inputs,
+  .assay-results {
+    display: block;
+  }
+
+  .assay-inputs {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .assay-inputs > *,
+  .assay-results > * {
+    margin-bottom: 1rem;
+  }
+
+  .data-guardrail {
+    background: #ffffff;
   }
 }

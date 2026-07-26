@@ -302,7 +302,7 @@ function App() {
   // remount it on every state change, breaking drag interactions and focus.
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/20 to-purple-50/30">
+    <div className="assay-shell min-h-screen">
       <Header
         analysisType={analysisType}
         studyDesign={studyDesign}
@@ -313,8 +313,9 @@ function App() {
         STUDY_DESIGN_OPTIONS={STUDY_DESIGN_OPTIONS}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        <AnalysisFramework
+      <main className="assay-workspace max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="assay-inputs">
+          <AnalysisFramework
           analysisType={analysisType}
           studyDesign={studyDesign}
           comparisonMode={comparisonMode}
@@ -335,9 +336,9 @@ function App() {
           calculateEffectiveAlpha={calculateEffectiveAlpha}
           SCENARIO_COLORS={SCENARIO_COLORS}
           setProteinCounts={setProteinCounts}
-        />
+          />
 
-        <StudyParameters
+          <StudyParameters
           analysisType={analysisType}
           studyDesign={studyDesign}
           sampleSize={sampleSize}
@@ -374,9 +375,11 @@ function App() {
           setEffectSize={setEffectSize}
           effectConfig={effectConfig}
           effectDecimals={effectDecimals}
-        />
+          />
+        </div>
 
-        <MinEffectCards
+        <div className="assay-results">
+          <MinEffectCards
           analysisType={analysisType}
           effectConfig={effectConfig}
           effectDecimals={effectDecimals}
@@ -391,19 +394,19 @@ function App() {
           standardError={standardError}
           studyDesign={studyDesign}
           targetPower={targetPower}
-        />
+          />
 
-        <PowerAtInputCards
+          <PowerAtInputCards
           analysisType={analysisType}
           effectConfig={effectConfig}
           effectDecimals={effectDecimals}
           effectSize={effectSize}
           scenarioResults={scenarioResults}
           targetPower={targetPower}
-        />
+          />
 
         {/* Power Chart - multi-scenario comparison */}
-        <MultiScenarioPowerChart
+          <MultiScenarioPowerChart
           data={powerCurves}
           scenarios={scenarioResults}
           targetPower={targetPower}
@@ -411,22 +414,22 @@ function App() {
           effectLabel={effectConfig.label}
           effectSymbol={effectConfig.symbol}
           analysisType={analysisType}
-        />
+          />
 
         {/* Results Table - only adds value when comparing multiple scenarios;
             the single-scenario curve is already shown by the chart above. */}
         {scenarioResults.length >= 2 && (
-          <MultiScenarioResultsTable
+            <MultiScenarioResultsTable
             data={tableData}
             scenarios={scenarioResults}
             effectLabel={effectConfig.label}
             analysisType={analysisType}
             targetPower={targetPower}
-          />
+            />
         )}
 
         {/* Power by Number of Proteins - always show for comprehensive view */}
-        <PowerByProteinsChart
+          <PowerByProteinsChart
           events={events}
           fdrQ={fdrQ}
           targetPower={targetPower}
@@ -444,10 +447,10 @@ function App() {
           effectSymbol={effectConfig.symbol}
           correctionMethod={correctionMethod}
           calculatePower={calculatePowerForEffect}
-        />
+          />
 
         {/* Sensitivity Analysis */}
-        <SensitivityAnalysis
+          <SensitivityAnalysis
           analysisType={analysisType}
           targetPower={targetPower}
           fdrQ={fdrQ}
@@ -460,10 +463,10 @@ function App() {
           calculatePowerForEffect={calculatePowerForEffect}
           calculatePowerAtSampleSize={calculatePowerAtSampleSize}
           correctionMethod={correctionMethod}
-        />
+          />
 
         {/* Advanced Visualizations */}
-        <AdvancedVisualizations
+          <AdvancedVisualizations
           analysisType={analysisType}
           targetPower={targetPower}
           scenarios={scenarioResults.map(s => ({
@@ -480,10 +483,10 @@ function App() {
           calculateRequiredEvents={calculateRequiredEventsForViz}
           calculateRequiredSampleSize={calculateRequiredSampleSizeForViz}
           calculatePower={calculatePowerAtSampleSize}
-        />
+          />
 
         {/* Export Panel */}
-        <ExportPanel
+          <ExportPanel
           analysisType={analysisType}
           studyDesign={studyDesign}
           scenarios={scenarioResults}
@@ -506,13 +509,14 @@ function App() {
           icc={icc}
           covariateR2={covariateR2}
           tableData={tableData}
-        />
+          />
 
         {/* Power Formula Display */}
-        <PowerFormula analysisType={analysisType} studyDesign={studyDesign} />
+          <PowerFormula analysisType={analysisType} studyDesign={studyDesign} />
 
         {/* Methodology & References */}
-        <References analysisType={analysisType} studyDesign={studyDesign} />
+          <References analysisType={analysisType} studyDesign={studyDesign} />
+        </div>
       </main>
     </div>
   );
