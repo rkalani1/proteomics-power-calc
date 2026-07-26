@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { AnalysisType, StudyDesign } from '../utils/statistics';
 
 interface AnalysisFrameworkProps {
@@ -17,11 +17,10 @@ interface AnalysisFrameworkProps {
   setComparisonMode: (mode: boolean) => void;
   setProteinCount: (count: number) => void;
   setNewProteinCount: (count: string) => void;
-  addProteinCount: () => void;
+  addProteinScenario: (count: number) => boolean;
   removeProteinCount: (count: number) => void;
   calculateEffectiveAlpha: (alpha: number, m: number, method: 'fdr' | 'bonferroni') => number;
   SCENARIO_COLORS: { bg: string; text: string; light: string; border: string; hex: string }[];
-  setProteinCounts: (counts: number[]) => void;
 }
 
 export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
@@ -40,15 +39,77 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
   setComparisonMode,
   setProteinCount,
   setNewProteinCount,
-  addProteinCount,
+  addProteinScenario,
   removeProteinCount,
   calculateEffectiveAlpha,
   SCENARIO_COLORS,
-  setProteinCounts,
 }) => {
+  const [normalizationMessage, setNormalizationMessage] = useState('');
+  const [scenarioAnnouncement, setScenarioAnnouncement] = useState('');
+  const pendingScenarioFocus = useRef<number | null>(null);
+
+  useEffect(() => {
+    const count = pendingScenarioFocus.current;
+    if (count === null || !proteinCounts.includes(count)) return;
+
+    pendingScenarioFocus.current = null;
+    const focusTimer = window.setTimeout(() => {
+      const removeButton = document.querySelector<HTMLButtonElement>(`[data-remove-scenario="${count}"]`);
+      const summary = document.getElementById('scenario-comparison-summary');
+      if (removeButton) {
+        removeButton.focus();
+      } else {
+        summary?.focus();
+      }
+    }, 0);
+    return () => window.clearTimeout(focusTimer);
+  }, [proteinCounts]);
+
+  const handleProteinCountChange = (rawValue: string) => {
+    const parsed = Number.parseInt(rawValue, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      setProteinCount(1);
+      setNormalizationMessage('Protein count normalized to the minimum value of 1.');
+      return;
+    }
+    if (parsed > 100000) {
+      setProteinCount(100000);
+      setNormalizationMessage('Protein count normalized to the maximum value of 100,000.');
+      return;
+    }
+    setProteinCount(parsed);
+    setNormalizationMessage('');
+  };
+
+  const addManualScenario = () => {
+    const count = Number.parseInt(newProteinCount, 10);
+    if (addProteinScenario(count)) {
+      pendingScenarioFocus.current = count;
+      setScenarioAnnouncement(
+        `Scenario added. Now comparing ${proteinCounts.length + 1} scenarios.`
+      );
+      setNewProteinCount('');
+    }
+  };
+
+  const addQuickScenario = (count: number) => {
+    if (!addProteinScenario(count)) return;
+    pendingScenarioFocus.current = count;
+    setScenarioAnnouncement(
+      `Scenario added. Now comparing ${proteinCounts.length + 1} scenarios.`
+    );
+  };
+
+  const handleRemoveScenario = (count: number) => {
+    setScenarioAnnouncement(
+      `Scenario removed. Now comparing ${proteinCounts.length - 1} scenarios.`
+    );
+    removeProteinCount(count);
+  };
+
   return (
     <section className="assay-framework bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+      <h2 id="setup-heading" tabIndex={-1} className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
         <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
         </svg>
@@ -57,16 +118,18 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Analysis Type */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Analysis Type</label>
-          <div className="grid grid-cols-2 gap-2">
+        <fieldset className="analysis-method-selector">
+          <legend className="block text-sm font-medium text-gray-700 mb-2">Analysis Type</legend>
+          <div className="analysis-method-grid" role="group" aria-label="Analysis type">
             {ANALYSIS_TYPE_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 aria-pressed={analysisType === option.value}
+                aria-label={`${option.label}: ${option.description}`}
+                title={option.label}
                 onClick={() => handleAnalysisTypeChange(option.value)}
-                className={`p-3 rounded-lg border-2 text-left transition-all ${
+                className={`analysis-method-option p-3 rounded-lg border-2 text-left transition-all ${
                   analysisType === option.value
                     ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
                     : 'border-gray-200 hover:border-indigo-200 hover:bg-gray-50'
@@ -77,7 +140,7 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
               </button>
             ))}
           </div>
-        </div>
+        </fieldset>
 
         {/* Study Design */}
         <div>
@@ -135,13 +198,26 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 min={1}
                 max={100000}
                 value={proteinCount}
-                onChange={(e) => setProteinCount(Math.min(100000, Math.max(1, parseInt(e.target.value) || 1)))}
+                aria-describedby="protein-count-constraints protein-count-normalization"
+                onChange={(e) => handleProteinCountChange(e.target.value)}
                 className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
               <span className="text-sm text-gray-500">
                 Effective α ≈ {calculateEffectiveAlpha(fdrQ, proteinCount, correctionMethod).toExponential(2)}
               </span>
             </div>
+            <p id="protein-count-constraints" className="protein-count-helper">
+              Allowed range: 1 to 100,000 proteins.
+            </p>
+            <p
+              id="protein-count-normalization"
+              className="protein-count-normalization"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {normalizationMessage}
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="text-xs text-gray-500 mr-2">Presets:</span>
               {[1, 100, 1000, 3000, 5000, 7000].map(n => (
@@ -167,7 +243,12 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
             </p>
 
             {/* Current protein counts */}
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div
+              id="scenario-comparison-summary"
+              className="flex flex-wrap gap-2 mb-4"
+              tabIndex={-1}
+              aria-label={`Comparing ${proteinCounts.length} scenarios`}
+            >
               {proteinCounts.map((count, index) => {
                 const color = SCENARIO_COLORS[index % SCENARIO_COLORS.length];
                 return (
@@ -184,9 +265,11 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                     </span>
                     {proteinCounts.length > 1 && (
                       <button
-                        onClick={() => removeProteinCount(count)}
+                        onClick={() => handleRemoveScenario(count)}
+                        data-remove-scenario={count}
+                        aria-label={`Remove ${count.toLocaleString()} protein scenario`}
                         className="ml-1 text-gray-400 hover:text-red-500 transition-colors"
-                        title="Remove"
+                        title={`Remove ${count.toLocaleString()} protein scenario`}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -206,13 +289,13 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 max={100000}
                 value={newProteinCount}
                 onChange={(e) => setNewProteinCount(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addProteinCount()}
+                onKeyDown={(e) => e.key === 'Enter' && addManualScenario()}
                 placeholder="Enter protein count..."
                 aria-label="Add a protein-count scenario"
                 className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
               <button
-                onClick={addProteinCount}
+                onClick={addManualScenario}
                 disabled={!newProteinCount || proteinCounts.length >= 6}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
@@ -229,11 +312,7 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
               {[1, 50, 100, 500, 1000, 3000, 5000, 7000].filter(n => !proteinCounts.includes(n)).slice(0, 5).map(n => (
                 <button
                   key={n}
-                  onClick={() => {
-                    if (proteinCounts.length < 6) {
-                      setProteinCounts([...proteinCounts, n].sort((a, b) => a - b));
-                    }
-                  }}
+                  onClick={() => addQuickScenario(n)}
                   disabled={proteinCounts.length >= 6}
                   className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-indigo-100 hover:text-indigo-700 disabled:opacity-50 transition-colors"
                 >
@@ -241,6 +320,9 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 </button>
               ))}
             </div>
+            <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+              {scenarioAnnouncement}
+            </p>
           </div>
         )}
       </div>

@@ -44,38 +44,55 @@ export function PowerAtInputCards({
       </h2>
 
       <div className={`grid grid-cols-1 ${scenarioResults.length > 1 ? 'md:grid-cols-2' : ''} ${scenarioResults.length > 2 ? 'lg:grid-cols-3' : ''} gap-4`}>
-        {scenarioResults.map((scenario) => (
+        {scenarioResults.map((scenario) => {
+          const targetAttained = scenario.powerAtInput >= targetPower;
+          const statusTone = targetAttained
+            ? 'adequate'
+            : scenario.powerAtInput >= 0.5
+              ? 'warning'
+              : 'danger';
+          const targetDelta = Math.abs(targetPower - scenario.powerAtInput) * 100;
+          const statusLabel = targetAttained
+            ? `Target attained · ${targetDelta.toFixed(1)} percentage points above target`
+            : statusTone === 'warning'
+              ? `Below target · ${targetDelta.toFixed(1)} percentage points needed`
+              : `Underpowered · ${targetDelta.toFixed(1)} percentage points needed`;
+          const statusIcon = targetAttained ? '✓' : statusTone === 'warning' ? '⚠' : '✕';
+
+          return (
           <div
             key={scenario.proteinCount}
-            className={`rounded-lg p-4 border ${scenario.color.border} ${scenario.color.light}`}
+            className="power-result-card rounded-lg p-4 border"
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className={`w-3 h-3 rounded-full ${scenario.color.bg}`}></span>
-                <span className={`text-sm font-medium ${scenario.color.text}`}>
+                <span className="text-sm font-medium text-gray-700">
                   {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
                 </span>
               </div>
               <span className="text-xs text-gray-500">Effective α ≈ {scenario.alpha.toExponential(1)}</span>
             </div>
-            <div className={`text-3xl font-bold ${scenario.color.text}`}>
+            <div className={`power-result-value power-result-value--${statusTone} text-3xl font-bold`}>
               {(scenario.powerAtInput * 100).toFixed(1)}%
             </div>
             <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className={`h-full ${scenario.color.bg} rounded-full transition-all duration-300`}
+                className={`power-progress power-progress--${statusTone} h-full rounded-full transition-all duration-300`}
                 style={{ width: `${Math.min(scenario.powerAtInput * 100, 100)}%` }}
               />
             </div>
-            <p className={`text-xs ${scenario.color.text} mt-2`}>
-              {scenario.powerAtInput >= targetPower
-                ? `✓ Meets ${(targetPower * 100).toFixed(0)}% target`
-                : scenario.powerAtInput >= 0.5
-                ? `⚠ Below ${(targetPower * 100).toFixed(0)}% target`
-                : '✗ Underpowered'}
+            <p
+              className={`power-status-band power-status-band--${statusTone}`}
+              role="status"
+              aria-label={statusLabel}
+            >
+              <span aria-hidden="true">{statusIcon}</span>
+              <span>{statusLabel}</span>
             </p>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-6 bg-gray-50 rounded-lg p-4">

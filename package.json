@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "node test-analysis-framework.cjs && node test-studyparameters.cjs && node test-source-real.cjs && node test-calculations.cjs && node test-comprehensive-validation.cjs && node test-comprehensive-validation-v2.cjs && node test-source-vs-validation.cjs && node test-equations.cjs && node test-smoke-render.cjs && node test-required-stage2-size.cjs && node test-two-stage-power.cjs && node test-find-optimal-stage1-fdr.cjs && node test-export-functionality.cjs && node test-export-error.cjs && node test-export-panel.cjs && node test-exportpanel-error.cjs && node test-export-copy-error.cjs && node test-formulas-definitions.cjs && node test-multi-scenario-power-chart.cjs && node test-mathequation-error.cjs && node test-sensitivity.cjs && node test-security.cjs",
+    "test": "node test-analysis-framework.cjs && node test-studyparameters.cjs && node test-source-real.cjs && node test-calculations.cjs && node test-comprehensive-validation.cjs && node test-comprehensive-validation-v2.cjs && node test-source-vs-validation.cjs && node test-equations.cjs && node test-smoke-render.cjs && node test-required-stage2-size.cjs && node test-two-stage-power.cjs && node test-find-optimal-stage1-fdr.cjs && node test-export-functionality.cjs && node test-export-error.cjs && node test-export-panel.cjs && node test-exportpanel-error.cjs && node test-export-copy-error.cjs && node test-formulas-definitions.cjs && node test-multi-scenario-power-chart.cjs && node test-mathequation-error.cjs && node test-sensitivity.cjs && node test-security.cjs && node test-post-launch-design.cjs",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"

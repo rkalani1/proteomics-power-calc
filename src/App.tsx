@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PowerFormula } from './components/MathEquation';
 import MultiScenarioPowerChart from './components/MultiScenarioPowerChart';
 import MultiScenarioResultsTable from './components/MultiScenarioResultsTable';
@@ -33,6 +33,14 @@ import {
 import { usePowerCalculations } from './hooks/usePowerCalculations';
 import { ANALYSIS_TYPE_OPTIONS, EFFECT_SIZE_CONFIG, SCENARIO_COLORS, STUDY_DESIGN_OPTIONS } from './constants/config';
 
+const WORKFLOW_SECTIONS = [
+  { id: 'setup', label: 'Setup' },
+  { id: 'parameters', label: 'Parameters' },
+  { id: 'results', label: 'Results' },
+  { id: 'sensitivity', label: 'Sensitivity' },
+  { id: 'export', label: 'Export' },
+  { id: 'methods', label: 'Methods' },
+] as const;
 
 /**
  * Proteomics Power Calculator
@@ -48,6 +56,9 @@ import { ANALYSIS_TYPE_OPTIONS, EFFECT_SIZE_CONFIG, SCENARIO_COLORS, STUDY_DESIG
  * using Benjamini-Hochberg FDR correction.
  */
 function App() {
+  const [currentSection, setCurrentSection] = useState<(typeof WORKFLOW_SECTIONS)[number]['id']>('setup');
+  const activatedSectionRef = useRef<(typeof WORKFLOW_SECTIONS)[number]['id'] | null>(null);
+  const activatedSectionReleaseRef = useRef<number | null>(null);
   // Model selection
   const [analysisType, setAnalysisType] = useState<AnalysisType>('cox');
   const [studyDesign, setStudyDesign] = useState<StudyDesign>('cohort');
@@ -102,13 +113,19 @@ function App() {
   // Effect size (dynamic based on analysis type)
   const [effectSize, setEffectSize] = useState(1.2);
 
-  // Add a new protein count scenario
-  const addProteinCount = () => {
-    const count = parseInt(newProteinCount);
-    if (!isNaN(count) && count >= 1 && count <= 100000 && !proteinCounts.includes(count)) {
-      setProteinCounts([...proteinCounts, count].sort((a, b) => a - b));
-      setNewProteinCount('');
+  // Keep every scenario insertion path on the same validity and ordering policy.
+  const addProteinScenario = (count: number): boolean => {
+    if (
+      !Number.isInteger(count)
+      || count < 1
+      || count > 100000
+      || proteinCounts.length >= 6
+      || proteinCounts.includes(count)
+    ) {
+      return false;
     }
+    setProteinCounts([...proteinCounts, count].sort((a, b) => a - b));
+    return true;
   };
 
   // Remove a protein count scenario
@@ -218,6 +235,65 @@ function App() {
     });
   }, [effectiveProteinCounts, fdrQ, correctionMethod, effectSize, calculateMinEffectForAlpha, calculatePowerForEffect, calculateRequiredSampleForAlpha]);
 
+  const currentScenario = scenarioResults.find(result => result.proteinCount === proteinCount) ?? scenarioResults[0];
+
+  useEffect(() => {
+    const updateCurrentSection = () => {
+      if (activatedSectionRef.current) {
+        setCurrentSection(activatedSectionRef.current);
+        return;
+      }
+
+      if (window.scrollY < 80) {
+        setCurrentSection('setup');
+        return;
+      }
+      let activeSection: (typeof WORKFLOW_SECTIONS)[number]['id'] = 'setup';
+      const activationLine = Math.min(220, window.innerHeight * 0.35);
+      WORKFLOW_SECTIONS.forEach(section => {
+        const element = document.getElementById(`${section.id}-section`);
+        if (element && element.getBoundingClientRect().top <= activationLine) {
+          activeSection = section.id;
+        }
+      });
+      setCurrentSection(activeSection);
+    };
+
+    updateCurrentSection();
+    window.addEventListener('scroll', updateCurrentSection, { passive: true });
+    window.addEventListener('resize', updateCurrentSection);
+    return () => {
+      window.removeEventListener('scroll', updateCurrentSection);
+      window.removeEventListener('resize', updateCurrentSection);
+      if (activatedSectionReleaseRef.current !== null) {
+        window.clearTimeout(activatedSectionReleaseRef.current);
+      }
+    };
+  }, []);
+
+  const activateSection = (sectionId: (typeof WORKFLOW_SECTIONS)[number]['id']) => {
+    const section = document.getElementById(`${sectionId}-section`);
+    if (!section) return;
+    activatedSectionRef.current = sectionId;
+    if (activatedSectionReleaseRef.current !== null) {
+      window.clearTimeout(activatedSectionReleaseRef.current);
+    }
+    activatedSectionReleaseRef.current = window.setTimeout(() => {
+      activatedSectionRef.current = null;
+      activatedSectionReleaseRef.current = null;
+    }, 900);
+    setCurrentSection(sectionId);
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => {
+      setCurrentSection(sectionId);
+      const heading = section.querySelector<HTMLElement>('h2, h1');
+      if (heading) {
+        heading.tabIndex = -1;
+        heading.focus({ preventScroll: true });
+      }
+    }, 250);
+  };
+
   // Generate power curves and table data for all scenarios together to avoid redundant computation
   const { powerCurves, tableData } = useMemo(() => {
     const config = EFFECT_SIZE_CONFIG[analysisType];
@@ -313,8 +389,24 @@ function App() {
         STUDY_DESIGN_OPTIONS={STUDY_DESIGN_OPTIONS}
       />
 
+      <nav className="section-rail" aria-label="Calculator sections">
+        <div className="section-rail-inner">
+          {WORKFLOW_SECTIONS.map(section => (
+            <button
+              key={section.id}
+              type="button"
+              aria-current={currentSection === section.id ? 'location' : undefined}
+              onClick={() => activateSection(section.id)}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+
       <main className="assay-workspace max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="assay-inputs">
+          <div id="setup-section" className="workflow-section">
           <AnalysisFramework
           analysisType={analysisType}
           studyDesign={studyDesign}
@@ -331,13 +423,14 @@ function App() {
           setComparisonMode={setComparisonMode}
           setProteinCount={setProteinCount}
           setNewProteinCount={setNewProteinCount}
-          addProteinCount={addProteinCount}
+          addProteinScenario={addProteinScenario}
           removeProteinCount={removeProteinCount}
           calculateEffectiveAlpha={calculateEffectiveAlpha}
           SCENARIO_COLORS={SCENARIO_COLORS}
-          setProteinCounts={setProteinCounts}
           />
+          </div>
 
+          <div id="parameters-section" className="workflow-section">
           <StudyParameters
           analysisType={analysisType}
           studyDesign={studyDesign}
@@ -376,9 +469,31 @@ function App() {
           effectConfig={effectConfig}
           effectDecimals={effectDecimals}
           />
+          </div>
         </div>
 
         <div className="assay-results">
+          {currentScenario && (
+            <aside className="desktop-result-summary" aria-label="Current result summary">
+              <div>
+                <span className="desktop-result-summary__eyebrow">Current scenario</span>
+                <strong>{currentScenario.proteinCount.toLocaleString()} proteins</strong>
+              </div>
+              <div>
+                <span>{effectConfig.symbol} {effectSize.toFixed(effectDecimals)}</span>
+                <strong className={currentScenario.powerAtInput >= targetPower ? 'is-adequate' : 'is-underpowered'}>
+                  {(currentScenario.powerAtInput * 100).toFixed(1)}% power
+                </strong>
+              </div>
+              <span className={currentScenario.powerAtInput >= targetPower ? 'summary-status is-adequate' : 'summary-status is-underpowered'}>
+                {currentScenario.powerAtInput >= targetPower
+                  ? `Target ${(targetPower * 100).toFixed(0)}% attained`
+                  : `${((targetPower - currentScenario.powerAtInput) * 100).toFixed(1)} points to target`}
+              </span>
+            </aside>
+          )}
+
+          <div id="results-section" className="workflow-section">
           <MinEffectCards
           analysisType={analysisType}
           effectConfig={effectConfig}
@@ -448,8 +563,10 @@ function App() {
           correctionMethod={correctionMethod}
           calculatePower={calculatePowerForEffect}
           />
+          </div>
 
         {/* Sensitivity Analysis */}
+          <div id="sensitivity-section" className="workflow-section">
           <SensitivityAnalysis
           analysisType={analysisType}
           targetPower={targetPower}
@@ -484,8 +601,10 @@ function App() {
           calculateRequiredSampleSize={calculateRequiredSampleSizeForViz}
           calculatePower={calculatePowerAtSampleSize}
           />
+          </div>
 
         {/* Export Panel */}
+          <div id="export-section" className="workflow-section">
           <ExportPanel
           analysisType={analysisType}
           studyDesign={studyDesign}
@@ -510,12 +629,15 @@ function App() {
           covariateR2={covariateR2}
           tableData={tableData}
           />
+          </div>
 
         {/* Power Formula Display */}
+          <div id="methods-section" className="workflow-section">
           <PowerFormula analysisType={analysisType} studyDesign={studyDesign} />
 
         {/* Methodology & References */}
           <References analysisType={analysisType} studyDesign={studyDesign} />
+          </div>
         </div>
       </main>
     </div>

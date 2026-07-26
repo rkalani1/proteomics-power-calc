@@ -35,7 +35,7 @@ export const STUDY_DESIGN_OPTIONS: Record<AnalysisType, { value: StudyDesign; la
 };
 
 export const SCENARIO_COLORS = [
-  { bg: 'bg-emerald-500', text: 'text-emerald-700', light: 'bg-emerald-50', border: 'border-emerald-200', hex: '#10b981' },
+  { bg: 'bg-cyan-600', text: 'text-cyan-800', light: 'bg-cyan-50', border: 'border-cyan-200', hex: '#0891b2' },
   { bg: 'bg-blue-500', text: 'text-blue-700', light: 'bg-blue-50', border: 'border-blue-200', hex: '#3b82f6' },
   { bg: 'bg-purple-500', text: 'text-purple-700', light: 'bg-purple-50', border: 'border-purple-200', hex: '#8b5cf6' },
   { bg: 'bg-orange-500', text: 'text-orange-700', light: 'bg-orange-50', border: 'border-orange-200', hex: '#f97316' },
