@@ -1,4 +1,4 @@
-import { calculateDesignEffect, calculateInflation, type AnalysisType } from '../utils/statistics';
+import { calculateDesignEffect, calculateInflation, type AnalysisType, type StudyDesign } from '../utils/statistics';
 
 type EffectConfig = {
   label: string;
@@ -28,9 +28,12 @@ interface MinEffectCardsProps {
   numControls: number;
   prevalence: number;
   sampleSize: number;
+  subcohortSize: number;
+  totalCohort: number;
+  matchingRatio: number;
   scenarioResults: ScenarioResult[];
   standardError: number;
-  studyDesign: string;
+  studyDesign: StudyDesign;
   targetPower: number;
 }
 
@@ -45,11 +48,15 @@ export function MinEffectCards({
   numControls,
   prevalence,
   sampleSize,
+  subcohortSize,
+  totalCohort,
+  matchingRatio,
   scenarioResults,
   standardError,
   studyDesign,
   targetPower,
 }: MinEffectCardsProps) {
+  const isBetaModel = analysisType === 'linear' || analysisType === 'gee';
   return (
     <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
       <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -72,16 +79,21 @@ export function MinEffectCards({
               </span>
             </div>
             <div className={`text-2xl font-bold ${scenario.color.text}`}>
-              {effectConfig.symbol} ≥ {scenario.minEffect.toFixed(effectDecimals)}
+              {isBetaModel ? `|${effectConfig.symbol}|` : effectConfig.symbol} ≥ {scenario.minEffect.toFixed(effectDecimals)}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Effective α ≈ {scenario.alpha.toExponential(1)}
+              Effective α ≈ {scenario.alpha.toExponential(2)}
             </p>
           </div>
         ))}
       </div>
 
-      {(analysisType === 'cox' || analysisType === 'logistic' || analysisType === 'poisson') && (
+      {isBetaModel ? (
+        <p className="mt-3 text-xs text-gray-500">
+          Detectability is symmetric about zero: a {effectConfig.symbol} of −x is exactly as detectable
+          as +x, so the threshold applies to the magnitude |{effectConfig.symbol}|.
+        </p>
+      ) : (
         <p className="mt-3 text-xs text-gray-500">
           Detectability is symmetric on the log scale: a minimum detectable {effectConfig.symbol} of x is
           equivalent to a protective {effectConfig.symbol} of 1/x (e.g. {effectConfig.symbol} 1.25 ↔ 0.80).
@@ -95,7 +107,13 @@ export function MinEffectCards({
             {(() => {
               const first = scenarioResults[0];
               const last = scenarioResults[scenarioResults.length - 1];
-              const inflation = calculateInflation(first.minEffect, last.minEffect);
+              // calculateInflation is a ratio-scale (HR/OR/RR) helper whose
+              // guards treat 1 as the null; for additive β (null = 0) the
+              // relative increase is computed directly so a minimum detectable
+              // β near 1.0 is not misreported as zero inflation.
+              const inflation = isBetaModel
+                ? (first.minEffect > 0 ? ((last.minEffect / first.minEffect) - 1) * 100 : 0)
+                : calculateInflation(first.minEffect, last.minEffect);
               return (
                 <span className="text-amber-600 font-semibold">
                   {isFinite(inflation) ? `~${inflation.toFixed(1)}%` : 'N/A'}
@@ -119,11 +137,15 @@ export function MinEffectCards({
           </span>
           <span className="text-gray-500">
             {analysisType === 'cox'
-              ? `(${events} events)`
+              ? studyDesign === 'case-cohort'
+                ? `(${events} events, subcohort ${subcohortSize}/${totalCohort})`
+                : studyDesign === 'nested-case-control'
+                ? `(${events} events, ${matchingRatio}:1 matching)`
+                : `(${events} events)`
               : analysisType === 'linear'
               ? `(n = ${sampleSize})`
               : analysisType === 'gee'
-              ? `(n = ${sampleSize}, m = ${clusterSize}, ICC = ${icc.toFixed(2)}, DE = ${calculateDesignEffect(clusterSize, icc).toFixed(2)})`
+              ? `(n = ${sampleSize} obs, m = ${clusterSize}, ICC = ${icc.toFixed(2)}, DE = ${calculateDesignEffect(clusterSize, icc).toFixed(2)})`
               : (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
               ? `(${numCases} cases, ${numControls} controls)`
               : `(n = ${sampleSize}, prev = ${(prevalence * 100).toFixed(0)}%)`}

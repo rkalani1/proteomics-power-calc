@@ -71,7 +71,7 @@ export function PowerAtInputCards({
                   {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
                 </span>
               </div>
-              <span className="text-xs text-gray-500">Effective α ≈ {scenario.alpha.toExponential(1)}</span>
+              <span className="text-xs text-gray-500">Effective α ≈ {scenario.alpha.toExponential(2)}</span>
             </div>
             <div className={`power-result-value power-result-value--${statusTone} text-3xl font-bold`}>
               {(scenario.powerAtInput * 100).toFixed(1)}%
@@ -82,11 +82,10 @@ export function PowerAtInputCards({
                 style={{ width: `${Math.min(scenario.powerAtInput * 100, 100)}%` }}
               />
             </div>
-            <p
-              className={`power-status-band power-status-band--${statusTone}`}
-              role="status"
-              aria-label={statusLabel}
-            >
+            {/* Plain visible text (no role="status"): with several scenario
+                cards, live-region announcements on every slider tick would
+                flood assistive tech with duplicate messages. */}
+            <p className={`power-status-band power-status-band--${statusTone}`}>
               <span aria-hidden="true">{statusIcon}</span>
               <span>{statusLabel}</span>
             </p>
@@ -97,9 +96,9 @@ export function PowerAtInputCards({
 
       <div className="mt-6 bg-gray-50 rounded-lg p-4">
         <h3 className="text-sm font-medium text-gray-700 mb-3">
-          {analysisType === 'cox' ? 'Events' : 'Sample Size'} Required for {(targetPower * 100).toFixed(0)}% Power at {effectConfig.symbol} = {effectSize.toFixed(effectDecimals)}
+          {analysisType === 'cox' ? 'Events' : analysisType === 'gee' ? 'Observations' : 'Sample Size'} Required for {(targetPower * 100).toFixed(0)}% Power at {effectConfig.symbol} = {effectSize.toFixed(effectDecimals)}
         </h3>
-        <div className={`grid grid-cols-2 ${scenarioResults.length > 2 ? 'md:grid-cols-3' : ''} ${scenarioResults.length > 4 ? 'lg:grid-cols-6' : ''} gap-4`}>
+        <div className={`grid grid-cols-2 ${scenarioResults.length > 2 ? 'md:grid-cols-3' : ''} gap-4`}>
           {scenarioResults.map((scenario) => (
             <div key={scenario.proteinCount} className="text-center">
               <p className={`text-xl font-bold ${scenario.color.text}`}>
@@ -117,6 +116,12 @@ export function PowerAtInputCards({
             </div>
           ))}
         </div>
+        {scenarioResults.some(s => typeof s.sampleNeeded === 'number' && !Number.isFinite(s.sampleNeeded)) && (
+          <p className="mt-3 text-xs text-gray-500">
+            ∞: the selected effect size equals the null value (no effect), so no
+            sample size can attain the target power — increase the effect size.
+          </p>
+        )}
       </div>
     </section>
   );

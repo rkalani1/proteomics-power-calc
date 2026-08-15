@@ -4,7 +4,7 @@ export const ANALYSIS_TYPE_OPTIONS: { value: AnalysisType; label: string; descri
   { value: 'cox', label: 'Cox Proportional Hazards', description: 'Time-to-event outcomes (Hazard Ratio)' },
   { value: 'linear', label: 'Linear Regression', description: 'Continuous outcomes (Beta coefficient)' },
   { value: 'logistic', label: 'Logistic Regression', description: 'Binary outcomes (Odds Ratio)' },
-  { value: 'poisson', label: 'Modified Poisson', description: 'Binary outcomes, prevalence >10% (Relative Risk)' },
+  { value: 'poisson', label: 'Modified Poisson', description: 'Binary outcomes, common (≥10%) prevalence (Relative Risk)' },
   { value: 'gee', label: 'GEE/Mixed Effects', description: 'Clustered/longitudinal data (Beta with ICC)' },
 ];
 
@@ -61,7 +61,7 @@ export const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
     default: 1.2,
     step: 0.01,
     inputLabel: 'Target Hazard Ratio (HR)',
-    inputDescription: '',
+    inputDescription: 'Hazard ratio per 1 SD increase in protein level (HR = 1 is the null: no association).',
   },
   linear: {
     label: 'Per-SD Beta',
@@ -81,7 +81,7 @@ export const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
     default: 1.3,
     step: 0.01,
     inputLabel: 'Target Odds Ratio (OR)',
-    inputDescription: '',
+    inputDescription: 'Odds ratio per 1 SD increase in protein level (OR = 1 is the null: no association).',
   },
   poisson: {
     label: 'Relative Risk',
@@ -91,7 +91,7 @@ export const EFFECT_SIZE_CONFIG: Record<AnalysisType, {
     default: 1.2,
     step: 0.01,
     inputLabel: 'Target Relative Risk (RR)',
-    inputDescription: '',
+    inputDescription: 'Relative risk per 1 SD increase in protein level (RR = 1 is the null: no association).',
   },
   gee: {
     label: 'Per-SD Beta',

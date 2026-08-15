@@ -139,10 +139,23 @@ try {
   const nccProps = { ...baseProps, studyDesign: 'nested-case-control' };
   const nccRender = render(React.createElement(StudyParameters, nccProps));
 
+  // Cox nested case-control power depends only on events and the matching
+  // ratio; case/control sliders would be inert and contradict the events input.
   ok(nccRender.container.innerHTML.includes('Matching Ratio'), 'Renders Matching Ratio');
-  ok(nccRender.container.innerHTML.includes('Number of Cases'), 'Renders Number of Cases');
-  ok(nccRender.container.innerHTML.includes('Number of Controls'), 'Renders Number of Controls');
+  ok(!nccRender.container.innerHTML.includes('Number of Cases'), 'Hides Number of Cases for Cox nested (events drive power)');
+  ok(!nccRender.container.innerHTML.includes('Number of Controls'), 'Hides Number of Controls for Cox nested');
   nccRender.unmount();
+
+  console.log('\n3b. Logistic + Nested Case-Control keeps case/control inputs');
+  const logNccProps = { ...baseProps, analysisType: 'logistic', studyDesign: 'nested-case-control' };
+  const logNccRender = render(React.createElement(StudyParameters, logNccProps));
+
+  // Logistic nested case-control is sized from the case/control counts, so
+  // those sliders must render (and the Cox-only matching ratio must not).
+  ok(logNccRender.container.innerHTML.includes('Number of Cases'), 'Renders Number of Cases for logistic nested');
+  ok(logNccRender.container.innerHTML.includes('Number of Controls'), 'Renders Number of Controls for logistic nested');
+  ok(!logNccRender.container.innerHTML.includes('Matching Ratio'), 'Hides Cox-only Matching Ratio for logistic nested');
+  logNccRender.unmount();
 
   console.log('\n4. Analysis Type: Linear');
   const linearProps = { ...baseProps, analysisType: 'linear' };

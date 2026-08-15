@@ -536,25 +536,13 @@ table tbody tr:hover {
 
 .analysis-method-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
 }
 
 .analysis-method-option {
   min-width: 0;
   min-height: 62px;
-}
-
-.analysis-method-option > div:first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.analysis-method-option > div:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .protein-count-helper,
@@ -981,10 +969,6 @@ table tbody tr:hover {
     scroll-margin-top: 125px;
   }
 
-  .analysis-method-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .analysis-method-option {
     min-height: 58px;
   }
@@ -1020,6 +1004,18 @@ table tbody tr:hover {
 }
 
 @media print {
+  /* Hide interactive chrome that has no meaning on paper: the sticky section
+     nav, the sticky header chips, and the export controls. */
+  .section-rail,
+  .assay-current-setup,
+  .export-actions {
+    display: none !important;
+  }
+
+  .assay-header {
+    position: static;
+  }
+
   .assay-workspace {
     display: block;
     padding: 0 !important;

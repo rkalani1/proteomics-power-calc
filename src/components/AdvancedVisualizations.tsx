@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { getPowerStatus, POWER_STATUS_COLORS } from '../utils/formatters';
+import { getPowerStatus, POWER_STATUS_BG_CLASSES } from '../utils/formatters';
 import {
   LineChart,
   Line,
@@ -174,15 +174,26 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
   // Generate forest plot data. The minimum detectable effect is a single
   // computed threshold (not an estimate with sampling error), so it carries no
   // confidence interval — only the point value per scenario is shown.
+  // Non-finite thresholds (e.g. zero events) are dropped rather than passed to
+  // the bar chart, which cannot render them.
   const forestPlotData = useMemo(() => {
-    return scenarios.map(scenario => ({
-      name: `${scenario.proteinCount.toLocaleString()} proteins`,
-      proteinCount: scenario.proteinCount,
-      effect: scenario.minDetectableEffect,
-      alpha: scenario.alpha,
-      color: scenario.color.hex,
-    }));
+    return scenarios
+      .filter(scenario => Number.isFinite(scenario.minDetectableEffect))
+      .map(scenario => ({
+        name: `${scenario.proteinCount.toLocaleString()} proteins`,
+        proteinCount: scenario.proteinCount,
+        effect: scenario.minDetectableEffect,
+        alpha: scenario.alpha,
+        color: scenario.color.hex,
+      }));
   }, [scenarios]);
+
+  // True when at least one point on the required-N curve is finite; at the
+  // null effect every point is dropped and the chart would render blank.
+  const sampleSizeCurveHasData = useMemo(
+    () => sampleSizeCurveData.some(point => Object.keys(point).length > 1),
+    [sampleSizeCurveData]
+  );
 
   // Generate power contour data (effect size vs sample size grid)
   const powerContourData = useMemo(() => {
@@ -217,14 +228,15 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
     return { data, sampleValues };
   }, [scenarios, isBetaEffect, isCox, decimals, calculatePower]);
 
-  // Power status color
-  const getPowerColor = (power: number): string => {
+  // Accessible power-status classes (AA-contrast text on a light wash),
+  // matching the token set used by the Power Sensitivity table.
+  const getPowerCellClasses = (power: number): string => {
     const status = getPowerStatus(power, targetPower);
-    return POWER_STATUS_COLORS[status];
+    return POWER_STATUS_BG_CLASSES[status];
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+    <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
       {/* Header with visualization selector */}
       <div className={`p-4 ${isExpanded ? 'border-b border-gray-200' : ''}`}>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -255,9 +267,10 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
 
           {/* Visualization type selector */}
           {isExpanded && (
-          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg" role="group" aria-label="Visualization type">
             <button
               onClick={() => setActiveViz('sample-size-curve')}
+              aria-pressed={activeViz === 'sample-size-curve'}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 activeViz === 'sample-size-curve'
                   ? 'bg-white text-indigo-700 shadow-sm'
@@ -268,6 +281,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
             </button>
             <button
               onClick={() => setActiveViz('forest-plot')}
+              aria-pressed={activeViz === 'forest-plot'}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 activeViz === 'forest-plot'
                   ? 'bg-white text-indigo-700 shadow-sm'
@@ -278,6 +292,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
             </button>
             <button
               onClick={() => setActiveViz('power-contour')}
+              aria-pressed={activeViz === 'power-contour'}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 activeViz === 'power-contour'
                   ? 'bg-white text-indigo-700 shadow-sm'
@@ -301,8 +316,16 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
               Required {isCox ? 'events' : 'sample size'} to achieve different power levels at {effectSymbol} = {currentEffectSize.toFixed(decimals)}
             </p>
 
+            {!sampleSizeCurveHasData && (
+              <p className="p-6 text-center text-sm text-gray-500 bg-gray-50 rounded-lg">
+                No attainable {isCox ? 'event count' : 'sample size'}: the selected effect size
+                equals the null value (no effect). Increase the effect size to see the curve.
+              </p>
+            )}
+
+            {sampleSizeCurveHasData && (
             <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={sampleSizeCurveData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+              <LineChart data={sampleSizeCurveData} margin={{ top: 20, right: 104, left: 20, bottom: 40 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
 
                 <XAxis
@@ -388,6 +411,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                 ))}
               </LineChart>
             </ResponsiveContainer>
+            )}
           </div>
         )}
 
@@ -398,6 +422,14 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
               Minimum detectable {effectLabel} for {(targetPower * 100).toFixed(0)}% power across protein counts
             </p>
 
+            {forestPlotData.length === 0 && (
+              <p className="p-6 text-center text-sm text-gray-500 bg-gray-50 rounded-lg">
+                No finite minimum detectable effect for the current parameters —
+                check the sample-size / events inputs.
+              </p>
+            )}
+
+            {forestPlotData.length > 0 && (
             <ResponsiveContainer width="100%" height={Math.max(200, scenarios.length * 50 + 100)}>
               <BarChart
                 data={forestPlotData}
@@ -436,7 +468,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                   label={{
                     value: 'Null',
                     position: 'top',
-                    fill: '#9ca3af',
+                    fill: '#6b7280',
                     fontSize: 10,
                   }}
                 />
@@ -462,7 +494,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-
+            )}
           </div>
         )}
 
@@ -471,7 +503,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
           <div>
             <p className="text-sm text-gray-600 mb-4">
               Power across {effectLabel} and {isCox ? 'events' : 'sample size'} combinations
-              (using {scenarios[0]?.proteinCount.toLocaleString() || 'selected'} proteins, α ≈ {scenarios[0]?.alpha.toExponential(1)})
+              (using {scenarios[0]?.proteinCount.toLocaleString() || 'selected'} proteins, α ≈ {scenarios[0]?.alpha.toExponential(2)})
             </p>
 
             <div className="overflow-x-auto">
@@ -497,15 +529,8 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                       {powerContourData.sampleValues.map((n) => {
                         const power = row[`power_${n}`] as number;
                         return (
-                          <td
-                            key={n}
-                            className="px-3 py-2 text-center border-b border-gray-100"
-                            style={{
-                              backgroundColor: `${getPowerColor(power)}20`,
-                              color: getPowerColor(power),
-                            }}
-                          >
-                            <span className="font-medium">
+                          <td key={n} className="px-3 py-2 text-center border-b border-gray-100">
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${getPowerCellClasses(power)}`}>
                               {(power * 100).toFixed(0)}%
                             </span>
                           </td>
@@ -517,26 +542,19 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
               </table>
             </div>
 
-            <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#10b98133' }}></div>
-                <span className="text-green-600">≥{(targetPower * 100).toFixed(0)}% meets target</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f59e0b33' }}></div>
-                <span className="text-amber-600">50%–{(targetPower * 100).toFixed(0)}% below target</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ef444433' }}></div>
-                <span className="text-red-600">&lt;50% underpowered</span>
-              </div>
+            <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
+              <span className="px-2 py-0.5 rounded bg-green-100 text-green-800">≥{(targetPower * 100).toFixed(0)}% meets target</span>
+              {targetPower > 0.5 && (
+                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800">50%–{(targetPower * 100).toFixed(0)}% below target</span>
+              )}
+              <span className="px-2 py-0.5 rounded bg-red-100 text-red-800">&lt;50% underpowered</span>
             </div>
 
           </div>
         )}
       </div>
       )}
-    </div>
+    </section>
   );
 };
 

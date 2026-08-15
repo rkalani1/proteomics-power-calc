@@ -46,6 +46,11 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
 }) => {
   const [normalizationMessage, setNormalizationMessage] = useState('');
   const [scenarioAnnouncement, setScenarioAnnouncement] = useState('');
+  const [scenarioError, setScenarioError] = useState('');
+  // Raw text while the protein-count field is being edited; null when idle.
+  // Normalization is deferred to blur so the user can clear the field and
+  // retype without the value being force-rewritten on every keystroke.
+  const [proteinDraft, setProteinDraft] = useState<string | null>(null);
   const pendingScenarioFocus = useRef<number | null>(null);
 
   useEffect(() => {
@@ -66,19 +71,39 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
   }, [proteinCounts]);
 
   const handleProteinCountChange = (rawValue: string) => {
+    setProteinDraft(rawValue);
     const parsed = Number.parseInt(rawValue, 10);
+    // Commit valid in-range values live; leave invalid/partial input alone
+    // until blur so the field stays editable.
+    if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 100000) {
+      setProteinCount(parsed);
+      setNormalizationMessage('');
+    }
+  };
+
+  const handleProteinCountBlur = () => {
+    const parsed = Number.parseInt(proteinDraft ?? '', 10);
     if (!Number.isFinite(parsed) || parsed < 1) {
       setProteinCount(1);
       setNormalizationMessage('Protein count normalized to the minimum value of 1.');
-      return;
-    }
-    if (parsed > 100000) {
+    } else if (parsed > 100000) {
       setProteinCount(100000);
       setNormalizationMessage('Protein count normalized to the maximum value of 100,000.');
-      return;
     }
-    setProteinCount(parsed);
-    setNormalizationMessage('');
+    setProteinDraft(null);
+  };
+
+  // Mirror the validity policy in addProteinScenario (App.tsx) so a rejected
+  // add produces a visible, announced explanation instead of failing silently.
+  const explainScenarioRejection = (count: number): string => {
+    if (!Number.isInteger(count) || count < 1 || count > 100000) {
+      return 'Enter a whole number between 1 and 100,000.';
+    }
+    if (proteinCounts.length >= 6) return 'Maximum of 6 scenarios reached.';
+    if (proteinCounts.includes(count)) {
+      return `${count.toLocaleString()} is already being compared.`;
+    }
+    return 'Could not add scenario.';
   };
 
   const addManualScenario = () => {
@@ -88,7 +113,10 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
       setScenarioAnnouncement(
         `Scenario added. Now comparing ${proteinCounts.length + 1} scenarios.`
       );
+      setScenarioError('');
       setNewProteinCount('');
+    } else {
+      setScenarioError(explainScenarioRejection(count));
     }
   };
 
@@ -143,14 +171,15 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
         </fieldset>
 
         {/* Study Design */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Study Design</label>
-          <div className="grid grid-cols-1 gap-2">
+        <fieldset className="analysis-method-selector">
+          <legend className="block text-sm font-medium text-gray-700 mb-2">Study Design</legend>
+          <div className="grid grid-cols-1 gap-2" role="group" aria-label="Study design">
             {STUDY_DESIGN_OPTIONS[analysisType].map((option) => (
               <button
                 key={option.value}
                 type="button"
                 aria-pressed={studyDesign === option.value}
+                aria-label={`${option.label}: ${option.description}`}
                 onClick={() => setStudyDesign(option.value)}
                 className={`p-3 rounded-lg border-2 text-left transition-all ${
                   studyDesign === option.value
@@ -163,13 +192,18 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
               </button>
             ))}
           </div>
-        </div>
+        </fieldset>
       </div>
 
       {/* Protein Count */}
       <div className="mt-6 pt-6 border-t border-gray-200">
         <div className="flex items-center justify-between mb-3">
-          <label htmlFor="protein-count-input" className="block text-sm font-medium text-gray-700">
+          {/* Point the label at whichever input is rendered for the current
+              mode so it never references a non-existent element. */}
+          <label
+            htmlFor={comparisonMode ? 'protein-scenario-input' : 'protein-count-input'}
+            className="block text-sm font-medium text-gray-700"
+          >
             Number of Proteins
           </label>
           <button
@@ -197,9 +231,10 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 type="number"
                 min={1}
                 max={100000}
-                value={proteinCount}
+                value={proteinDraft ?? proteinCount}
                 aria-describedby="protein-count-constraints protein-count-normalization"
                 onChange={(e) => handleProteinCountChange(e.target.value)}
+                onBlur={handleProteinCountBlur}
                 className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
               <span className="text-sm text-gray-500">
@@ -261,7 +296,7 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                       {count.toLocaleString()} protein{count !== 1 ? 's' : ''}
                     </span>
                     <span className="text-xs text-gray-500">
-                      (α≈{calculateEffectiveAlpha(fdrQ, count, correctionMethod).toExponential(1)})
+                      (α≈{calculateEffectiveAlpha(fdrQ, count, correctionMethod).toExponential(2)})
                     </span>
                     {proteinCounts.length > 1 && (
                       <button
@@ -284,14 +319,16 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
             {/* Add new protein count */}
             <div className="flex items-center gap-2">
               <input
+                id="protein-scenario-input"
                 type="number"
                 min={1}
                 max={100000}
                 value={newProteinCount}
-                onChange={(e) => setNewProteinCount(e.target.value)}
+                onChange={(e) => { setNewProteinCount(e.target.value); setScenarioError(''); }}
                 onKeyDown={(e) => e.key === 'Enter' && addManualScenario()}
                 placeholder="Enter protein count..."
                 aria-label="Add a protein-count scenario"
+                aria-describedby={scenarioError ? 'protein-scenario-error' : undefined}
                 className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
               <button
@@ -305,6 +342,11 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 <span className="text-xs text-amber-600">Maximum 6 scenarios</span>
               )}
             </div>
+            {scenarioError && (
+              <p id="protein-scenario-error" className="mt-2 text-xs text-red-600" role="status" aria-live="polite">
+                {scenarioError}
+              </p>
+            )}
 
             {/* Quick add presets */}
             <div className="mt-3 flex flex-wrap gap-2">

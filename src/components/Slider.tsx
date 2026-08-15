@@ -23,7 +23,10 @@ export const Slider: React.FC<SliderProps> = ({
   description = '',
   decimals = 0,
 }) => {
-  const format = (v: number) => (decimals > 0 ? v.toFixed(decimals) : String(v));
+  // Display formatting (adds thousands separators for integer sliders); the
+  // editing draft uses the plain numeric form so parseFloat can read it back.
+  const format = (v: number) => (decimals > 0 ? v.toFixed(decimals) : v.toLocaleString());
+  const editable = (v: number) => (decimals > 0 ? v.toFixed(decimals) : String(v));
 
   // Stable ids so the visible label names the range control and the description
   // is exposed to assistive tech (the inputs would otherwise be unlabeled).
@@ -38,7 +41,7 @@ export const Slider: React.FC<SliderProps> = ({
   const displayValue = isFocused ? draft : format(value);
 
   const handleFocus = () => {
-    setDraft(format(value));
+    setDraft(editable(value));
     setIsFocused(true);
   };
 
@@ -47,12 +50,17 @@ export const Slider: React.FC<SliderProps> = ({
     setDraft(e.target.value);
   };
 
-  // Parse, clamp, and commit the typed value (invalid input is ignored, so the
-  // field reverts to the current value once focus is lost).
+  // Parse, snap to the slider's step grid, clamp, and commit the typed value
+  // (invalid input is ignored, so the field reverts to the current value once
+  // focus is lost). Snapping keeps typed values on the same grid as the range
+  // control — e.g. no fractional event counts on an integer-step slider.
   const applyValue = () => {
     const newValue = parseFloat(draft);
     if (!isNaN(newValue)) {
-      onChange(Math.min(max, Math.max(min, newValue)));
+      const snapped = min + Math.round((newValue - min) / step) * step;
+      // Round away float error from the step multiplication (e.g. 0.30000000000000004).
+      const cleaned = Number(snapped.toFixed(Math.max(decimals, 6)));
+      onChange(Math.min(max, Math.max(min, cleaned)));
     }
   };
 
@@ -102,7 +110,7 @@ export const Slider: React.FC<SliderProps> = ({
           background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${percentage}%, #e2e8f0 ${percentage}%, #e2e8f0 100%)`
         }}
       />
-      <div className="flex justify-between text-xs text-gray-400">
+      <div className="flex justify-between text-xs text-gray-500">
         <span>{decimals > 0 ? min.toFixed(decimals) : min.toLocaleString()}{unit}</span>
         <span>{decimals > 0 ? max.toFixed(decimals) : max.toLocaleString()}{unit}</span>
       </div>

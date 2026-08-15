@@ -193,9 +193,13 @@ function FrameworkHarness() {
   const proteinInput = view.getByLabelText('Number of Proteins');
   proteinInput.focus();
   fireEvent.change(proteinInput, { target: { value: '0' } });
-  ok(proteinInput.value === '1', 'zero proteins normalizes to the minimum value 1');
+  // Normalization is deferred to blur so the user can clear the field and
+  // retype without the value being force-rewritten on every keystroke.
+  ok(proteinInput.value === '0', 'out-of-range typing is not rewritten mid-edit (deferred to blur)');
+  ok(document.activeElement === proteinInput, 'editing preserves input focus');
+  fireEvent.blur(proteinInput);
+  ok(proteinInput.value === '1', 'zero proteins normalizes to the minimum value 1 on blur');
   ok(view.getByText('Protein count normalized to the minimum value of 1.') != null, 'normalization is visibly and politely reported');
-  ok(document.activeElement === proteinInput, 'normalization preserves input focus');
 
   const methodButtons = methods.map(method => view.getByRole('button', { name: new RegExp(method.label) }));
   ok(methodButtons.length === 5, 'all five compact methods remain explicitly named');

@@ -109,6 +109,18 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
     }
   };
 
+  // Keyboard activation for the sortable headers (they are th elements, not
+  // buttons, so Enter/Space must be wired up explicitly).
+  const handleSortKeyDown = (e: React.KeyboardEvent, field: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleSort(field);
+    }
+  };
+
+  const ariaSortFor = (field: string): 'ascending' | 'descending' | 'none' =>
+    sortField === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none';
+
   // Format power as percentage with color coding (green = meets target power)
   const formatPower = (power: number) => {
     const percentage = (power * 100).toFixed(1);
@@ -136,8 +148,9 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Min Power:</label>
+            <label htmlFor="min-power-filter" className="text-sm text-gray-600">Min Power:</label>
             <select
+              id="min-power-filter"
               value={filterMinPower}
               onChange={(e) => setFilterMinPower(Number(e.target.value))}
               className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -158,7 +171,11 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
             <tr>
               <th
                 onClick={() => handleSort('effect')}
-                className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors"
+                onKeyDown={(e) => handleSortKeyDown(e, 'effect')}
+                tabIndex={0}
+                aria-sort={ariaSortFor('effect')}
+                aria-label={`Sort by ${effectLabel}`}
+                className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 focus:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   {effectLabel}
@@ -169,7 +186,11 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
                 <th
                   key={scenario.proteinCount}
                   onClick={() => handleSort(`power_${scenario.proteinCount}`)}
-                  className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors"
+                  onKeyDown={(e) => handleSortKeyDown(e, `power_${scenario.proteinCount}`)}
+                  tabIndex={0}
+                  aria-sort={ariaSortFor(`power_${scenario.proteinCount}`)}
+                  aria-label={`Sort by power for ${scenario.proteinCount.toLocaleString()} proteins`}
+                  className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 focus:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-2">
                     <span className="flex items-center gap-1">
@@ -182,7 +203,7 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
                     <SortIndicator field={`power_${scenario.proteinCount}`} sortField={sortField} sortDirection={sortDirection} />
                   </div>
                   <div className="text-xs font-normal text-gray-500">
-                    α≈{scenario.alpha.toExponential(1)}
+                    α≈{scenario.alpha.toExponential(2)}
                   </div>
                 </th>
               ))}
@@ -243,9 +264,11 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
 
       <div className="p-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
         Showing {processedData.length} of {data.length} rows •
-        <span className="text-green-600 ml-2">≥{targetPct}% meets target</span> •
-        <span className="text-amber-600 ml-2">50%–{targetPct}% below target</span> •
-        <span className="text-red-600 ml-2">&lt;50% underpowered</span>
+        <span className="text-green-700 ml-2">≥{targetPct}% meets target</span> •
+        {targetPower > 0.5 && (
+          <><span className="text-amber-700 ml-2">50%–{targetPct}% below target</span> •</>
+        )}
+        <span className="text-red-700 ml-2">&lt;50% underpowered</span>
       </div>
     </div>
   );

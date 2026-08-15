@@ -477,7 +477,7 @@ function App() {
             <aside className="desktop-result-summary" aria-label="Current result summary">
               <div>
                 <span className="desktop-result-summary__eyebrow">Current scenario</span>
-                <strong>{currentScenario.proteinCount.toLocaleString()} proteins</strong>
+                <strong>{currentScenario.proteinCount.toLocaleString()} protein{currentScenario.proteinCount !== 1 ? 's' : ''}</strong>
               </div>
               <div>
                 <span>{effectConfig.symbol} {effectSize.toFixed(effectDecimals)}</span>
@@ -505,6 +505,9 @@ function App() {
           numControls={numControls}
           prevalence={prevalence}
           sampleSize={sampleSize}
+          subcohortSize={subcohortSize}
+          totalCohort={totalCohort}
+          matchingRatio={matchingRatio}
           scenarioResults={scenarioResults}
           standardError={standardError}
           studyDesign={studyDesign}
@@ -557,8 +560,10 @@ function App() {
           numControls={numControls}
           subcohortSize={subcohortSize}
           totalCohort={totalCohort}
+          matchingRatio={matchingRatio}
           clusterSize={clusterSize}
           icc={icc}
+          covariateR2={covariateR2}
           effectSymbol={effectConfig.symbol}
           correctionMethod={correctionMethod}
           calculatePower={calculatePowerForEffect}

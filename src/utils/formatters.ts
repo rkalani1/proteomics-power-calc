@@ -43,6 +43,7 @@ interface ParameterDescriptionParams {
   events: number;
   subcohortSize: number;
   totalCohort: number;
+  matchingRatio: number;
   sampleSize: number;
   residualSD: number;
   numCases: number;
@@ -50,10 +51,13 @@ interface ParameterDescriptionParams {
   prevalence: number;
   clusterSize: number;
   icc: number;
+  covariateR2: number;
 }
 
 /**
  * Gets a formatted description of the parameters used for the power analysis subtitle.
+ * Every parameter that changes the standard error for the selected model/design
+ * must appear here, so the caption fully specifies the calculation.
  */
 export function getParameterDescription({
   analysisType,
@@ -61,6 +65,7 @@ export function getParameterDescription({
   events,
   subcohortSize,
   totalCohort,
+  matchingRatio,
   sampleSize,
   residualSD,
   numCases,
@@ -68,22 +73,29 @@ export function getParameterDescription({
   prevalence,
   clusterSize,
   icc,
+  covariateR2,
 }: ParameterDescriptionParams): string {
+  // R²ₓ inflates every model's SE, so echo it whenever it is non-zero.
+  const r2Suffix = covariateR2 > 0 ? `, R²ₓ = ${covariateR2.toFixed(2)}` : '';
   switch (analysisType) {
     case 'cox':
-      return studyDesign === 'case-cohort'
-        ? `d = ${events} events, subcohort = ${subcohortSize}/${totalCohort}`
-        : `d = ${events} events`;
+      if (studyDesign === 'case-cohort') {
+        return `d = ${events} events, subcohort = ${subcohortSize}/${totalCohort}${r2Suffix}`;
+      }
+      if (studyDesign === 'nested-case-control') {
+        return `d = ${events} events, ${matchingRatio}:1 matching${r2Suffix}`;
+      }
+      return `d = ${events} events${r2Suffix}`;
     case 'linear':
-      return `n = ${sampleSize}, sigma = ${residualSD}`;
+      return `n = ${sampleSize}, sigma = ${residualSD}${r2Suffix}`;
     case 'logistic':
-      return studyDesign === 'case-control'
-        ? `${numCases} cases, ${numControls} controls`
-        : `n = ${sampleSize}, prevalence = ${(prevalence * 100).toFixed(0)}%`;
+      return studyDesign === 'case-control' || studyDesign === 'nested-case-control'
+        ? `${numCases} cases, ${numControls} controls${r2Suffix}`
+        : `n = ${sampleSize}, prevalence = ${(prevalence * 100).toFixed(0)}%${r2Suffix}`;
     case 'poisson':
-      return `n = ${sampleSize}, prevalence = ${(prevalence * 100).toFixed(0)}%`;
+      return `n = ${sampleSize}, prevalence = ${(prevalence * 100).toFixed(0)}%${r2Suffix}`;
     case 'gee':
-      return `n = ${sampleSize}, cluster size = ${clusterSize}, ICC = ${icc.toFixed(2)}`;
+      return `n = ${sampleSize} observations, cluster size = ${clusterSize}, ICC = ${icc.toFixed(2)}${r2Suffix}`;
     default:
       return '';
   }
