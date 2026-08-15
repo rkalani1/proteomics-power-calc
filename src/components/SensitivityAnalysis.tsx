@@ -153,7 +153,7 @@ const SensitivityChart: React.FC<SensitivityChartProps> = ({
   targetPower,
 }) => (
   <ResponsiveContainer width="100%" height={350}>
-    <LineChart data={sensitivityData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+    <LineChart data={sensitivityData} margin={{ top: 20, right: 84, left: 20, bottom: 40 }}>
       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
 
       <XAxis
@@ -288,6 +288,14 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const activeVariable = normalizeSensitivityVariable(analysisType, selectedVariable);
 
+  // Merge the user's current value into a sweep grid so the "Current"
+  // reference marker always falls inside the plotted range (the parameter
+  // sliders allow values beyond the fixed grids, e.g. n up to 50,000).
+  const withCurrent = (grid: number[], current: number): number[] => {
+    if (!Number.isFinite(current) || current <= 0 || grid.includes(current)) return grid;
+    return [...grid, current].sort((a, b) => a - b);
+  };
+
   // Generate sensitivity data based on selected variable
   const sensitivityData = useMemo(() => {
     const data: Array<Record<string, number>> = [];
@@ -296,7 +304,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
       case 'sampleSize': {
         // Vary sample size from 100 to 10000, recomputing the exact power at
         // each n with the same design-aware formula used for the headline result.
-        const sizes = [100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000];
+        const sizes = withCurrent([100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000], currentSampleSize);
         sizes.forEach(size => {
           const point: Record<string, number> = { x: size };
           proteinCounts.forEach(count => {
@@ -311,7 +319,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
       case 'events': {
         // Vary events from 20 to 500, recomputing the exact power at each event
         // count with the same design-aware formula used for the headline result.
-        const eventCounts = [20, 40, 60, 80, 100, 150, 200, 300, 400, 500];
+        const eventCounts = withCurrent([20, 40, 60, 80, 100, 150, 200, 300, 400, 500], currentEvents);
         eventCounts.forEach(e => {
           const point: Record<string, number> = { x: e };
           proteinCounts.forEach(count => {
@@ -328,9 +336,9 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
         // models (Cox/logistic/Poisson) use multiplicative values around 1.
         let effectValues: number[];
         if (analysisType === 'linear' || analysisType === 'gee') {
-          effectValues = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8];
+          effectValues = withCurrent([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8], currentEffectSize);
         } else {
-          effectValues = [1.1, 1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 2.5, 3.0];
+          effectValues = withCurrent([1.1, 1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 2.5, 3.0], currentEffectSize);
         }
         effectValues.forEach(effect => {
           const point: Record<string, number> = { x: effect };
@@ -360,7 +368,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
     }
 
     return data;
-  }, [activeVariable, proteinCounts, fdrQ, correctionMethod, currentEffectSize, analysisType, calculatePowerForEffect, calculatePowerAtSampleSize]);
+  }, [activeVariable, proteinCounts, fdrQ, correctionMethod, currentEffectSize, currentSampleSize, currentEvents, analysisType, calculatePowerForEffect, calculatePowerAtSampleSize]);
 
   // Get axis labels based on selected variable
   const getAxisLabel = (): string => {

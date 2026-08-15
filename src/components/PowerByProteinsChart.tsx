@@ -30,8 +30,10 @@ interface PowerByProteinsChartProps {
   numControls: number;
   subcohortSize: number;
   totalCohort: number;
+  matchingRatio: number;
   clusterSize: number;
   icc: number;
+  covariateR2: number;
   effectSymbol: string;
   correctionMethod?: CorrectionMethod;
   /** Design-aware power for a given effect size and per-test alpha, computed by
@@ -57,11 +59,12 @@ const ProteinsTooltip: React.FC<{
   label?: number;
   fdrQ: number;
   effectSymbol: string;
-}> = ({ active, payload, label, fdrQ, effectSymbol }) => {
+  correctionMethod: CorrectionMethod;
+}> = ({ active, payload, label, fdrQ, effectSymbol, correctionMethod }) => {
   if (!active || !payload || !payload.length) return null;
 
   // Use pre-calculated effective alpha from the payload if available to save CPU time on every hover frame
-  const effectiveAlpha = payload[0]?.payload?.alphaMulti ?? calculateEffectiveAlpha(fdrQ, label || 1);
+  const effectiveAlpha = payload[0]?.payload?.alphaMulti ?? calculateEffectiveAlpha(fdrQ, label || 1, correctionMethod);
 
   return (
     <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3 max-h-64 overflow-y-auto">
@@ -112,8 +115,10 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
   numControls,
   subcohortSize,
   totalCohort,
+  matchingRatio,
   clusterSize,
   icc,
+  covariateR2,
   effectSymbol,
   correctionMethod = 'fdr',
   calculatePower,
@@ -161,6 +166,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     events,
     subcohortSize,
     totalCohort,
+    matchingRatio,
     sampleSize,
     residualSD,
     numCases,
@@ -168,22 +174,23 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     prevalence,
     clusterSize,
     icc,
+    covariateR2,
   });
 
   return (
     <div className="space-y-6">
       {/* Sensitivity Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+      <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M9 7v13M4 12h16" />
             </svg>
             Power Sensitivity: {effectSymbol} × Number of Proteins
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Power (%) for each combination (FDR q = {fdrQ}, {parameterDescription})
+            Power (%) for each combination ({correctionMethod === 'fdr' ? 'FDR q' : 'FWER α'} = {fdrQ}, {parameterDescription})
           </p>
         </div>
 
@@ -229,21 +236,24 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">≥{(targetPower * 100).toFixed(0)}% (meets target)</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">50%–{(targetPower * 100).toFixed(0)}% (below target)</span>
-          </div>
+          {/* At the 50% minimum target the "below target" band is empty, so skip it */}
+          {targetPower > 0.5 && (
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">50%–{(targetPower * 100).toFixed(0)}% (below target)</span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded bg-red-100 text-red-800 text-xs">&lt;50% (underpowered)</span>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Power vs Number of Proteins Chart with Scale Toggle */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+      <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
               </svg>
               Power vs Number of Proteins
@@ -256,9 +266,10 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
           </div>
 
           {/* Scale Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1" role="group" aria-label="Chart scale">
             <button
               onClick={() => setScaleType('linear')}
+              aria-pressed={scaleType === 'linear'}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
                 scaleType === 'linear'
                   ? 'bg-white text-indigo-700 shadow-sm'
@@ -269,6 +280,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
             </button>
             <button
               onClick={() => setScaleType('log')}
+              aria-pressed={scaleType === 'log'}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
                 scaleType === 'log'
                   ? 'bg-white text-indigo-700 shadow-sm'
@@ -283,7 +295,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
         <ResponsiveContainer width="100%" height={400}>
           <LineChart
             data={scaleType === 'linear' ? linearChartData : logChartData}
-            margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+            margin={{ top: 20, right: 84, left: 20, bottom: 40 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
 
@@ -318,14 +330,15 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
               tick={{ fill: '#6b7280', fontSize: 11 }}
             />
 
-            <Tooltip content={<ProteinsTooltip fdrQ={fdrQ} effectSymbol={effectSymbol} />} />
+            <Tooltip content={<ProteinsTooltip fdrQ={fdrQ} effectSymbol={effectSymbol} correctionMethod={correctionMethod} />} />
 
             <Legend
               verticalAlign="top"
               height={36}
               formatter={(value) => {
-                const es = value.replace('es_', `${effectSymbol} `);
-                return <span className="text-xs text-gray-700">{es}</span>;
+                // Match the table headers' formatting (e.g. "HR=2.0", not "HR 2").
+                const es = Number(value.replace('es_', ''));
+                return <span className="text-xs text-gray-700">{effectSymbol}={formatEffectSize(es)}</span>;
               }}
             />
 
@@ -362,14 +375,14 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
 
         <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-500">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-0.5 bg-purple-500" style={{ borderStyle: 'dashed', borderWidth: '1px 0 0 0', borderColor: '#8b5cf6' }}></div>
+            <div aria-hidden="true" className="w-6 border-t-2 border-dashed border-purple-500"></div>
             <span>Target power ({(targetPower * 100).toFixed(0)}%)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-gray-400">Toggle between Linear/Log scale above</span>
+            <span className="text-gray-500">Toggle between Linear/Log scale above</span>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

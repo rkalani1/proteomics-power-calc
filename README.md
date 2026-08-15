@@ -18,7 +18,7 @@ Use aggregate or synthetic planning assumptions in the public demo. Do not paste
   - Cox Proportional Hazards (time-to-event outcomes)
   - Linear Regression (continuous outcomes)
   - Logistic Regression (binary outcomes)
-  - Modified Poisson Regression (binary outcomes with prevalence >10%)
+  - Modified Poisson Regression (binary outcomes with common, ≥10% prevalence)
   - GEE/Mixed Effects (clustered/longitudinal data)
 
 - **Flexible Study Designs**:

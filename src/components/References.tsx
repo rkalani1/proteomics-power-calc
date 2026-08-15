@@ -268,7 +268,9 @@ const References: React.FC<ReferencesProps> = ({ analysisType, studyDesign }) =>
                   </p>
                   <p className="italic">{ref.title}</p>
                   <p>
-                    {ref.journal}, {ref.volume}: {ref.pages}.
+                    {ref.journal}
+                    {ref.volume && `, ${ref.volume}`}
+                    {ref.pages && `: ${ref.pages}`}.
                     {ref.doi && (
                       <a
                         href={`https://doi.org/${ref.doi}`}

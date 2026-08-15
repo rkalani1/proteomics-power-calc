@@ -42,6 +42,12 @@ interface MultiScenarioPowerChartProps {
   analysisType?: AnalysisType;
 }
 
+// Dash patterns per scenario index so up to six curves stay distinguishable
+// without relying on color alone (the palette's cyan/teal and blue/purple pairs
+// are not separable under common color-vision deficiencies). The first series
+// stays solid; the rest cycle through distinct patterns.
+const SCENARIO_DASHES: Array<string | undefined> = [undefined, '9 4', '3 3', '12 4 3 4', '6 3', '2 5'];
+
 // Tooltip for the power-vs-effect curves. Defined at module scope to keep a
 // stable component identity across re-renders.
 const PowerCurveTooltip: React.FC<{
@@ -85,8 +91,8 @@ const PowerCurveTooltip: React.FC<{
               {(entry.value * 100).toFixed(1)}%
             </span>
             {scenario && (
-              <span className="text-xs text-gray-400">
-                (α≈{scenario.alpha.toExponential(1)})
+              <span className="text-xs text-gray-500">
+                (α≈{scenario.alpha.toExponential(2)})
               </span>
             )}
           </p>
@@ -141,6 +147,9 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
   );
   const rangePrecision = isBetaEffect ? 3 : 2;
   const rangeSummary = `${effectLabel} range ${currentRangeMin.toFixed(rangePrecision)} to ${currentRangeMax.toFixed(rangePrecision)}`;
+  // The input-effect marker is only drawn when it falls inside the zoomed
+  // range, so the chart description and legend must not claim it otherwise.
+  const inputMarkerVisible = inputEffect >= currentRangeMin && inputEffect <= currentRangeMax;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -160,12 +169,12 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
 
       <div
         role="img"
-        aria-label={`Line chart: statistical power versus ${effectLabel} (${effectSymbol}) for ${scenarios.length} protein-count scenario${scenarios.length !== 1 ? 's' : ''}, showing ${rangeSummary}, with the ${(targetPower * 100).toFixed(0)}% power target and the input ${effectSymbol}=${inputEffect.toFixed(decimals)} marked.`}
+        aria-label={`Line chart: statistical power versus ${effectLabel} (${effectSymbol}) for ${scenarios.length} protein-count scenario${scenarios.length !== 1 ? 's' : ''}, showing ${rangeSummary}, with the ${(targetPower * 100).toFixed(0)}% power target${inputMarkerVisible ? ` and the input ${effectSymbol}=${inputEffect.toFixed(decimals)}` : ''} marked.`}
       >
       <ResponsiveContainer width="100%" height={360}>
         <LineChart
           data={visibleData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+          margin={{ top: 20, right: 84, left: 20, bottom: 40 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
 
@@ -227,23 +236,25 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
             }}
           />
 
-          {/* Input effect size reference line */}
-          <ReferenceLine
-            x={inputEffect}
-            stroke="#8b5cf6"
-            strokeDasharray="4 4"
-            strokeWidth={2}
-            label={{
-              value: `${effectSymbol}=${inputEffect.toFixed(decimals)}`,
-              position: 'top',
-              fill: '#8b5cf6',
-              fontSize: 11,
-              fontWeight: 600,
-            }}
-          />
+          {/* Input effect size reference line (only when inside the zoom range) */}
+          {inputMarkerVisible && (
+            <ReferenceLine
+              x={inputEffect}
+              stroke="#8b5cf6"
+              strokeDasharray="4 4"
+              strokeWidth={2}
+              label={{
+                value: `${effectSymbol}=${inputEffect.toFixed(decimals)}`,
+                position: 'top',
+                fill: '#8b5cf6',
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            />
+          )}
 
           {/* Render a line for each scenario */}
-          {scenarios.map((scenario) => (
+          {scenarios.map((scenario, index) => (
             <Line
               key={scenario.proteinCount}
               type="monotone"
@@ -251,6 +262,7 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
               name={`power_${scenario.proteinCount}`}
               stroke={scenario.color.hex}
               strokeWidth={3}
+              strokeDasharray={SCENARIO_DASHES[index % SCENARIO_DASHES.length]}
               dot={false}
               isAnimationActive={false}
               activeDot={{ r: 6, fill: scenario.color.hex, stroke: '#fff', strokeWidth: 2 }}
@@ -266,7 +278,9 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
         <div className="chart-range-control">
           <label htmlFor="chart-range-minimum">
             Minimum {effectSymbol}
-            <output htmlFor="chart-range-minimum">{currentRangeMin.toFixed(rangePrecision)}</output>
+            {/* aria-hidden keeps the live value out of the control's accessible
+                name; the slider's aria-valuetext already announces it. */}
+            <output htmlFor="chart-range-minimum" aria-hidden="true">{currentRangeMin.toFixed(rangePrecision)}</output>
           </label>
           <input
             id="chart-range-minimum"
@@ -276,9 +290,6 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
             max={xMax}
             step={rangeStep}
             value={currentRangeMin}
-            aria-valuemin={xMin}
-            aria-valuemax={xMax}
-            aria-valuenow={currentRangeMin}
             aria-valuetext={`${effectLabel} minimum ${currentRangeMin.toFixed(rangePrecision)}`}
             disabled={xMin === xMax}
             onChange={(event) => {
@@ -295,7 +306,7 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
         <div className="chart-range-control">
           <label htmlFor="chart-range-maximum">
             Maximum {effectSymbol}
-            <output htmlFor="chart-range-maximum">{currentRangeMax.toFixed(rangePrecision)}</output>
+            <output htmlFor="chart-range-maximum" aria-hidden="true">{currentRangeMax.toFixed(rangePrecision)}</output>
           </label>
           <input
             id="chart-range-maximum"
@@ -305,9 +316,6 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
             max={xMax}
             step={rangeStep}
             value={currentRangeMax}
-            aria-valuemin={xMin}
-            aria-valuemax={xMax}
-            aria-valuenow={currentRangeMax}
             aria-valuetext={`${effectLabel} maximum ${currentRangeMax.toFixed(rangePrecision)}`}
             disabled={xMin === xMax}
             onChange={(event) => {
@@ -337,15 +345,17 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
 
       <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-0.5 bg-amber-500" style={{ borderStyle: 'dashed', borderWidth: '1px 0 0 0', borderColor: '#f59e0b' }}></div>
+          <div aria-hidden="true" className="w-6 border-t-2 border-dashed border-amber-500"></div>
           <span>Target power threshold ({(targetPower * 100).toFixed(0)}%)</span>
         </div>
+        {inputMarkerVisible && (
+          <div className="flex items-center gap-2">
+            <div aria-hidden="true" className="w-6 border-t-2 border-dashed border-purple-500"></div>
+            <span>Input {effectSymbol} = {inputEffect.toFixed(decimals)}</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
-          <div className="w-6 h-0.5 bg-purple-500" style={{ borderStyle: 'dashed', borderWidth: '1px 0 0 0', borderColor: '#8b5cf6' }}></div>
-          <span>Input {effectSymbol} = {inputEffect.toFixed(decimals)}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-gray-400">Use the labelled range controls to zoom the chart.</span>
+          <span className="text-gray-500">Use the labelled range controls to zoom the chart.</span>
         </div>
       </div>
     </div>

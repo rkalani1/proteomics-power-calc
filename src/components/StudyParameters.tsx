@@ -123,13 +123,17 @@ export const StudyParameters: React.FC<StudyParametersProps> = ({
             does nothing). */}
         {analysisType !== 'cox' && studyDesign !== 'case-control' && studyDesign !== 'nested-case-control' && (
           <Slider
-            label="Sample Size (n)"
+            label={analysisType === 'gee' ? 'Total Observations (n)' : 'Sample Size (n)'}
             value={sampleSize}
             onChange={setSampleSize}
             min={100}
             max={50000}
             step={100}
-            description="Total participants in study"
+            description={
+              analysisType === 'gee'
+                ? 'Total observations across all subjects (subjects × observations each), not the number of participants'
+                : 'Total participants in study'
+            }
           />
         )}
 
@@ -212,12 +216,19 @@ export const StudyParameters: React.FC<StudyParametersProps> = ({
             max={0.50}
             step={0.01}
             decimals={2}
-            description={`${(prevalence * 100).toFixed(0)}% of sample has outcome`}
+            description={
+              analysisType === 'poisson'
+                ? `${(prevalence * 100).toFixed(0)}% of sample has outcome. Power uses a conservative (naive-Poisson) SE, so power is slightly understated for common outcomes.`
+                : `${(prevalence * 100).toFixed(0)}% of sample has outcome`
+            }
           />
         )}
 
-        {/* Case-control / Nested case-control: Cases and Controls */}
-        {(studyDesign === 'case-control' || studyDesign === 'nested-case-control') && (
+        {/* Case-control / Nested case-control: Cases and Controls. Cox nested
+            case-control is excluded: its power depends only on the number of
+            events (= cases) and the matching ratio, so case/control sliders
+            would be inert and would contradict the events input on screen. */}
+        {(studyDesign === 'case-control' || studyDesign === 'nested-case-control') && analysisType !== 'cox' && (
           <>
             <Slider
               label="Number of Cases"

@@ -50,54 +50,6 @@ import jstat from 'jstat';
 
 export type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
 export type StudyDesign = 'cohort' | 'case-control' | 'cross-sectional' | 'case-cohort' | 'nested-case-control';
-export type EffectMeasure = 'hr' | 'or' | 'rr' | 'beta' | 'r2';
-
-export interface ModelConfig {
-  analysisType: AnalysisType;
-  studyDesign: StudyDesign;
-  effectMeasure: EffectMeasure;
-  effectLabel: string;
-  effectDescription: string;
-}
-
-export const MODEL_CONFIGS: Record<AnalysisType, ModelConfig> = {
-  cox: {
-    analysisType: 'cox',
-    studyDesign: 'cohort',
-    effectMeasure: 'hr',
-    effectLabel: 'Hazard Ratio',
-    effectDescription: 'Relative hazard per 1 SD increase in protein level',
-  },
-  linear: {
-    analysisType: 'linear',
-    studyDesign: 'cohort',
-    effectMeasure: 'beta',
-    effectLabel: 'Beta Coefficient',
-    effectDescription: 'Change in outcome per 1 SD increase in protein level',
-  },
-  logistic: {
-    analysisType: 'logistic',
-    studyDesign: 'cohort',
-    effectMeasure: 'or',
-    effectLabel: 'Odds Ratio',
-    effectDescription: 'Odds ratio per 1 SD increase in protein level',
-  },
-  poisson: {
-    analysisType: 'poisson',
-    studyDesign: 'cohort',
-    effectMeasure: 'rr',
-    effectLabel: 'Relative Risk',
-    effectDescription: 'Relative risk per 1 SD increase in protein level',
-  },
-  gee: {
-    analysisType: 'gee',
-    studyDesign: 'cohort',
-    effectMeasure: 'beta',
-    effectLabel: 'Regression Coefficient',
-    effectDescription: 'Coefficient per 1 SD increase in protein level (accounting for clustering)',
-  },
-};
-
 // ============================================================================
 // Core Statistical Functions
 // ============================================================================

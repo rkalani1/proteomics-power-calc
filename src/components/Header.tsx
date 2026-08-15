@@ -26,7 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   const designLabel = STUDY_DESIGN_OPTIONS[analysisType].find(o => o.value === studyDesign)?.label;
   const scopeLabel = comparisonMode
     ? `Comparing ${proteinCounts.length} scenario${proteinCounts.length !== 1 ? 's' : ''}`
-    : `${proteinCount.toLocaleString()} proteins`;
+    : `${proteinCount.toLocaleString()} protein${proteinCount !== 1 ? 's' : ''}`;
 
   useEffect(() => {
     const updateCompactState = () => setIsCompact(window.scrollY > 72);
