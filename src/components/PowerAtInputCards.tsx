@@ -26,6 +26,19 @@ interface PowerAtInputCardsProps {
   targetPower: number;
 }
 
+function formatSampleNeeded(sampleNeeded: number | string): string {
+  if (typeof sampleNeeded === 'string') {
+    return sampleNeeded;
+  }
+  if (sampleNeeded === Infinity) {
+    return '∞';
+  }
+  if (typeof sampleNeeded === 'number') {
+    return sampleNeeded.toLocaleString();
+  }
+  return '—';
+}
+
 export function PowerAtInputCards({
   analysisType,
   effectConfig,
@@ -102,13 +115,7 @@ export function PowerAtInputCards({
           {scenarioResults.map((scenario) => (
             <div key={scenario.proteinCount} className="text-center">
               <p className={`text-xl font-bold ${scenario.color.text}`}>
-                {typeof scenario.sampleNeeded === 'string'
-                  ? scenario.sampleNeeded
-                  : scenario.sampleNeeded === Infinity
-                  ? '∞'
-                  : typeof scenario.sampleNeeded === 'number'
-                  ? scenario.sampleNeeded.toLocaleString()
-                  : '—'}
+                {formatSampleNeeded(scenario.sampleNeeded)}
               </p>
               <p className="text-xs text-gray-500">
                 {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
