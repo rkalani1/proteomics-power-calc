@@ -117,6 +117,7 @@ export type CorrectionMethod = 'fdr' | 'bonferroni';
 export const calculateEffectiveAlpha = (
   threshold: number,
   numTests: number,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _method: CorrectionMethod = 'fdr'
 ): number => {
   if (numTests <= 0) return threshold;
@@ -127,7 +128,6 @@ export const calculateEffectiveAlpha = (
   //        Approximation α_eff ≈ q/m is conservative (actual power is higher)
   // - Bonferroni: threshold is α (family-wise error rate), exact formula
   // The _method parameter is kept for API clarity and potential future differentiation
-  void _method; // Explicitly mark as intentionally unused
   return threshold / numTests;
 };
 
