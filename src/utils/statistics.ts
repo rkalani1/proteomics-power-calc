@@ -1142,19 +1142,6 @@ export const generatePowerCurve = (
   return curve;
 };
 
-export const generateTableData = (
-  events: number,
-  alphaSingle: number,
-  alphaMulti: number,
-  hrValues: number[] = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0]
-): Array<{ hr: number; powerSingle: number; powerMulti: number }> => {
-  return hrValues.map(hr => ({
-    hr,
-    powerSingle: calculateCoxPower(hr, events, alphaSingle),
-    powerMulti: calculateCoxPower(hr, events, alphaMulti),
-  }));
-};
-
 // ============================================================================
 // Two-Stage Design Functions
 // ============================================================================
