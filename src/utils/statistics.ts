@@ -1396,29 +1396,64 @@ export const calculateRequiredStage2Size = (
   studyParams: Partial<PowerParams>,
   maxIterations: number = 50
 ): number => {
+  const {
+    stage1Proteins,
+    stage1SampleSize,
+    stage1FDR,
+    stage2Alpha,
+    expectedHits = 10,
+    sampleOverlap = 0,
+  } = params;
+
+  // Pre-calculate Stage 1 metrics once as Stage 1 is invariant to Stage 2 sample size
+  const stage1Alpha = calculateStage1Alpha(stage1FDR, stage1Proteins);
+  const powerParams: PowerParams = {
+    analysisType,
+    studyDesign: studyParams.studyDesign || 'cohort',
+    effectSize,
+    alpha: stage1Alpha,
+    sampleSize: stage1SampleSize,
+    events: studyParams.events,
+    residualSD: studyParams.residualSD || 1,
+    prevalence: studyParams.prevalence,
+    cases: studyParams.cases,
+    controls: studyParams.controls,
+    clusterSize: studyParams.clusterSize,
+    icc: studyParams.icc,
+  };
+
+  const { stage1Power, expectedAdvancing } = calculateStage1Metrics(
+    powerParams,
+    stage1Proteins,
+    expectedHits
+  );
+
+  // Pre-calculate Stage 2 per-protein alpha (invariant across search iterations)
+  const stage2PerProteinAlpha = expectedAdvancing > 1
+    ? stage2Alpha / Math.max(1, Math.ceil(expectedAdvancing))
+    : stage2Alpha;
+
+  // Prepare mutable powerParams for Stage 2 power calculation inside binary search
+  powerParams.alpha = stage2PerProteinAlpha;
+
+  const overlapFactor = sampleOverlap > 0 ? (1 - sampleOverlap * 0.5) : 1;
+
   // Binary search for required Stage 2 sample size
   let low = 50;
   let high = 10000;
 
-  // Pre-allocate params object to avoid spread in tight loop
-  const twoStageParams: TwoStageParams = { ...params, stage2SampleSize: 0 };
-
   for (let i = 0; i < maxIterations; i++) {
     const mid = Math.floor((low + high) / 2);
-    twoStageParams.stage2SampleSize = mid;
+    powerParams.sampleSize = overlapFactor !== 1 ? mid * overlapFactor : mid;
 
-    const result = calculateTwoStagePower(
-      effectSize,
-      analysisType,
-      twoStageParams,
-      studyParams
-    );
+    const stage2Power = calculatePower(powerParams);
+    const jointPower = stage1Power * stage2Power;
 
-    if (Math.abs(result.jointPower - targetJointPower) < 0.005) {
+    if (Math.abs(jointPower - targetJointPower) < 0.005) {
       return mid;
     }
 
-    if (result.jointPower < targetJointPower) {
+    if (jointPower < targetJointPower) {
       low = mid + 1;
     } else {
       high = mid - 1;
