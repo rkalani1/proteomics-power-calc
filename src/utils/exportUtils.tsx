@@ -484,9 +484,10 @@ export const performCSVDownload = (csv: string, filename: string) => {
 };
 
 /**
- * Trigger browser print of a summary report
+ * Trigger browser print of a summary report.
+ * Returns boolean indicating whether the window was opened successfully (false if popups blocked).
  */
-export const performPrint = (html: string) => {
+export const performPrint = (html: string): boolean => {
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   // No 'noopener' here: per the HTML spec, window.open() with noopener in the
@@ -496,9 +497,8 @@ export const performPrint = (html: string) => {
   const printWindow = window.open(url, '_blank');
 
   if (!printWindow) {
-    alert('Please allow popups to print the summary.');
     URL.revokeObjectURL(url);
-    return;
+    return false;
   }
 
   try {
@@ -510,6 +510,8 @@ export const performPrint = (html: string) => {
     // document has had ample time to load.
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
+
+  return true;
 };
 
 /**

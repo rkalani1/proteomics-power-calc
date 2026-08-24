@@ -203,8 +203,9 @@ if (typeof mockWindow.onload === 'function') {
 global.window.open = () => null;
 revokeUrlArgs = [];
 alertArgs = [];
-E.performPrint('<html></html>');
-ok(alertArgs.length > 0 && alertArgs[0].includes('allow popups'), 'alert is called when window is null');
+const printResult = E.performPrint('<html></html>');
+ok(printResult === false, 'performPrint returns false when window is null');
+ok(alertArgs.length === 0, 'alert is not called directly in performPrint when window is null');
 ok(revokeUrlArgs.includes('mock-blob-url'), 'revokeObjectURL is called when window is null');
 
 

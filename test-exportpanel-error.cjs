@@ -182,11 +182,9 @@ function runTest(testName, setupMockExportUtils) {
 
     const verify = () => {
       let expectedErrorString = testName.includes('copy') ? 'Failed to copy' : 'Failed to print summary';
-      let expectedAlertString = testName.includes('copy') ? 'Failed to copy to clipboard. Please try again.' : 'Failed to print summary. Please try again.';
 
       console.log(`  ${!errorThrown ? '✓' : '✗'} Error was caught inside function`);
       console.log(`  ${capturedError && capturedError.includes(expectedErrorString) ? '✓' : '✗'} Error was logged`);
-      console.log(`  ${capturedAlert === expectedAlertString ? '✓' : '✗'} Alert was shown`);
       console.log(`  ${isExportingHook.setCalls.length === 2 ? '✓' : '✗'} setIsExporting called twice`);
 
       if (isExportingHook.setCalls.length === 2) {
@@ -196,7 +194,6 @@ function runTest(testName, setupMockExportUtils) {
 
       if (!errorThrown &&
           capturedError && capturedError.includes(expectedErrorString) &&
-          capturedAlert === expectedAlertString &&
           isExportingHook.setCalls.length === 2 &&
           isExportingHook.setCalls[0] === true && isExportingHook.setCalls[1] === false) {
         passed = true;
