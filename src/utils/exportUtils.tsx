@@ -224,7 +224,7 @@ export const generatePrintHTML = (data: ExportData): string => {
       <head>
         <meta charSet="utf-8" />
         <title>Power Analysis Summary</title>
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style>{`
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; line-height: 1.6; }
           h1 { color: #4f46e5; margin-bottom: 5px; }
           h2 { color: #6b7280; font-size: 1.1em; margin-top: 30px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
@@ -238,7 +238,7 @@ export const generatePrintHTML = (data: ExportData): string => {
           .power-low { color: #dc2626; }
           .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 0.85em; color: #6b7280; }
           @media print { body { margin: 20px; } }
-        ` }} />
+        `}</style>
       </head>
       <body>
         <h1>Proteomics Power Analysis</h1>
