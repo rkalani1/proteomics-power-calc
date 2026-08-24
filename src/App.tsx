@@ -300,17 +300,25 @@ function App() {
     const numPoints = 101; // 101 points so steps overlap nicely with 10% increments for the table
     const step = (config.max - config.min) / (numPoints - 1);
 
-    // Create data points with power for each scenario
-    const curveData: Array<Record<string, number>> = [];
-    const tData: Array<Record<string, number>> = [];
+      // Pre-allocate arrays for power curves and table data
+      const curveData: Array<Record<string, number>> = new Array(numPoints);
+      const tData: Array<Record<string, number>> = new Array(11);
+      let tIndex = 0;
 
-    // Pre-calculate alphas outside the loop for performance
-    const alphas = effectiveProteinCounts.map(count =>
-      calculateEffectiveAlpha(fdrQ, count, correctionMethod)
-    );
+      // Pre-calculate alphas and object keys outside the loop to avoid repeated
+      // string allocations and function calls in the inner loop.
+      const numScenarios = effectiveProteinCounts.length;
+      const alphas = new Float64Array(numScenarios);
+      const keys: string[] = new Array(numScenarios);
+
+      for (let j = 0; j < numScenarios; j++) {
+        const count = effectiveProteinCounts[j];
+        alphas[j] = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
+        keys[j] = `power_${count}`;
+      }
 
     // Hoist base parameters outside the loops to avoid repeated object creation
-    // and spread operations in the calculatePowerForEffect wrapper.
+      // and spread operations in the calculatePower wrapper.
     const baseParams: PowerParams = {
       analysisType,
       studyDesign,
@@ -335,19 +343,17 @@ function App() {
       const dataPoint: Record<string, number> = { effect: Number(effect.toFixed(4)) };
       baseParams.effectSize = effect;
 
-      for (let j = 0; j < effectiveProteinCounts.length; j++) {
-        const count = effectiveProteinCounts[j];
+        for (let j = 0; j < numScenarios; j++) {
         baseParams.alpha = alphas[j];
-        dataPoint[`power_${count}`] = calculatePower(baseParams);
+          dataPoint[keys[j]] = calculatePower(baseParams);
       }
 
-      curveData.push(dataPoint);
+        curveData[i] = dataPoint;
 
       // Extract every 10th point for the table data (11 points total: 0, 10, ..., 100)
       if (i % 10 === 0) {
-        tData.push({
-          ...dataPoint,
-          effect: Number(effect.toFixed(2)) // Keep 2 decimal format for the table
+          tData[tIndex++] = Object.assign({}, dataPoint, {
+            effect: Number(effect.toFixed(2)), // Keep 2 decimal format for the table
         });
       }
     }
