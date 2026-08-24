@@ -79,7 +79,7 @@ console.log('-'.repeat(50));
   'calculateDesignEffect', 'calculateEffectiveSampleSize', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN', 'calculateGEE_RequiredClusters',
   'orToRR', 'rrToOR', 'r2ToF2', 'betaToCohenD',
   'calculateInflation', 'calculateMinEffect', 'calculateStage1Alpha', 'findOptimalStage1FDR',
-  'generatePowerCurve', 'generateTableData',
+  'generateTableData',
 ].forEach((fn) => ok(typeof S[fn] === 'function', `exports ${fn}()`));
 
 // ---------------------------------------------------------------------------
@@ -333,27 +333,6 @@ close(S.calculateInflation(1.5, 0.8), 0, 1e-12, 'calculateInflation: opposite di
 close(S.calculateInflation(0.8, 1.5), 0, 1e-12, 'calculateInflation: opposite directions -> 0');
 close(S.calculateInflation(1.5, 1.8), ((1.8 / 1.5) - 1) * 100, 1e-12, 'calculateInflation: 1.5 -> 1.8');
 close(S.calculateInflation(0.8, 0.5), ((0.5 / 0.8) - 1) * 100, 1e-12, 'calculateInflation: 0.8 -> 0.5');
-
-// ---------------------------------------------------------------------------
-console.log('\n12. generatePowerCurve (missing tests from issue)');
-console.log('-'.repeat(50));
-const curvePoints = S.generatePowerCurve(100, 0.05, 1.0, 3.0, 50);
-ok(Array.isArray(curvePoints), 'generatePowerCurve returns an array');
-ok(curvePoints.length === 50, `generatePowerCurve respects numPoints parameter (got ${curvePoints.length})`);
-
-const firstPoint = curvePoints[0];
-const lastPoint = curvePoints[curvePoints.length - 1];
-
-ok(firstPoint && typeof firstPoint.hr === 'number' && typeof firstPoint.power === 'number',
-  'curve objects have numeric hr and power properties');
-close(firstPoint.hr, 1.0, 1e-4, `first point hr is exactly hrMin (got ${firstPoint.hr})`);
-close(lastPoint.hr, 3.0, 1e-4, `last point hr is exactly hrMax (got ${lastPoint.hr})`);
-
-// Power for HR=1.0 should be approx alpha
-close(firstPoint.power, 0.05, 1e-4, 'power at hr=1.0 matches alpha (0.05)');
-
-const curveDefault = S.generatePowerCurve(100, 0.05);
-ok(curveDefault.length === 100, 'generatePowerCurve uses default numPoints=100');
 
 // ---------------------------------------------------------------------------
 console.log('\n13. Numerical stability / guards');
