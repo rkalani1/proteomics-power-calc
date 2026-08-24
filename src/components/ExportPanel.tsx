@@ -19,19 +19,31 @@ import {
  * Provides export functionality for power analysis results.
  * Supports CSV export for data and a printable summary.
  */
+interface NotificationState {
+  type: 'success' | 'error';
+  message: string;
+}
+
 const ExportPanel: React.FC<ExportData> = (props) => {
   const [isExporting, setIsExporting] = useState(false);
+  const [notification, setNotification] = useState<NotificationState | null>(null);
+
+  const clearNotification = () => setNotification(null);
 
   // Download CSV
   const downloadCSV = () => {
     setIsExporting(true);
+    clearNotification();
     try {
       const csv = generateCSV(props);
       const filename = `power-analysis-${new Date().toISOString().split('T')[0]}.csv`;
       performCSVDownload(csv, filename);
     } catch (err) {
       console.error('Failed to download CSV:', err);
-      alert('Failed to download CSV. Please try again.');
+      setNotification({
+        type: 'error',
+        message: 'Failed to download CSV. Please try again.',
+      });
     } finally {
       setIsExporting(false);
     }
@@ -40,13 +52,17 @@ const ExportPanel: React.FC<ExportData> = (props) => {
   // Download structured JSON (machine-parseable)
   const downloadJSON = () => {
     setIsExporting(true);
+    clearNotification();
     try {
       const json = generateJSON(props);
       const filename = `power-analysis-${new Date().toISOString().split('T')[0]}.json`;
       performJSONDownload(json, filename);
     } catch (err) {
       console.error('Failed to download JSON:', err);
-      alert('Failed to download JSON. Please try again.');
+      setNotification({
+        type: 'error',
+        message: 'Failed to download JSON. Please try again.',
+      });
     } finally {
       setIsExporting(false);
     }
@@ -55,12 +71,22 @@ const ExportPanel: React.FC<ExportData> = (props) => {
   // Generate printable HTML and open print dialog using Blob URL
   const printSummary = () => {
     setIsExporting(true);
+    clearNotification();
     try {
       const html = generatePrintHTML(props);
-      performPrint(html);
+      const success = performPrint(html);
+      if (!success) {
+        setNotification({
+          type: 'error',
+          message: 'Please allow popups to print the summary.',
+        });
+      }
     } catch (err) {
       console.error('Failed to print summary:', err);
-      alert('Failed to print summary. Please try again.');
+      setNotification({
+        type: 'error',
+        message: 'Failed to print summary. Please try again.',
+      });
     } finally {
       setIsExporting(false);
     }
@@ -69,13 +95,20 @@ const ExportPanel: React.FC<ExportData> = (props) => {
   // Copy summary to clipboard
   const copyToClipboard = async () => {
     setIsExporting(true);
+    clearNotification();
     try {
       const summary = generateTextSummary(props);
       await performCopy(summary);
-      alert('Summary copied to clipboard!');
+      setNotification({
+        type: 'success',
+        message: 'Summary copied to clipboard!',
+      });
     } catch (err) {
       console.error('Failed to copy:', err);
-      alert('Failed to copy to clipboard. Please try again.');
+      setNotification({
+        type: 'error',
+        message: 'Failed to copy to clipboard. Please try again.',
+      });
     } finally {
       setIsExporting(false);
     }
@@ -163,6 +196,27 @@ const ExportPanel: React.FC<ExportData> = (props) => {
               Copy Summary
             </button>
           </div>
+
+          {notification && (
+            <div
+              role="alert"
+              className={`mt-4 p-3 rounded-lg text-sm flex items-center justify-between border ${
+                notification.type === 'error'
+                  ? 'bg-rose-50 text-rose-800 border-rose-200'
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              }`}
+            >
+              <span>{notification.message}</span>
+              <button
+                type="button"
+                onClick={clearNotification}
+                aria-label="Dismiss notification"
+                className="ml-2 text-gray-500 hover:text-gray-700 font-bold"
+              >
+                &times;
+              </button>
+            </div>
+          )}
 
         </div>
       </div>

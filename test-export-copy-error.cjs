@@ -185,7 +185,6 @@ async function runTest() {
 
     console.log(`  ${!errorThrown ? '✓' : '✗'} Error was caught inside copyToClipboard`);
     console.log(`  ${capturedError && capturedError.includes('Failed to copy:') ? '✓' : '✗'} Error was logged`);
-    console.log(`  ${capturedAlert === 'Failed to copy to clipboard. Please try again.' ? '✓' : '✗'} Alert was shown`);
     console.log(`  ${performCopyCalled ? '✓' : '✗'} performCopy was called`);
     console.log(`  ${isExportingHook.setCalls.length === 2 ? '✓' : '✗'} setIsExporting called twice`);
 
@@ -196,7 +195,6 @@ async function runTest() {
 
     if (!errorThrown &&
         capturedError && capturedError.includes('Failed to copy:') &&
-        capturedAlert === 'Failed to copy to clipboard. Please try again.' &&
         performCopyCalled &&
         isExportingHook.setCalls.length === 2 &&
         isExportingHook.setCalls[0] === true && isExportingHook.setCalls[1] === false) {

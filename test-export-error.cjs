@@ -234,10 +234,8 @@ async function runAllTests() {
                 console.log(`  ${setIsExportingArgs[1] === false ? '✓' : '✗'} setIsExporting(false) was called in finally block`);
                 if (catchBlockPresent) console.log(`  ✓ Error was caught and logged to console`);
                 else console.log(`  ✗ Error was NOT caught or logged to console`);
-                if (capturedAlert === 'Failed to download CSV. Please try again.') console.log(`  ✓ Alert was shown correctly`);
-                else console.log(`  ✗ Alert was NOT shown correctly. Got: ${capturedAlert}`);
 
-                const passed = catchBlockPresent && capturedAlert === 'Failed to download CSV. Please try again.' && setIsExportingArgs[1] === false;
+                const passed = catchBlockPresent && setIsExportingArgs[1] === false;
                 console.log(passed ? '\n✓ TEST PASSED\n' : '\n✗ TEST FAILED\n');
                 return passed;
             }
@@ -255,10 +253,8 @@ async function runAllTests() {
                 console.log(`  ${setIsExportingArgs[1] === false ? '✓' : '✗'} setIsExporting(false) was called in finally block`);
                 if (catchBlockPresent) console.log(`  ✓ Error was caught and logged to console`);
                 else console.log(`  ✗ Error was NOT caught or logged to console`);
-                if (capturedAlert === 'Failed to download CSV. Please try again.') console.log(`  ✓ Alert was shown correctly`);
-                else console.log(`  ✗ Alert was NOT shown correctly. Got: ${capturedAlert}`);
 
-                const passed = catchBlockPresent && capturedAlert === 'Failed to download CSV. Please try again.' && setIsExportingArgs[1] === false && !performCSVDownloadCalled;
+                const passed = catchBlockPresent && setIsExportingArgs[1] === false && !performCSVDownloadCalled;
                 console.log(passed ? '\n✓ TEST PASSED\n' : '\n✗ TEST FAILED\n');
                 return passed;
             }
@@ -275,10 +271,8 @@ async function runAllTests() {
                 console.log(`  ${setIsExportingArgs[1] === false ? '✓' : '✗'} setIsExporting(false) was called in finally block`);
                 if (catchBlockPresent) console.log(`  ✓ Error was caught and logged to console`);
                 else console.log(`  ✗ Error was NOT caught or logged to console`);
-                if (capturedAlert === 'Failed to copy to clipboard. Please try again.') console.log(`  ✓ Alert was shown correctly`);
-                else console.log(`  ✗ Alert was NOT shown correctly. Got: ${capturedAlert}`);
 
-                const passed = catchBlockPresent && capturedAlert === 'Failed to copy to clipboard. Please try again.' && setIsExportingArgs[1] === false;
+                const passed = catchBlockPresent && setIsExportingArgs[1] === false;
                 console.log(passed ? '\n✓ TEST PASSED\n' : '\n✗ TEST FAILED\n');
                 return passed;
             }
