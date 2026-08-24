@@ -29,12 +29,17 @@ fs.writeFileSync(bundlePath, bundleText);
 
 // 2. Setup mocks
 let setIsExportingArgs = [];
+let feedbackState = null;
 
 const mockReact = {
   useState: (initial) => {
     // For isExporting
     if (typeof initial === 'boolean' && initial === false) {
       return [initial, (val) => setIsExportingArgs.push(val)];
+    }
+    // For feedback
+    if (initial === null) {
+      return [feedbackState, (val) => { feedbackState = typeof val === 'function' ? val(feedbackState) : val; }];
     }
     // For isExpanded
     return [initial, () => {}];
@@ -157,6 +162,7 @@ async function runTest(testName, setupBehavior, findHandler, verify) {
 
     // Reset state
     setIsExportingArgs = [];
+    feedbackState = null;
     performCSVDownloadCalled = false;
     performCopyCalled = false;
     generateCSVCalled = false;
@@ -229,15 +235,16 @@ async function runAllTests() {
             (text) => text.includes('Download CSV'),
             (caught) => {
                 const catchBlockPresent = caught === false && capturedError !== null;
+                const feedbackCorrect = feedbackState && feedbackState.type === 'error' && feedbackState.message === 'Failed to download CSV. Please try again.';
                 console.log(`  ${setIsExportingArgs[0] === true ? '✓' : '✗'} setIsExporting(true) was called`);
                 console.log(`  ${performCSVDownloadCalled ? '✓' : '✗'} performCSVDownload was called and threw`);
                 console.log(`  ${setIsExportingArgs[1] === false ? '✓' : '✗'} setIsExporting(false) was called in finally block`);
                 if (catchBlockPresent) console.log(`  ✓ Error was caught and logged to console`);
                 else console.log(`  ✗ Error was NOT caught or logged to console`);
-                if (capturedAlert === 'Failed to download CSV. Please try again.') console.log(`  ✓ Alert was shown correctly`);
-                else console.log(`  ✗ Alert was NOT shown correctly. Got: ${capturedAlert}`);
+                if (feedbackCorrect) console.log(`  ✓ Inline feedback error was set correctly`);
+                else console.log(`  ✗ Inline feedback error was NOT set correctly. Got: ${JSON.stringify(feedbackState)}`);
 
-                const passed = catchBlockPresent && capturedAlert === 'Failed to download CSV. Please try again.' && setIsExportingArgs[1] === false;
+                const passed = catchBlockPresent && feedbackCorrect && setIsExportingArgs[1] === false;
                 console.log(passed ? '\n✓ TEST PASSED\n' : '\n✗ TEST FAILED\n');
                 return passed;
             }
@@ -249,16 +256,17 @@ async function runAllTests() {
             (text) => text.includes('Download CSV'),
             (caught) => {
                 const catchBlockPresent = caught === false && capturedError !== null;
+                const feedbackCorrect = feedbackState && feedbackState.type === 'error' && feedbackState.message === 'Failed to download CSV. Please try again.';
                 console.log(`  ${setIsExportingArgs[0] === true ? '✓' : '✗'} setIsExporting(true) was called`);
                 console.log(`  ${generateCSVCalled ? '✓' : '✗'} generateCSV was called and threw`);
                 console.log(`  ${!performCSVDownloadCalled ? '✓' : '✗'} performCSVDownload was NOT called`);
                 console.log(`  ${setIsExportingArgs[1] === false ? '✓' : '✗'} setIsExporting(false) was called in finally block`);
                 if (catchBlockPresent) console.log(`  ✓ Error was caught and logged to console`);
                 else console.log(`  ✗ Error was NOT caught or logged to console`);
-                if (capturedAlert === 'Failed to download CSV. Please try again.') console.log(`  ✓ Alert was shown correctly`);
-                else console.log(`  ✗ Alert was NOT shown correctly. Got: ${capturedAlert}`);
+                if (feedbackCorrect) console.log(`  ✓ Inline feedback error was set correctly`);
+                else console.log(`  ✗ Inline feedback error was NOT set correctly. Got: ${JSON.stringify(feedbackState)}`);
 
-                const passed = catchBlockPresent && capturedAlert === 'Failed to download CSV. Please try again.' && setIsExportingArgs[1] === false && !performCSVDownloadCalled;
+                const passed = catchBlockPresent && feedbackCorrect && setIsExportingArgs[1] === false && !performCSVDownloadCalled;
                 console.log(passed ? '\n✓ TEST PASSED\n' : '\n✗ TEST FAILED\n');
                 return passed;
             }
@@ -270,15 +278,16 @@ async function runAllTests() {
             (text) => text.includes('Copy Summary'),
             (caught) => {
                 const catchBlockPresent = caught === false && capturedError !== null;
+                const feedbackCorrect = feedbackState && feedbackState.type === 'error' && feedbackState.message === 'Failed to copy to clipboard. Please try again.';
                 console.log(`  ${setIsExportingArgs[0] === true ? '✓' : '✗'} setIsExporting(true) was called`);
                 console.log(`  ${performCopyCalled ? '✓' : '✗'} performCopy was called and rejected`);
                 console.log(`  ${setIsExportingArgs[1] === false ? '✓' : '✗'} setIsExporting(false) was called in finally block`);
                 if (catchBlockPresent) console.log(`  ✓ Error was caught and logged to console`);
                 else console.log(`  ✗ Error was NOT caught or logged to console`);
-                if (capturedAlert === 'Failed to copy to clipboard. Please try again.') console.log(`  ✓ Alert was shown correctly`);
-                else console.log(`  ✗ Alert was NOT shown correctly. Got: ${capturedAlert}`);
+                if (feedbackCorrect) console.log(`  ✓ Inline feedback error was set correctly`);
+                else console.log(`  ✗ Inline feedback error was NOT set correctly. Got: ${JSON.stringify(feedbackState)}`);
 
-                const passed = catchBlockPresent && capturedAlert === 'Failed to copy to clipboard. Please try again.' && setIsExportingArgs[1] === false;
+                const passed = catchBlockPresent && feedbackCorrect && setIsExportingArgs[1] === false;
                 console.log(passed ? '\n✓ TEST PASSED\n' : '\n✗ TEST FAILED\n');
                 return passed;
             }

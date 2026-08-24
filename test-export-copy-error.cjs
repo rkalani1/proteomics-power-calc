@@ -172,9 +172,11 @@ async function runTest() {
 
     // The first useState is isExporting (index 0)
     const isExportingHook = stateHooks[0];
+    const feedbackHook = stateHooks[1];
     isExportingHook.setCalls = []; // Clear previous calls from render if any
+    if (feedbackHook) feedbackHook.setCalls = [];
 
-    // Execute the copy function. ExportPanel should catch the mock error, alert,
+    // Execute the copy function. ExportPanel should catch the mock error, set feedback,
     // and still reset the loading state in the finally block.
     let errorThrown = false;
     try {
@@ -183,9 +185,11 @@ async function runTest() {
       errorThrown = true;
     }
 
+    const feedbackSet = feedbackHook && feedbackHook.value && feedbackHook.value.type === 'error' && feedbackHook.value.message === 'Failed to copy to clipboard. Please try again.';
+
     console.log(`  ${!errorThrown ? '✓' : '✗'} Error was caught inside copyToClipboard`);
     console.log(`  ${capturedError && capturedError.includes('Failed to copy:') ? '✓' : '✗'} Error was logged`);
-    console.log(`  ${capturedAlert === 'Failed to copy to clipboard. Please try again.' ? '✓' : '✗'} Alert was shown`);
+    console.log(`  ${feedbackSet ? '✓' : '✗'} Feedback error state was set`);
     console.log(`  ${performCopyCalled ? '✓' : '✗'} performCopy was called`);
     console.log(`  ${isExportingHook.setCalls.length === 2 ? '✓' : '✗'} setIsExporting called twice`);
 
@@ -196,7 +200,7 @@ async function runTest() {
 
     if (!errorThrown &&
         capturedError && capturedError.includes('Failed to copy:') &&
-        capturedAlert === 'Failed to copy to clipboard. Please try again.' &&
+        feedbackSet &&
         performCopyCalled &&
         isExportingHook.setCalls.length === 2 &&
         isExportingHook.setCalls[0] === true && isExportingHook.setCalls[1] === false) {

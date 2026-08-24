@@ -21,17 +21,19 @@ import {
  */
 const ExportPanel: React.FC<ExportData> = (props) => {
   const [isExporting, setIsExporting] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Download CSV
   const downloadCSV = () => {
     setIsExporting(true);
+    setFeedback(null);
     try {
       const csv = generateCSV(props);
       const filename = `power-analysis-${new Date().toISOString().split('T')[0]}.csv`;
       performCSVDownload(csv, filename);
     } catch (err) {
       console.error('Failed to download CSV:', err);
-      alert('Failed to download CSV. Please try again.');
+      setFeedback({ type: 'error', message: 'Failed to download CSV. Please try again.' });
     } finally {
       setIsExporting(false);
     }
@@ -40,13 +42,14 @@ const ExportPanel: React.FC<ExportData> = (props) => {
   // Download structured JSON (machine-parseable)
   const downloadJSON = () => {
     setIsExporting(true);
+    setFeedback(null);
     try {
       const json = generateJSON(props);
       const filename = `power-analysis-${new Date().toISOString().split('T')[0]}.json`;
       performJSONDownload(json, filename);
     } catch (err) {
       console.error('Failed to download JSON:', err);
-      alert('Failed to download JSON. Please try again.');
+      setFeedback({ type: 'error', message: 'Failed to download JSON. Please try again.' });
     } finally {
       setIsExporting(false);
     }
@@ -55,12 +58,13 @@ const ExportPanel: React.FC<ExportData> = (props) => {
   // Generate printable HTML and open print dialog using Blob URL
   const printSummary = () => {
     setIsExporting(true);
+    setFeedback(null);
     try {
       const html = generatePrintHTML(props);
       performPrint(html);
     } catch (err) {
       console.error('Failed to print summary:', err);
-      alert('Failed to print summary. Please try again.');
+      setFeedback({ type: 'error', message: 'Failed to print summary. Please try again.' });
     } finally {
       setIsExporting(false);
     }
@@ -69,13 +73,14 @@ const ExportPanel: React.FC<ExportData> = (props) => {
   // Copy summary to clipboard
   const copyToClipboard = async () => {
     setIsExporting(true);
+    setFeedback(null);
     try {
       const summary = generateTextSummary(props);
       await performCopy(summary);
-      alert('Summary copied to clipboard!');
+      setFeedback({ type: 'success', message: 'Summary copied to clipboard!' });
     } catch (err) {
       console.error('Failed to copy:', err);
-      alert('Failed to copy to clipboard. Please try again.');
+      setFeedback({ type: 'error', message: 'Failed to copy to clipboard. Please try again.' });
     } finally {
       setIsExporting(false);
     }
@@ -118,6 +123,26 @@ const ExportPanel: React.FC<ExportData> = (props) => {
         } overflow-hidden`}
       >
         <div className="px-6 pb-6">
+          {feedback && (
+            <div
+              role="alert"
+              className={`mb-4 p-3 rounded-lg flex items-center justify-between text-sm ${
+                feedback.type === 'error'
+                  ? 'bg-red-50 text-red-700 border border-red-200'
+                  : 'bg-green-50 text-green-700 border border-green-200'
+              }`}
+            >
+              <span>{feedback.message}</span>
+              <button
+                type="button"
+                onClick={() => setFeedback(null)}
+                aria-label="Dismiss message"
+                className="ml-2 text-gray-500 hover:text-gray-700 focus:outline-none"
+              >
+                &times;
+              </button>
+            </div>
+          )}
           <div className="export-actions flex flex-wrap gap-3">
             <button
               onClick={downloadCSV}
