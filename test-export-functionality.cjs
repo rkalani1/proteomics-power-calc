@@ -225,10 +225,37 @@ E.performPrint('<html></html>');
 ok(setTimeoutArgs.length === 1, 'setTimeout fallback is called on onload error');
 if (setTimeoutArgs.length === 1) {
   ok(setTimeoutArgs[0].delay === 60000, 'setTimeout fallback uses 60000ms delay');
+  ok(!revokeUrlArgs.includes('mock-blob-url'), 'revokeObjectURL is not called prematurely before fallback timer fires');
 
   // trigger the callback
   setTimeoutArgs[0].cb();
   ok(revokeUrlArgs.includes('mock-blob-url'), 'revokeObjectURL is called from setTimeout fallback callback');
+}
+
+// 6d. Test cross-origin SecurityError when setting printWindow.onload in cross-origin window
+global.window.open = () => {
+  return {
+    get onload() {
+      throw new Error('SecurityError: Blocked a frame with origin from accessing a cross-origin frame.');
+    },
+    set onload(val) {
+      throw new Error('SecurityError: Blocked a frame with origin from accessing a cross-origin frame.');
+    }
+  };
+};
+
+revokeUrlArgs = [];
+setTimeoutArgs = [];
+E.performPrint('<html></html>');
+
+ok(setTimeoutArgs.length === 1, 'setTimeout fallback is called on cross-origin getter error');
+if (setTimeoutArgs.length === 1) {
+  ok(setTimeoutArgs[0].delay === 60000, 'setTimeout fallback uses 60000ms delay for getter error');
+  ok(!revokeUrlArgs.includes('mock-blob-url'), 'revokeObjectURL is not called prematurely for getter error');
+
+  // trigger the callback
+  setTimeoutArgs[0].cb();
+  ok(revokeUrlArgs.includes('mock-blob-url'), 'revokeObjectURL is called from setTimeout callback for getter error');
 }
 
 // restore
