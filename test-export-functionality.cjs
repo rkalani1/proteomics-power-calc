@@ -102,6 +102,9 @@ ok(html.includes('Cox Proportional Hazards'), 'HTML includes analysis type');
 ok(html.includes('1,000'), 'HTML includes formatted protein count');
 ok(html.includes('power-good'), 'HTML includes power status class');
 ok(html.includes('Covariate R² (protein ~ covariates)'), 'HTML includes design params');
+ok(html.includes('<script>window.onload = function() { window.print(); };</script>'), 'HTML includes print trigger script');
+ok(html.includes('<style>') && html.includes('body { font-family:'), 'HTML includes style block');
+ok(!html.includes('dangerouslySetInnerHTML'), 'HTML does not contain dangerouslySetInnerHTML attribute string');
 
 // 3. Test generateTextSummary
 console.log('\n3. generateTextSummary');
