@@ -304,10 +304,17 @@ function App() {
     const curveData: Array<Record<string, number>> = [];
     const tData: Array<Record<string, number>> = [];
 
-    // Pre-calculate alphas outside the loop for performance
-    const alphas = effectiveProteinCounts.map(count =>
-      calculateEffectiveAlpha(fdrQ, count, correctionMethod)
-    );
+    const numScenarios = effectiveProteinCounts.length;
+
+    // Pre-calculate alphas and property keys outside the loop for performance
+    const alphas = new Float64Array(numScenarios);
+    const powerKeys = new Array<string>(numScenarios);
+
+    for (let j = 0; j < numScenarios; j++) {
+      const count = effectiveProteinCounts[j];
+      alphas[j] = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
+      powerKeys[j] = `power_${count}`;
+    }
 
     // Hoist base parameters outside the loops to avoid repeated object creation
     // and spread operations in the calculatePowerForEffect wrapper.
@@ -335,10 +342,9 @@ function App() {
       const dataPoint: Record<string, number> = { effect: Number(effect.toFixed(4)) };
       baseParams.effectSize = effect;
 
-      for (let j = 0; j < effectiveProteinCounts.length; j++) {
-        const count = effectiveProteinCounts[j];
+      for (let j = 0; j < numScenarios; j++) {
         baseParams.alpha = alphas[j];
-        dataPoint[`power_${count}`] = calculatePower(baseParams);
+        dataPoint[powerKeys[j]] = calculatePower(baseParams);
       }
 
       curveData.push(dataPoint);
