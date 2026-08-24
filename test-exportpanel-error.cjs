@@ -168,9 +168,11 @@ function runTest(testName, setupMockExportUtils) {
 
     // The first useState is isExporting (index 0)
     const isExportingHook = stateHooks[0];
+    const feedbackHook = stateHooks[1];
     isExportingHook.setCalls = []; // Clear previous calls from render if any
+    if (feedbackHook) feedbackHook.setCalls = [];
 
-    // Execute the function. ExportPanel should catch the mock error, alert,
+    // Execute the function. ExportPanel should catch the mock error, set feedback,
     // and still reset the loading state in the finally block.
     let errorThrown = false;
     let promise = null;
@@ -182,11 +184,13 @@ function runTest(testName, setupMockExportUtils) {
 
     const verify = () => {
       let expectedErrorString = testName.includes('copy') ? 'Failed to copy' : 'Failed to print summary';
-      let expectedAlertString = testName.includes('copy') ? 'Failed to copy to clipboard. Please try again.' : 'Failed to print summary. Please try again.';
+      let expectedMessageString = testName.includes('copy') ? 'Failed to copy to clipboard. Please try again.' : 'Failed to print summary. Please try again.';
+
+      const feedbackSet = feedbackHook && feedbackHook.value && feedbackHook.value.type === 'error' && feedbackHook.value.message === expectedMessageString;
 
       console.log(`  ${!errorThrown ? '✓' : '✗'} Error was caught inside function`);
       console.log(`  ${capturedError && capturedError.includes(expectedErrorString) ? '✓' : '✗'} Error was logged`);
-      console.log(`  ${capturedAlert === expectedAlertString ? '✓' : '✗'} Alert was shown`);
+      console.log(`  ${feedbackSet ? '✓' : '✗'} Feedback error state was set`);
       console.log(`  ${isExportingHook.setCalls.length === 2 ? '✓' : '✗'} setIsExporting called twice`);
 
       if (isExportingHook.setCalls.length === 2) {
@@ -196,7 +200,7 @@ function runTest(testName, setupMockExportUtils) {
 
       if (!errorThrown &&
           capturedError && capturedError.includes(expectedErrorString) &&
-          capturedAlert === expectedAlertString &&
+          feedbackSet &&
           isExportingHook.setCalls.length === 2 &&
           isExportingHook.setCalls[0] === true && isExportingHook.setCalls[1] === false) {
         passed = true;
