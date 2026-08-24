@@ -117,7 +117,7 @@ export type CorrectionMethod = 'fdr' | 'bonferroni';
 export const calculateEffectiveAlpha = (
   threshold: number,
   numTests: number,
-  _method: CorrectionMethod = 'fdr'
+  method: CorrectionMethod = 'fdr'
 ): number => {
   if (numTests <= 0) return threshold;
 
@@ -126,9 +126,12 @@ export const calculateEffectiveAlpha = (
   // - FDR: threshold is q (expected false discovery proportion)
   //        Approximation α_eff ≈ q/m is conservative (actual power is higher)
   // - Bonferroni: threshold is α (family-wise error rate), exact formula
-  // The _method parameter is kept for API clarity and potential future differentiation
-  void _method; // Explicitly mark as intentionally unused
-  return threshold / numTests;
+  switch (method) {
+    case 'bonferroni':
+    case 'fdr':
+    default:
+      return threshold / numTests;
+  }
 };
 
 // ============================================================================
