@@ -1,8 +1,11 @@
 /**
- * MathEquation Error Handling Test
+ * MathEquation Unit & Error Handling Test
  *
- * Verifies that the MathEquation component correctly catches KaTeX rendering
- * errors and falls back to displaying the raw LaTeX text.
+ * Verifies that the MathEquation component:
+ * 1. Correctly catches KaTeX rendering errors, logs them to console.error, and falls back to raw LaTeX text.
+ * 2. Calls katex.render with the correct options on happy paths (displayMode, throwOnError: false, strict: false, trust: false).
+ * 3. Handles custom className props and displayMode toggles.
+ * 4. Gracefully degrades when used inside parent components like PowerFormula.
  */
 
 const path = require('path');
@@ -10,7 +13,7 @@ const fs = require('fs');
 const esbuild = require('esbuild');
 const Module = require('module');
 
-// 1. Bundle MathEquation.tsx but keep react, katex, and formulas external
+// 1. Bundle MathEquation.tsx keeping react, katex, and formulas external
 const SRC = path.join(__dirname, 'src', 'components', 'MathEquation.tsx');
 const out = esbuild.buildSync({
   entryPoints: [SRC],
@@ -27,48 +30,18 @@ const bundleText = out.outputFiles[0].text;
 const bundlePath = path.join(__dirname, `.test-mathequation-err.${process.pid}.cjs`);
 fs.writeFileSync(bundlePath, bundleText);
 
-// 2. Setup mocks
-const containers = [];
-const mockReact = {
-  useRef: () => {
-    const container = { textContent: '', innerHTML: '' };
-    containers.push(container);
-    return { current: container };
-  },
-  effects: [],
-  useEffect: (fn, deps) => {
-    mockReact.effects.push(fn);
-  },
-  useState: (initial) => [initial, () => {}],
-  createElement: (type, props, ...children) => ({ type, props, children }),
-  Fragment: Symbol('react.fragment'),
-};
-
-const mockReactRuntime = {
-  jsx: (type, props) => {
-    // When PowerFormula renders MathEquation, we just call it directly to simulate rendering
-    if (typeof type === 'function') {
-      type(props);
-    }
-    return { type, props };
-  },
-  jsxs: (type, props) => {
-    if (typeof type === 'function') {
-      type(props);
-    }
-    return { type, props };
-  },
-  jsxDEV: (type, props) => {
-    if (typeof type === 'function') {
-      type(props);
-    }
-    return { type, props };
-  },
-};
+// 2. State & Mocks
+let katexShouldThrow = false;
+const katexCalls = [];
+let capturedConsoleErrors = [];
 
 const mockKatex = {
-  render: () => {
-    throw new Error('Forced KaTeX error');
+  render: (latex, container, options) => {
+    katexCalls.push({ latex, container, options });
+    if (katexShouldThrow) {
+      throw new Error(`Forced KaTeX error for "${latex}"`);
+    }
+    container.innerHTML = `<span class="katex-rendered">${latex}</span>`;
   }
 };
 
@@ -84,7 +57,46 @@ const mockFormulas = {
   definitionsFor: () => '\\invalid{def}'
 };
 
-// 3. Inject mocks into require cache
+// React Mock Setup
+let currentRef = null;
+let effectCallbacks = [];
+
+const mockReact = {
+  useRef: (initialValue) => {
+    const refObj = { current: initialValue || { textContent: '', innerHTML: '' } };
+    currentRef = refObj;
+    return refObj;
+  },
+  useEffect: (callback, deps) => {
+    effectCallbacks.push({ callback, deps });
+  },
+  useState: (initial) => [initial, () => {}],
+  createElement: (type, props, ...children) => ({ type, props, children }),
+  Fragment: Symbol('react.fragment'),
+};
+
+const mockReactRuntime = {
+  jsx: (type, props) => {
+    if (typeof type === 'function') {
+      return type(props);
+    }
+    return { type, props };
+  },
+  jsxs: (type, props) => {
+    if (typeof type === 'function') {
+      return type(props);
+    }
+    return { type, props };
+  },
+  jsxDEV: (type, props) => {
+    if (typeof type === 'function') {
+      return type(props);
+    }
+    return { type, props };
+  },
+};
+
+// 3. Inject Mocks into Module Loader
 const originalLoad = Module._load;
 Module._load = function(request, parent, isMain) {
   if (request === 'react') return mockReact;
@@ -96,73 +108,159 @@ Module._load = function(request, parent, isMain) {
 
 global.React = mockReact;
 
-let PowerFormula;
+let MathEquation, PowerFormula;
 try {
   const mod = require(bundlePath);
+  MathEquation = mod.MathEquation;
   PowerFormula = mod.PowerFormula;
 } finally {
   Module._load = originalLoad;
 }
 
-// 4. Test execution
-console.log('='.repeat(70));
-console.log('MathEquation Error Handling Test (via PowerFormula)');
-console.log('='.repeat(70));
-
-let capturedError = '';
+// Intercept console.error
 const originalConsoleError = console.error;
 console.error = (...args) => {
-  capturedError += args.join(' ') + '\n';
+  capturedConsoleErrors.push(args.map(a => (a instanceof Error ? a.message : String(a))).join(' '));
 };
 
+let totalPassed = 0;
+let totalFailed = 0;
+
+function assert(condition, message, details = '') {
+  if (condition) {
+    totalPassed++;
+    console.log(`  ✓ ${message}`);
+  } else {
+    totalFailed++;
+    console.log(`  ✗ ${message} ${details}`);
+  }
+}
+
+console.log('='.repeat(70));
+console.log('MathEquation Component & Error Path Unit Tests');
+console.log('='.repeat(70));
+
 try {
-  // Trigger "render"
+  // Test 1: MathEquation Direct Error Handling Path
+  console.log('\n1. MathEquation Direct Error Path Test');
+  katexShouldThrow = true;
+  katexCalls.length = 0;
+  capturedConsoleErrors.length = 0;
+  effectCallbacks.length = 0;
+
+  const testContainer = { textContent: 'initial', innerHTML: '' };
+  mockReact.useRef = () => ({ current: testContainer });
+
+  MathEquation({ latex: '\\invalid{latex_test}', displayMode: true, className: 'my-math-class' });
+
+  // Execute effect
+  effectCallbacks.forEach(({ callback }) => callback());
+
+  assert(
+    testContainer.textContent === '\\invalid{latex_test}',
+    'Fallback textContent correctly set to latex prop on rendering error'
+  );
+
+  assert(
+    capturedConsoleErrors.some(err => err.includes('KaTeX rendering error:')),
+    'Console error includes "KaTeX rendering error:" prefix'
+  );
+
+  assert(
+    capturedConsoleErrors.some(err => err.includes('Forced KaTeX error for "\\invalid{latex_test}"')),
+    'Console error logs the thrown error details'
+  );
+
+  // Test 2: MathEquation Happy Path & KaTeX Options Verification
+  console.log('\n2. MathEquation Happy Path & KaTeX Options Test');
+  katexShouldThrow = false;
+  katexCalls.length = 0;
+  capturedConsoleErrors.length = 0;
+  effectCallbacks.length = 0;
+
+  const happyContainer = { textContent: '', innerHTML: '' };
+  mockReact.useRef = () => ({ current: happyContainer });
+
+  const element = MathEquation({ latex: 'E = mc^2', displayMode: false, className: 'formula-style' });
+
+  assert(element.props.className === 'formula-style', 'Component forwards className prop to container div');
+
+  // Execute effect
+  effectCallbacks.forEach(({ callback }) => callback());
+
+  assert(katexCalls.length === 1, 'katex.render called exactly once');
+  if (katexCalls.length > 0) {
+    const call = katexCalls[0];
+    assert(call.latex === 'E = mc^2', 'katex.render called with correct latex string');
+    assert(call.container === happyContainer, 'katex.render called with container element');
+    assert(call.options.displayMode === false, 'katex.render options displayMode matches prop (false)');
+    assert(call.options.throwOnError === false, 'katex.render options throwOnError is explicitly false');
+    assert(call.options.strict === false, 'katex.render options strict is false');
+    assert(call.options.trust === false, 'katex.render options trust is false (security policy)');
+  }
+  assert(happyContainer.innerHTML.includes('E = mc^2'), 'KaTeX rendered HTML output into container on happy path');
+  assert(capturedConsoleErrors.length === 0, 'No console errors logged on happy path');
+
+  // Test 3: Default Prop Values Test
+  console.log('\n3. MathEquation Default Props Test');
+  katexCalls.length = 0;
+  effectCallbacks.length = 0;
+
+  const defaultContainer = { textContent: '', innerHTML: '' };
+  mockReact.useRef = () => ({ current: defaultContainer });
+
+  const defaultElement = MathEquation({ latex: 'a^2 + b^2 = c^2' });
+
+  assert(defaultElement.props.className === '', 'Default className prop is empty string');
+
+  effectCallbacks.forEach(({ callback }) => callback());
+
+  assert(katexCalls.length === 1, 'katex.render called for default props');
+  if (katexCalls.length > 0) {
+    assert(katexCalls[0].options.displayMode === true, 'Default displayMode is true');
+  }
+
+  // Test 4: PowerFormula Integration Error Fallback Test
+  console.log('\n4. PowerFormula Integration Error Fallback Test');
+  katexShouldThrow = true;
+  katexCalls.length = 0;
+  capturedConsoleErrors.length = 0;
+  effectCallbacks.length = 0;
+
+  const formulaContainers = [];
+  mockReact.useRef = () => {
+    const c = { textContent: '', innerHTML: '' };
+    formulaContainers.push(c);
+    return { current: c };
+  };
+
   PowerFormula({ analysisType: 'cox', studyDesign: 'cohort' });
 
-  // Run the effects manually
-  mockReact.effects.forEach(fn => fn());
+  effectCallbacks.forEach(({ callback }) => callback());
 
-  // We expect 3 MathEquations to be rendered
-  const fallbackOk1 = containers[0]?.textContent === '\\invalid{main}';
-  const fallbackOk2 = containers[1]?.textContent === '\\invalid{min}';
-  const fallbackOk3 = containers[2]?.textContent === '\\invalid{def}';
+  const fallback1 = formulaContainers[0]?.textContent === '\\invalid{main}';
+  const fallback2 = formulaContainers[1]?.textContent === '\\invalid{min}';
+  const fallback3 = formulaContainers[2]?.textContent === '\\invalid{def}';
 
-  const fallbackOk = fallbackOk1 && fallbackOk2 && fallbackOk3;
-  const errorLoggedOk = capturedError.includes('KaTeX rendering error');
-  const errorObjectLoggedOk = capturedError.includes('Error: Forced KaTeX error');
+  assert(fallback1 && fallback2 && fallback3, 'PowerFormula fallback text rendered for all nested equations');
+  assert(capturedConsoleErrors.length >= 3, 'Errors logged for all failing nested equations');
 
-  console.log(`  ${fallbackOk ? '✓' : '✗'} Fallback text rendered correctly`);
-  if (!fallbackOk) {
-    console.log(`    Expected fallbacks not found. Containers:`, containers.map(c => c.textContent));
-  }
-
-  console.log(`  ${errorLoggedOk ? '✓' : '✗'} Error was logged to console`);
-  if (!errorLoggedOk) {
-    console.log(`    Captured log: ${capturedError}`);
-  }
-
-  console.log(`  ${errorObjectLoggedOk ? '✓' : '✗'} Actual error object was logged`);
-  if (!errorObjectLoggedOk) {
-    console.log(`    Captured log didn't contain "Error: Forced KaTeX error": ${capturedError}`);
-  }
-
-  let exitCode = 0;
-  if (fallbackOk && errorLoggedOk && errorObjectLoggedOk) {
-    console.log('\n✓ TEST PASSED');
-    exitCode = 0;
-  } else {
-    console.log('\n✗ TEST FAILED');
-    exitCode = 1;
-  }
+  console.log('\n' + '='.repeat(70));
+  console.log(`RESULTS: ${totalPassed} passed, ${totalFailed} failed`);
+  console.log('='.repeat(70));
 
   console.error = originalConsoleError;
-  try { fs.unlinkSync(bundlePath); } catch (e) {}
-  process.exit(exitCode);
+  try { fs.unlinkSync(bundlePath); } catch {}
 
+  if (totalFailed > 0) {
+    process.exit(1);
+  } else {
+    process.exit(0);
+  }
 } catch (err) {
   console.error = originalConsoleError;
-  console.error('\n✗ Test threw an unexpected error:');
+  console.error('\n✗ Test suite threw an unexpected exception:');
   console.error(err);
-  try { fs.unlinkSync(bundlePath); } catch (e) {}
+  try { fs.unlinkSync(bundlePath); } catch {}
   process.exit(1);
 }
