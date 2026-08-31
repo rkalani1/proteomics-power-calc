@@ -5,6 +5,7 @@ import MultiScenarioResultsTable from './components/MultiScenarioResultsTable';
 import PowerByProteinsChart from './components/PowerByProteinsChart';
 import SensitivityAnalysis from './components/SensitivityAnalysis';
 import ExportPanel from './components/ExportPanel';
+import RScriptBuilder from './components/RScriptBuilder';
 import References from './components/References';
 import AdvancedVisualizations from './components/AdvancedVisualizations';
 import { Header } from './components/Header';
@@ -38,6 +39,7 @@ const WORKFLOW_SECTIONS = [
   { id: 'parameters', label: 'Parameters' },
   { id: 'results', label: 'Results' },
   { id: 'sensitivity', label: 'Sensitivity' },
+  { id: 'script', label: 'R Script' },
   { id: 'export', label: 'Export' },
   { id: 'methods', label: 'Methods' },
 ] as const;
@@ -611,6 +613,31 @@ function App() {
           calculateRequiredEvents={calculateRequiredEventsForViz}
           calculateRequiredSampleSize={calculateRequiredSampleSizeForViz}
           calculatePower={calculatePowerAtSampleSize}
+          />
+          </div>
+
+        {/* Reproducible R Script */}
+          <div id="script-section" className="workflow-section">
+          <RScriptBuilder
+          analysisType={analysisType}
+          studyDesign={studyDesign}
+          proteinCounts={scenarioResults.map((scenario) => scenario.proteinCount)}
+          targetPower={targetPower}
+          effectSize={effectSize}
+          events={events}
+          sampleSize={sampleSize}
+          fdrQ={fdrQ}
+          correctionMethod={correctionMethod}
+          prevalence={prevalence}
+          residualSD={residualSD}
+          numCases={numCases}
+          numControls={numControls}
+          subcohortSize={subcohortSize}
+          totalCohort={totalCohort}
+          matchingRatio={matchingRatio}
+          clusterSize={clusterSize}
+          icc={icc}
+          covariateR2={covariateR2}
           />
           </div>
 

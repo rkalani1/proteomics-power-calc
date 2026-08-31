@@ -56,6 +56,7 @@ try {
     ['renders the analysis framework section', html.includes('Analysis Framework')],
     ['renders study parameters', html.includes('Study Parameters')],
     ['renders a results section', /Minimum Detectable/.test(html)],
+    ['renders the editable R script generator', html.includes('Generate an editable R script')],
     ['produced non-trivial markup', html.length > 5000],
   ];
   for (const [name, cond] of checks) {

@@ -11,7 +11,7 @@ interface AnalysisFrameworkProps {
   fdrQ: number;
   correctionMethod: 'fdr' | 'bonferroni';
   ANALYSIS_TYPE_OPTIONS: { value: AnalysisType; label: string; description: string }[];
-  STUDY_DESIGN_OPTIONS: Record<AnalysisType, { value: StudyDesign; label: string; description: string }[]>;
+  STUDY_DESIGN_OPTIONS: Record<AnalysisType, readonly { value: StudyDesign; label: string; description: string }[]>;
   handleAnalysisTypeChange: (newType: AnalysisType) => void;
   setStudyDesign: (design: StudyDesign) => void;
   setComparisonMode: (mode: boolean) => void;

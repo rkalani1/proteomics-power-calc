@@ -14,6 +14,7 @@ import { calculateEffectiveAlpha, type CorrectionMethod, type AnalysisType, type
 import { getParameterDescription } from '../utils/formatters';
 import { usePowerChartData } from '../hooks/usePowerChartData';
 import { getPowerStatus, POWER_STATUS_BG_CLASSES } from '../utils/formatters';
+import { DISPLAY_EFFECT_GRIDS } from '../constants/analysisGrids';
 
 type ScaleType = 'linear' | 'log';
 
@@ -41,15 +42,6 @@ interface PowerByProteinsChartProps {
    * clustering, etc.). Guarantees this chart matches the headline results. */
   calculatePower: (effectSize: number, alpha: number) => number;
 }
-
-// Effect size configurations per analysis type
-const EFFECT_SIZES: Record<AnalysisType, number[]> = {
-  cox: [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0],
-  linear: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5],
-  logistic: [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0],
-  poisson: [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0],
-  gee: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5],
-};
 
 // Tooltip for the power-vs-proteins curves. Defined at module scope to keep a
 // stable component identity across re-renders.
@@ -127,7 +119,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
   const [scaleType, setScaleType] = useState<ScaleType>('linear');
 
   // Get effect sizes for current analysis type
-  const effectSizes = EFFECT_SIZES[analysisType];
+  const effectSizes = DISPLAY_EFFECT_GRIDS[analysisType];
 
   const {
     effectColors,
