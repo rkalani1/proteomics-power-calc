@@ -1,28 +1,20 @@
 import { useMemo } from 'react';
 import { calculateEffectiveAlpha, type CorrectionMethod } from '../utils/statistics';
-
-const PROTEIN_COUNTS_FOR_TABLE = [1, 5, 10, 25, 50, 100, 200, 500, 1000, 3000, 5000];
-
-// Pre-compute arrays outside the component. The linear-scale axis stays dense
-// where the power curve moves fastest (few proteins) and thins out above 50, so
-// the chart is visually identical with ~4x fewer points to compute and render.
-const LINEAR_COUNTS: number[] = [];
-for (let i = 1; i <= 50; i += 1) LINEAR_COUNTS.push(i);
-for (let i = 55; i <= 1000; i += 5) LINEAR_COUNTS.push(i);
-
-const LOG_COUNTS: number[] = [];
-for (let i = 1; i <= 100; i += 1) LOG_COUNTS.push(i);
-for (let i = 110; i <= 500; i += 10) LOG_COUNTS.push(i);
-for (let i = 550; i <= 1000; i += 50) LOG_COUNTS.push(i);
-for (let i = 1100; i <= 5000; i += 100) LOG_COUNTS.push(i);
+import {
+  POWER_BY_PROTEIN_TABLE_GRID,
+  POWER_CHART_LINEAR_GRID,
+  POWER_CHART_LOG_GRID,
+} from '../constants/analysisGrids';
 
 // Pre-compute the unique counts across all visualizations
-const ALL_COUNTS = Array.from(new Set([...LINEAR_COUNTS, ...LOG_COUNTS, ...PROTEIN_COUNTS_FOR_TABLE]));
+const ALL_COUNTS: readonly number[] = Object.freeze(
+  Array.from(new Set([...POWER_CHART_LINEAR_GRID, ...POWER_CHART_LOG_GRID, ...POWER_BY_PROTEIN_TABLE_GRID]))
+);
 const MAX_COUNT = Math.max(...ALL_COUNTS);
 
 interface UsePowerChartDataParams {
   fdrQ: number;
-  effectSizes: number[];
+  effectSizes: readonly number[];
   correctionMethod: CorrectionMethod;
   calculatePower: (effectSize: number, alpha: number) => number;
 }
@@ -64,9 +56,9 @@ export function usePowerChartData({
     }
 
     return {
-      linearChartData: LINEAR_COUNTS.map(count => cache[count]),
-      logChartData: LOG_COUNTS.map(count => cache[count]),
-      sensitivityTableData: PROTEIN_COUNTS_FOR_TABLE.map(count => cache[count]),
+      linearChartData: POWER_CHART_LINEAR_GRID.map(count => cache[count]),
+      logChartData: POWER_CHART_LOG_GRID.map(count => cache[count]),
+      sensitivityTableData: POWER_BY_PROTEIN_TABLE_GRID.map(count => cache[count]),
     };
   }, [fdrQ, correctionMethod, effectSizes, calculatePower]);
 

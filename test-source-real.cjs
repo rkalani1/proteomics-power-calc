@@ -79,7 +79,7 @@ console.log('-'.repeat(50));
   'calculateDesignEffect', 'calculateEffectiveSampleSize', 'calculateGEE_SE', 'calculateGEE_Power', 'calculateGEE_MinEffect', 'calculateGEE_RequiredN', 'calculateGEE_RequiredClusters',
   'orToRR', 'rrToOR', 'r2ToF2', 'betaToCohenD',
   'calculateInflation', 'calculateMinEffect', 'calculateStage1Alpha', 'findOptimalStage1FDR',
-  'generatePowerCurve', 'generateTableData',
+  'generatePowerCurve',
 ].forEach((fn) => ok(typeof S[fn] === 'function', `exports ${fn}()`));
 
 // ---------------------------------------------------------------------------
@@ -460,20 +460,6 @@ const minInvalid = S.calculateMinEffect({
   alpha: 0.05,
 });
 ok(minInvalid === Infinity, 'Unified calculateMinEffect: unknown analysis type -> Infinity');
-
-// ---------------------------------------------------------------------------
-console.log('\n15. Data Generation Utilities');
-console.log('-'.repeat(50));
-const defaultTable = S.generateTableData(100, 0.05, 0.00005);
-ok(Array.isArray(defaultTable) && defaultTable.length === 11, 'generateTableData: uses default hrValues length of 11');
-ok(defaultTable[0].hr === 1.0 && typeof defaultTable[0].powerSingle === 'number' && typeof defaultTable[0].powerMulti === 'number', 'generateTableData: first element has correct shape and values');
-ok(defaultTable[5].hr === 2.0 && defaultTable[5].powerSingle > defaultTable[5].powerMulti, 'generateTableData: powerSingle > powerMulti for HR=2.0');
-const customHrValues = [1.5, 2.5];
-const customTable = S.generateTableData(50, 0.01, 0.001, customHrValues);
-ok(Array.isArray(customTable) && customTable.length === 2, 'generateTableData: uses custom hrValues length');
-ok(customTable[0].hr === 1.5 && customTable[1].hr === 2.5, 'generateTableData: uses custom hrValues');
-ok(customTable[0].powerSingle === S.calculateCoxPower(1.5, 50, 0.01), 'generateTableData: calculates correct powerSingle');
-ok(customTable[1].powerMulti === S.calculateCoxPower(2.5, 50, 0.001), 'generateTableData: calculates correct powerMulti');
 
 // ---------------------------------------------------------------------------
 console.log('\n16. Unified calculatePower dispatcher (routing matches leaf functions)');

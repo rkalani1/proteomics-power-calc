@@ -22,7 +22,7 @@ interface PowerFormulaProps {
  * Renders LaTeX mathematical equations using KaTeX.
  * This component displays the power formula in textbook-style notation.
  */
-const MathEquation: React.FC<MathEquationProps> = ({
+export const MathEquation: React.FC<MathEquationProps> = ({
   latex,
   displayMode = true,
   className = '',

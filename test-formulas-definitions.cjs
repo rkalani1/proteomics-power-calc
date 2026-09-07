@@ -16,15 +16,7 @@ const bundlePath = path.join(os.tmpdir(), `.def.bundle.${process.pid}.cjs`);
 fs.writeFileSync(bundlePath, out.outputFiles[0].text);
 
 let failed = false;
-
-function assert(condition, message) {
-  if (condition) {
-    console.log(`  ✓ ${message}`);
-  } else {
-    console.error(`  ✗ FAIL: ${message}`);
-    failed = true;
-  }
-}
+process.exitCode = 0;
 
 try {
   const { FORMULA_CONFIGS, coxDefinitions, logisticDefinitions, definitionsFor } = require(bundlePath);
@@ -36,7 +28,21 @@ try {
   console.log('FORMULAS.TS DEFINITIONS & UTILITIES VERIFICATION');
   console.log('='.repeat(70) + '\n');
 
-  // 1. Verify FORMULA_CONFIGS completeness and structure
+  let passed = 0;
+  let total = 0;
+
+  function assert(condition, message) {
+    total++;
+    if (condition) {
+      passed++;
+      console.log(`  ✓ ${message}`);
+    } else {
+      failed = true;
+      console.error(`  ✗ ${message}`);
+    }
+  }
+
+  // 1. FORMULA_CONFIGS completeness and structure (from PR #106)
   console.log('1. FORMULA_CONFIGS Structure');
   for (const type of analysisTypes) {
     const config = FORMULA_CONFIGS[type];
@@ -54,25 +60,35 @@ try {
     }
   }
 
-  // 2. Verify coxDefinitions for specific study designs
+  // 2. coxDefinitions — PR coverage plus main's exact LaTeX assertions (#96)
   console.log('\n2. coxDefinitions Output');
 
   const caseCohortCox = coxDefinitions('case-cohort');
   assert(caseCohortCox.includes('case-cohort SE of'), 'case-cohort Cox includes case-cohort SE formula');
   assert(caseCohortCox.includes('f \\cdot d'), 'case-cohort Cox includes subcohort sampling fraction variable f');
   assert(caseCohortCox.includes('subcohort size'), 'case-cohort Cox includes subcohort size description');
+  assert(caseCohortCox.includes('\\sigma &= \\frac{1}{\\sqrt{f \\cdot d \\cdot (1 - R^2_x)}}'), 'Cox case-cohort includes sampling fraction formula');
+  assert(caseCohortCox.includes('f &='), 'Cox case-cohort includes subcohort sampling fraction variable definition');
+  assert(caseCohortCox.includes('d &='), 'Cox case-cohort includes number of events variable definition');
 
   const nestedCcCox = coxDefinitions('nested-case-control');
   assert(nestedCcCox.includes('nested case-control SE of'), 'nested-case-control Cox includes nested CC SE formula');
   assert(nestedCcCox.includes(String.raw`\sqrt{\tfrac{m+1}{m}}`), 'nested-case-control Cox includes variance inflation factor (m+1)/m');
   assert(nestedCcCox.includes('controls matched per case'), 'nested-case-control Cox defines m as controls matched per case');
+  assert(nestedCcCox.includes('\\sigma &= \\sqrt{\\tfrac{m+1}{m}}'), 'Cox nested-case-control includes matching ratio factor');
+  assert(nestedCcCox.includes('m &='), 'Cox nested-case-control includes controls matched per case variable definition');
 
   for (const design of ['cohort', 'case-control', 'cross-sectional']) {
     const stdCox = coxDefinitions(design);
     assert(stdCox.includes(String.raw`standard error of } \log(\text{HR})`), `standard Cox (${design}) includes standard SE formula`);
     assert(!stdCox.includes('subcohort size'), `standard Cox (${design}) does not include subcohort parameters`);
     assert(!stdCox.includes('controls matched per case'), `standard Cox (${design}) does not include matching ratio m`);
+    assert(stdCox.includes('\\sigma &= \\frac{1}{\\sqrt{d \\cdot (1 - R^2_x)}}'), `Cox ${design} includes standard HR SE formula`);
   }
+
+  const cohortCox = coxDefinitions('cohort');
+  assert(!cohortCox.includes('f &='), 'Cox cohort excludes subcohort sampling fraction');
+  assert(!cohortCox.includes('m &='), 'Cox cohort excludes matched controls variable');
 
   for (const design of studyDesigns) {
     const def = coxDefinitions(design);
@@ -81,7 +97,7 @@ try {
     assert(def.includes('z_{1-\\alpha/2}'), `coxDefinitions (${design}) includes critical value z_{1-alpha/2}`);
   }
 
-  // 3. Verify logisticDefinitions for specific study designs
+  // 3. logisticDefinitions — PR coverage plus main's design-specific checks (#96)
   console.log('\n3. logisticDefinitions Output');
 
   for (const design of ['case-control', 'nested-case-control']) {
@@ -90,6 +106,7 @@ try {
     assert(ccLog.includes(String.raw`1/n_{\text{cases}} + 1/n_{\text{controls}}`), `logistic (${design}) includes case/control cell counts`);
     assert(ccLog.includes(String.raw`n_{\text{cases}} &= \text{number of cases}`), `logistic (${design}) defines n_cases`);
     assert(!ccLog.includes("Hsieh's formula"), `logistic (${design}) does not use Hsieh's formula`);
+    assert(ccLog.includes('n_{\\text{cases}}') && ccLog.includes('n_{\\text{controls}}'), `Logistic ${design} uses explicit case/control counts`);
   }
 
   for (const design of ['cohort', 'cross-sectional', 'case-cohort']) {
@@ -97,6 +114,7 @@ try {
     assert(stdLog.includes("Hsieh's formula with covariate adjustment"), `logistic (${design}) uses Hsieh's formula`);
     assert(stdLog.includes(String.raw`p &= \text{outcome prevalence}`), `logistic (${design}) defines outcome prevalence p`);
     assert(!stdLog.includes('n_{\\text{cases}}'), `logistic (${design}) does not include n_cases`);
+    assert(stdLog.includes('Hsieh') && stdLog.includes('p \\cdot (1-p)'), `Logistic ${design} uses Hsieh formula with prevalence p`);
   }
 
   for (const design of studyDesigns) {
@@ -105,14 +123,11 @@ try {
     assert(def.includes(String.raw`\Phi(z)`), `logisticDefinitions (${design}) includes standard normal CDF`);
   }
 
-  // 4. Verify definitionsFor integration across all matrix combinations
+  // 4. definitionsFor routing across all analysisType x studyDesign combinations
   console.log('\n4. definitionsFor Matrix Routing');
-  let passedMatrix = 0;
-  let totalMatrix = 0;
 
   for (const analysisType of analysisTypes) {
     for (const studyDesign of studyDesigns) {
-      totalMatrix++;
       const result = definitionsFor(analysisType, studyDesign);
 
       let expected;
@@ -124,21 +139,17 @@ try {
         expected = FORMULA_CONFIGS[analysisType].definitions;
       }
 
-      if (result === expected) {
-        passedMatrix++;
-      } else {
-        console.error(`  ✗ Failed routing for analysisType=${analysisType}, studyDesign=${studyDesign}`);
-        failed = true;
-      }
+      assert(result === expected, `definitionsFor returns correct definitions for ${analysisType} [${studyDesign}]`);
     }
   }
-  assert(passedMatrix === totalMatrix, `All ${totalMatrix} combinations of definitionsFor routed correctly (${passedMatrix}/${totalMatrix})`);
+
+  console.log(`\nFORMULAS.TS DEFINITIONS RESULTS: ${passed}/${total} assertions passed`);
 
   if (failed) {
     console.error('\nSome assertions failed. Check output above.');
-    process.exit(1);
+    process.exitCode = 1;
   } else {
-    console.log('\nAll formula definition tests passed successfully.\n');
+    console.log('All formula definition tests passed successfully.\n');
   }
 
 } finally {

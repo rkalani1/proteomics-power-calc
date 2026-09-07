@@ -12,6 +12,13 @@ import {
 } from 'recharts';
 import { calculateEffectiveAlpha, type CorrectionMethod } from '../utils/statistics';
 import { normalizeSensitivityVariable, type SensitivityVariable } from '../utils/sensitivity';
+import {
+  SENSITIVITY_ADDITIVE_EFFECT_GRID,
+  SENSITIVITY_EVENT_GRID,
+  SENSITIVITY_PROTEIN_GRID,
+  SENSITIVITY_RATIO_EFFECT_GRID,
+  SENSITIVITY_SAMPLE_SIZE_GRID,
+} from '../constants/analysisGrids';
 
 
 interface SensitivityAnalysisProps {
@@ -291,8 +298,8 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
   // Merge the user's current value into a sweep grid so the "Current"
   // reference marker always falls inside the plotted range (the parameter
   // sliders allow values beyond the fixed grids, e.g. n up to 50,000).
-  const withCurrent = (grid: number[], current: number): number[] => {
-    if (!Number.isFinite(current) || current <= 0 || grid.includes(current)) return grid;
+  const withCurrent = (grid: readonly number[], current: number): number[] => {
+    if (!Number.isFinite(current) || current <= 0 || grid.includes(current)) return [...grid];
     return [...grid, current].sort((a, b) => a - b);
   };
 
@@ -304,7 +311,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
       case 'sampleSize': {
         // Vary sample size from 100 to 10000, recomputing the exact power at
         // each n with the same design-aware formula used for the headline result.
-        const sizes = withCurrent([100, 250, 500, 750, 1000, 1500, 2000, 3000, 5000, 7500, 10000], currentSampleSize);
+        const sizes = withCurrent(SENSITIVITY_SAMPLE_SIZE_GRID, currentSampleSize);
         sizes.forEach(size => {
           const point: Record<string, number> = { x: size };
           proteinCounts.forEach(count => {
@@ -319,7 +326,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
       case 'events': {
         // Vary events from 20 to 500, recomputing the exact power at each event
         // count with the same design-aware formula used for the headline result.
-        const eventCounts = withCurrent([20, 40, 60, 80, 100, 150, 200, 300, 400, 500], currentEvents);
+        const eventCounts = withCurrent(SENSITIVITY_EVENT_GRID, currentEvents);
         eventCounts.forEach(e => {
           const point: Record<string, number> = { x: e };
           proteinCounts.forEach(count => {
@@ -336,9 +343,9 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
         // models (Cox/logistic/Poisson) use multiplicative values around 1.
         let effectValues: number[];
         if (analysisType === 'linear' || analysisType === 'gee') {
-          effectValues = withCurrent([0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8], currentEffectSize);
+          effectValues = withCurrent(SENSITIVITY_ADDITIVE_EFFECT_GRID, currentEffectSize);
         } else {
-          effectValues = withCurrent([1.1, 1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 2.5, 3.0], currentEffectSize);
+          effectValues = withCurrent(SENSITIVITY_RATIO_EFFECT_GRID, currentEffectSize);
         }
         effectValues.forEach(effect => {
           const point: Record<string, number> = { x: effect };
@@ -353,8 +360,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
 
       case 'proteinCount': {
         // Vary protein count from 1 to 10000
-        const counts = [1, 10, 50, 100, 500, 1000, 2000, 3000, 5000, 7000, 10000];
-        counts.forEach(count => {
+        SENSITIVITY_PROTEIN_GRID.forEach(count => {
           const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
           const power = calculatePowerForEffect(currentEffectSize, alpha);
           data.push({
