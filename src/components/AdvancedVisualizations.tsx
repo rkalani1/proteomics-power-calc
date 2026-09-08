@@ -14,6 +14,13 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import {
+  ADVANCED_TARGET_POWER_GRID,
+  CONTOUR_ADDITIVE_EFFECT_GRID,
+  CONTOUR_COX_DIMENSION_GRID,
+  CONTOUR_RATIO_EFFECT_GRID,
+  CONTOUR_SAMPLE_SIZE_GRID,
+} from '../constants/analysisGrids';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
 type VisualizationType = 'sample-size-curve' | 'forest-plot' | 'power-contour';
@@ -150,9 +157,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
 
   // Generate sample size curve data
   const sampleSizeCurveData = useMemo(() => {
-    const powerLevels = [0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99];
-
-    return powerLevels.map(power => {
+    return ADVANCED_TARGET_POWER_GRID.map(power => {
       const point: Record<string, number> = { power: power * 100 };
 
       scenarios.forEach(scenario => {
@@ -201,12 +206,12 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
 
     // Define grid
     const effectValues = isBetaEffect
-      ? [0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
-      : [1.2, 1.3, 1.4, 1.5, 1.7, 2.0, 2.5];
+      ? CONTOUR_ADDITIVE_EFFECT_GRID
+      : CONTOUR_RATIO_EFFECT_GRID;
 
     const sampleValues = isCox
-      ? [50, 100, 150, 200, 300, 500, 750, 1000]
-      : [200, 500, 1000, 2000, 3000, 5000, 7500, 10000];
+      ? CONTOUR_COX_DIMENSION_GRID
+      : CONTOUR_SAMPLE_SIZE_GRID;
 
     // Use first scenario's alpha for the contour
     const alpha = scenarios[0]?.alpha || 0.05;

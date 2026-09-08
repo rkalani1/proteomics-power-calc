@@ -8,7 +8,7 @@ interface HeaderProps {
   proteinCounts: number[];
   proteinCount: number;
   ANALYSIS_TYPE_OPTIONS: { value: AnalysisType; label: string; description: string }[];
-  STUDY_DESIGN_OPTIONS: Record<AnalysisType, { value: StudyDesign; label: string; description: string }[]>;
+  STUDY_DESIGN_OPTIONS: Record<AnalysisType, readonly { value: StudyDesign; label: string; description: string }[]>;
 }
 
 export const Header: React.FC<HeaderProps> = ({

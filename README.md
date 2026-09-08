@@ -45,6 +45,43 @@ Use aggregate or synthetic planning assumptions in the public demo. Do not paste
 
 - **Export Options**: CSV download, PDF printing, and summary copying
 
+- **Editable R Script Generator**: Create, customize, copy, and download a
+  dependency-free base-R script from the current calculator inputs
+
+## Reproducing an Analysis in R
+
+The **R Script** section generates code from the exact analysis framework,
+study design, parameters, protein-count scenarios, and multiple-testing
+threshold currently shown in the calculator. The generated script reproduces:
+
+- scenario results (effective alpha, standard error, power, minimum detectable
+  effect, and required events/sample size);
+- the full power-by-effect curve and power-by-protein table;
+- sensitivity analyses for effect size, events/sample size, and proteins tested;
+- required-size curves, minimum-detectable-effect comparisons, and the
+  effect-by-size power grid.
+
+By default, the script also writes result tables as CSV, creates a six-panel PDF
+of the calculator's visualization families, and records `sessionInfo()`. These
+sections can be omitted before copying or downloading the script. The script
+uses base R only and is generated locally in the browser; the website does not
+execute R or upload data.
+
+Every R execution creates a fresh, collision-safe child directory under
+`proteomics-power-results/`, named for the analysis, design, timestamp, and R
+process. Files from separate runs are therefore never mixed. A
+`completion-manifest.txt` file is written last and returned in
+`results$completion_manifest`; its presence means all selected file-output
+sections completed. `results$output_dir` gives the exact receipt directory.
+Browser downloads attach a temporary hidden link and always remove it and its
+object URL after the request is handed to the browser.
+
+If the code is edited on the page, later calculator changes do not silently
+overwrite those edits. The page identifies the script as out of sync and asks
+before regenerating it from the new inputs. While edits are preserved, the
+displayed analysis metadata and downloaded filename remain tied to the original
+custom artifact; output-option changes apply only when the user regenerates.
+
 ## Key Calculations
 
 All models use the same two-sided large-sample (Wald) power expression; they
