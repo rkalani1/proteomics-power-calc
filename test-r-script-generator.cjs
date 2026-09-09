@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const esbuild = require('esbuild');
+const { JSDOM } = require('jsdom');
 
 const root = __dirname;
 const entry = path.join(os.tmpdir(), `r-script-test-entry.${process.pid}.ts`);
@@ -191,6 +192,106 @@ for (const [name, changes, fragment] of validationCases) {
 ok(M.validateRScriptInput({ ...base, effectSize: 0.7 }).length === 0, 'protective ratio below one is valid');
 ok(M.validateRScriptInput({ ...base, analysisType: 'linear', studyDesign: 'cohort', effectSize: -0.2 }).length === 0, 'negative additive effect is valid');
 ok(M.validateRScriptInput({ ...base, studyDesign: 'case-cohort', subcohortSize: 6000, totalCohort: 5000 }).length === 0, 'case-cohort subcohort above cohort is accepted and clamped');
+
+// ---- Direct unit testing for downloadRScript DOM helper ----
+{
+  const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'https://example.test/' });
+  const prevWindow = global.window;
+  const prevDoc = global.document;
+  const prevURL = global.URL;
+  const prevBlob = global.Blob;
+
+  global.window = dom.window;
+  global.document = dom.window.document;
+
+  let createdBlob = null;
+  let createdUrl = null;
+  const revokedUrls = [];
+  let clickedFilename = null;
+  let clickedHref = null;
+  let clickedHidden = null;
+  let wasInBodyDuringClick = false;
+
+  global.Blob = class MockBlob {
+    constructor(content, options) {
+      this.content = content;
+      this.options = options;
+      createdBlob = this;
+    }
+  };
+
+  global.URL = {
+    createObjectURL: () => {
+      createdUrl = 'blob:test-download-123';
+      return createdUrl;
+    },
+    revokeObjectURL: (url) => {
+      revokedUrls.push(url);
+    },
+  };
+
+  const originalClick = dom.window.HTMLAnchorElement.prototype.click;
+  dom.window.HTMLAnchorElement.prototype.click = function click() {
+    clickedFilename = this.download;
+    clickedHref = this.href;
+    clickedHidden = this.hidden;
+    wasInBodyDuringClick = dom.window.document.body.contains(this);
+  };
+
+  try {
+    const scriptContent = '# Test R script\ncat("hello")\n';
+    const targetFilename = 'custom_analysis.R';
+
+    M.downloadRScript(scriptContent, targetFilename);
+
+    ok(createdBlob && createdBlob.content[0] === scriptContent, 'downloadRScript creates Blob with script content');
+    ok(createdBlob && createdBlob.options.type === 'text/x-r-source;charset=utf-8', 'downloadRScript sets correct MIME type');
+    ok(clickedFilename === targetFilename, 'downloadRScript sets download attribute to filename');
+    ok(clickedHref === 'blob:test-download-123', 'downloadRScript sets href to object URL');
+    ok(clickedHidden === true, 'downloadRScript sets hidden attribute to true');
+    ok(wasInBodyDuringClick === true, 'downloadRScript appends anchor to document.body prior to click');
+    ok(dom.window.document.body.children.length === 0, 'downloadRScript removes anchor from document.body in finally block');
+    ok(revokedUrls.includes('blob:test-download-123'), 'downloadRScript revokes object URL in finally block');
+
+    // Error resilience in click
+    let errorThrown = false;
+    revokedUrls.length = 0;
+    dom.window.HTMLAnchorElement.prototype.click = function clickError() {
+      wasInBodyDuringClick = dom.window.document.body.contains(this);
+      throw new Error('Click invocation failed');
+    };
+
+    try {
+      M.downloadRScript('# Error test script', 'error.R');
+    } catch (err) {
+      errorThrown = err.message === 'Click invocation failed';
+    }
+
+    ok(errorThrown, 'downloadRScript re-throws errors from click');
+    ok(wasInBodyDuringClick === true, 'downloadRScript attached anchor before click error');
+    ok(dom.window.document.body.children.length === 0, 'downloadRScript cleans up anchor even when click throws error');
+    ok(revokedUrls.length > 0, 'downloadRScript revokes object URL even when click throws error');
+
+    // Edge cases
+    revokedUrls.length = 0;
+    dom.window.HTMLAnchorElement.prototype.click = function clickEdge() {
+      clickedFilename = this.download;
+    };
+
+    M.downloadRScript('', 'special & name (v1).R');
+    ok(createdBlob && createdBlob.content[0] === '', 'downloadRScript handles empty script string');
+    ok(clickedFilename === 'special & name (v1).R', 'downloadRScript preserves special characters in filename');
+    ok(dom.window.document.body.children.length === 0, 'downloadRScript cleans up anchor for edge cases');
+    ok(revokedUrls.length > 0, 'downloadRScript revokes object URL for edge cases');
+
+  } finally {
+    dom.window.HTMLAnchorElement.prototype.click = originalClick;
+    global.window = prevWindow;
+    global.document = prevDoc;
+    global.URL = prevURL;
+    global.Blob = prevBlob;
+  }
+}
 
 if (hasR) {
   const parity = sourceWithExpression(
