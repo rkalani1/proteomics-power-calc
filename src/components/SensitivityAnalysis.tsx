@@ -307,6 +307,13 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
   const sensitivityData = useMemo(() => {
     const data: Array<Record<string, number>> = [];
 
+    // Pre-evaluate effective alphas for all tested protein counts to avoid
+    // recomputing calculateEffectiveAlpha inside inner loops across sweep grids.
+    const effectiveAlphas = proteinCounts.map(count => ({
+      count,
+      alpha: calculateEffectiveAlpha(fdrQ, count, correctionMethod),
+    }));
+
     switch (activeVariable) {
       case 'sampleSize': {
         // Vary sample size from 100 to 10000, recomputing the exact power at
@@ -314,8 +321,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
         const sizes = withCurrent(SENSITIVITY_SAMPLE_SIZE_GRID, currentSampleSize);
         sizes.forEach(size => {
           const point: Record<string, number> = { x: size };
-          proteinCounts.forEach(count => {
-            const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
+          effectiveAlphas.forEach(({ count, alpha }) => {
             point[`power_${count}`] = calculatePowerAtSampleSize(currentEffectSize, alpha, size);
           });
           data.push(point);
@@ -329,8 +335,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
         const eventCounts = withCurrent(SENSITIVITY_EVENT_GRID, currentEvents);
         eventCounts.forEach(e => {
           const point: Record<string, number> = { x: e };
-          proteinCounts.forEach(count => {
-            const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
+          effectiveAlphas.forEach(({ count, alpha }) => {
             point[`power_${count}`] = calculatePowerAtSampleSize(currentEffectSize, alpha, e);
           });
           data.push(point);
@@ -349,8 +354,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
         }
         effectValues.forEach(effect => {
           const point: Record<string, number> = { x: effect };
-          proteinCounts.forEach(count => {
-            const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
+          effectiveAlphas.forEach(({ count, alpha }) => {
             point[`power_${count}`] = calculatePowerForEffect(effect, alpha);
           });
           data.push(point);
