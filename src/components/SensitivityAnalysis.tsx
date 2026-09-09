@@ -311,11 +311,14 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
       case 'sampleSize': {
         // Vary sample size from 100 to 10000, recomputing the exact power at
         // each n with the same design-aware formula used for the headline result.
+        const alphas = proteinCounts.map(count => ({
+          count,
+          alpha: calculateEffectiveAlpha(fdrQ, count, correctionMethod),
+        }));
         const sizes = withCurrent(SENSITIVITY_SAMPLE_SIZE_GRID, currentSampleSize);
         sizes.forEach(size => {
           const point: Record<string, number> = { x: size };
-          proteinCounts.forEach(count => {
-            const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
+          alphas.forEach(({ count, alpha }) => {
             point[`power_${count}`] = calculatePowerAtSampleSize(currentEffectSize, alpha, size);
           });
           data.push(point);
@@ -326,11 +329,14 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
       case 'events': {
         // Vary events from 20 to 500, recomputing the exact power at each event
         // count with the same design-aware formula used for the headline result.
+        const alphas = proteinCounts.map(count => ({
+          count,
+          alpha: calculateEffectiveAlpha(fdrQ, count, correctionMethod),
+        }));
         const eventCounts = withCurrent(SENSITIVITY_EVENT_GRID, currentEvents);
         eventCounts.forEach(e => {
           const point: Record<string, number> = { x: e };
-          proteinCounts.forEach(count => {
-            const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
+          alphas.forEach(({ count, alpha }) => {
             point[`power_${count}`] = calculatePowerAtSampleSize(currentEffectSize, alpha, e);
           });
           data.push(point);
@@ -341,6 +347,10 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
       case 'effectSize': {
         // Vary effect size; linear and GEE use additive β values, the ratio
         // models (Cox/logistic/Poisson) use multiplicative values around 1.
+        const alphas = proteinCounts.map(count => ({
+          count,
+          alpha: calculateEffectiveAlpha(fdrQ, count, correctionMethod),
+        }));
         let effectValues: number[];
         if (analysisType === 'linear' || analysisType === 'gee') {
           effectValues = withCurrent(SENSITIVITY_ADDITIVE_EFFECT_GRID, currentEffectSize);
@@ -349,8 +359,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
         }
         effectValues.forEach(effect => {
           const point: Record<string, number> = { x: effect };
-          proteinCounts.forEach(count => {
-            const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
+          alphas.forEach(({ count, alpha }) => {
             point[`power_${count}`] = calculatePowerForEffect(effect, alpha);
           });
           data.push(point);
