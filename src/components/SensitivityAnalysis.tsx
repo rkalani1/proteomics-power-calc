@@ -307,6 +307,13 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
   const sensitivityData = useMemo(() => {
     const data: Array<Record<string, number>> = [];
 
+    // Precompute alpha values and string keys for protein counts to avoid
+    // repeated calculations inside the nested loops.
+    const proteinAlphas = proteinCounts.map(count =>
+      calculateEffectiveAlpha(fdrQ, count, correctionMethod)
+    );
+    const proteinKeys = proteinCounts.map(count => `power_${count}`);
+
     switch (activeVariable) {
       case 'sampleSize': {
         // Vary sample size from 100 to 10000, recomputing the exact power at
@@ -314,10 +321,9 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
         const sizes = withCurrent(SENSITIVITY_SAMPLE_SIZE_GRID, currentSampleSize);
         sizes.forEach(size => {
           const point: Record<string, number> = { x: size };
-          proteinCounts.forEach(count => {
-            const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
-            point[`power_${count}`] = calculatePowerAtSampleSize(currentEffectSize, alpha, size);
-          });
+          for (let i = 0; i < proteinCounts.length; i++) {
+            point[proteinKeys[i]] = calculatePowerAtSampleSize(currentEffectSize, proteinAlphas[i], size);
+          }
           data.push(point);
         });
         break;
@@ -329,10 +335,9 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
         const eventCounts = withCurrent(SENSITIVITY_EVENT_GRID, currentEvents);
         eventCounts.forEach(e => {
           const point: Record<string, number> = { x: e };
-          proteinCounts.forEach(count => {
-            const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
-            point[`power_${count}`] = calculatePowerAtSampleSize(currentEffectSize, alpha, e);
-          });
+          for (let i = 0; i < proteinCounts.length; i++) {
+            point[proteinKeys[i]] = calculatePowerAtSampleSize(currentEffectSize, proteinAlphas[i], e);
+          }
           data.push(point);
         });
         break;
@@ -349,10 +354,9 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
         }
         effectValues.forEach(effect => {
           const point: Record<string, number> = { x: effect };
-          proteinCounts.forEach(count => {
-            const alpha = calculateEffectiveAlpha(fdrQ, count, correctionMethod);
-            point[`power_${count}`] = calculatePowerForEffect(effect, alpha);
-          });
+          for (let i = 0; i < proteinCounts.length; i++) {
+            point[proteinKeys[i]] = calculatePowerForEffect(effect, proteinAlphas[i]);
+          }
           data.push(point);
         });
         break;
