@@ -21,6 +21,15 @@ import {
   CONTOUR_RATIO_EFFECT_GRID,
   CONTOUR_SAMPLE_SIZE_GRID,
 } from '../constants/analysisGrids';
+import {
+  AXIS_LABEL_STYLE,
+  AXIS_TICK,
+  CHART_AXIS,
+  CHART_GRID,
+  MARKER_LINE,
+  NULL_LINE,
+  TARGET_LINE,
+} from '../constants/chartTheme';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
 type VisualizationType = 'sample-size-curve' | 'forest-plot' | 'power-contour';
@@ -75,22 +84,23 @@ const SampleSizeTooltip: React.FC<{
   if (!active || !payload || !payload.length) return null;
 
   return (
-    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
-      <p className="font-semibold text-gray-800 mb-2">
+    <div className="chart-tooltip">
+      <p className="chart-tooltip__title">
         Target Power: {label}%
       </p>
       {payload.map((entry, index) => {
         const proteinCount = parseInt(entry.dataKey.split('_')[1]);
         return (
-          <p key={index} className="text-sm flex items-center gap-2">
+          <p key={index} className="chart-tooltip__row">
             <span
-              className="w-3 h-3 rounded-full"
+              className="series-dot"
               style={{ backgroundColor: entry.color }}
+              aria-hidden="true"
             />
-            <span className="text-gray-600">
+            <span className="text-ink-soft">
               {proteinCount.toLocaleString()} proteins:
             </span>
-            <span className="font-medium" style={{ color: entry.color }}>
+            <span className="chart-tooltip__value">
               {isCox ? `${Math.round(entry.value)} events` : `n=${Math.round(entry.value).toLocaleString()}`}
             </span>
           </p>
@@ -110,12 +120,13 @@ const ForestTooltip: React.FC<{
   const data = payload[0].payload;
 
   return (
-    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
-      <p className="font-semibold text-gray-800">{data.name}</p>
-      <p className="text-sm text-gray-600">
-        Min Detectable {effectSymbol}: <span className="font-medium">{data.effect.toFixed(decimals)}</span>
+    <div className="chart-tooltip">
+      <p className="chart-tooltip__title">{data.name}</p>
+      <p className="chart-tooltip__row">
+        <span className="text-ink-soft">Min Detectable {effectSymbol}:</span>
+        <span className="chart-tooltip__value">{data.effect.toFixed(decimals)}</span>
       </p>
-      <p className="text-xs text-gray-500">
+      <p className="chart-tooltip__meta">
         α ≈ {data.alpha.toExponential(1)}
       </p>
     </div>
@@ -240,72 +251,57 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
     return POWER_STATUS_BG_CLASSES[status];
   };
 
+  const targetPct = (targetPower * 100).toFixed(0);
+
+  const vizOptions: Array<{ value: VisualizationType; label: string }> = [
+    { value: 'sample-size-curve', label: isCox ? 'Events Curve' : 'Sample Size Curve' },
+    { value: 'forest-plot', label: 'Forest Plot' },
+    { value: 'power-contour', label: 'Power Grid' },
+  ];
+
   return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
+    <section className="assay-card">
       {/* Header with visualization selector */}
-      <div className={`p-4 ${isExpanded ? 'border-b border-gray-200' : ''}`}>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            aria-expanded={isExpanded}
-            aria-controls="advanced-viz-content"
-            className="flex items-center gap-2 text-left"
-          >
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className={`px-6 py-4 ${isExpanded ? 'border-b border-line-soft' : ''}`}>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <h2 className="section-title">
+            <button
+              type="button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-expanded={isExpanded}
+              aria-controls="advanced-viz-content"
+              className="disclosure disclosure--inline"
+            >
+              <svg aria-hidden="true" focusable="false" className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
-              Advanced Visualizations
-            </h2>
-            <svg
-              aria-hidden="true"
-              focusable="false"
-              className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+              <span>Advanced Visualizations</span>
+              <svg
+                aria-hidden="true"
+                focusable="false"
+                className="disclosure__chevron"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </h2>
 
           {/* Visualization type selector */}
           {isExpanded && (
-          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg" role="group" aria-label="Visualization type">
-            <button
-              onClick={() => setActiveViz('sample-size-curve')}
-              aria-pressed={activeViz === 'sample-size-curve'}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                activeViz === 'sample-size-curve'
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              {isCox ? 'Events Curve' : 'Sample Size Curve'}
-            </button>
-            <button
-              onClick={() => setActiveViz('forest-plot')}
-              aria-pressed={activeViz === 'forest-plot'}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                activeViz === 'forest-plot'
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Forest Plot
-            </button>
-            <button
-              onClick={() => setActiveViz('power-contour')}
-              aria-pressed={activeViz === 'power-contour'}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                activeViz === 'power-contour'
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Power Grid
-            </button>
+          <div className="segmented" role="group" aria-label="Visualization type">
+            {vizOptions.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setActiveViz(option.value)}
+                aria-pressed={activeViz === option.value}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
           )}
         </div>
@@ -313,16 +309,16 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
 
       {/* Visualization content */}
       {isExpanded && (
-      <div id="advanced-viz-content" className="p-4">
+      <div id="advanced-viz-content" className="p-6">
         {/* Sample Size Curve */}
         {activeViz === 'sample-size-curve' && (
           <div>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="mb-4 text-sm text-ink-soft">
               Required {isCox ? 'events' : 'sample size'} to achieve different power levels at {effectSymbol} = {currentEffectSize.toFixed(decimals)}
             </p>
 
             {!sampleSizeCurveHasData && (
-              <p className="p-6 text-center text-sm text-gray-500 bg-gray-50 rounded-lg">
+              <p className="inset-panel p-6 text-center text-sm text-ink-soft">
                 No attainable {isCox ? 'event count' : 'sample size'}: the selected effect size
                 equals the null value (no effect). Increase the effect size to see the curve.
               </p>
@@ -331,31 +327,35 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
             {sampleSizeCurveHasData && (
             <ResponsiveContainer width="100%" height={350}>
               <LineChart data={sampleSizeCurveData} margin={{ top: 20, right: 104, left: 20, bottom: 40 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid stroke={CHART_GRID} vertical={false} />
 
                 <XAxis
                   dataKey="power"
                   type="number"
                   domain={[50, 100]}
                   tickFormatter={(value) => `${value}%`}
+                  axisLine={{ stroke: CHART_AXIS }}
+                  tickLine={{ stroke: CHART_AXIS }}
                   label={{
                     value: 'Target Power',
                     position: 'insideBottom',
                     offset: -10,
-                    style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
+                    style: AXIS_LABEL_STYLE,
                   }}
-                  tick={{ fill: '#6b7280', fontSize: 11 }}
+                  tick={AXIS_TICK}
                 />
 
                 <YAxis
                   tickFormatter={(value) => value.toLocaleString()}
+                  axisLine={false}
+                  tickLine={false}
                   label={{
                     value: isCox ? 'Required Events (d)' : 'Required Sample Size (n)',
                     angle: -90,
                     position: 'insideLeft',
-                    style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
+                    style: AXIS_LABEL_STYLE,
                   }}
-                  tick={{ fill: '#6b7280', fontSize: 11 }}
+                  tick={AXIS_TICK}
                 />
 
                 <Tooltip content={<SampleSizeTooltip isCox={isCox} />} />
@@ -363,10 +363,11 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                 <Legend
                   verticalAlign="top"
                   height={36}
+                  iconType="plainline"
                   formatter={(value: string) => {
                     const count = parseInt(value.split('_')[1]);
                     return (
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-ink-soft">
                         {count.toLocaleString()} proteins
                       </span>
                     );
@@ -376,28 +377,30 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                 {/* Current power reference line */}
                 <ReferenceLine
                   x={targetPower * 100}
-                  stroke="#f59e0b"
+                  stroke={TARGET_LINE}
                   strokeDasharray="8 4"
-                  strokeWidth={2}
+                  strokeWidth={1.5}
                   label={{
-                    value: `Target: ${(targetPower * 100).toFixed(0)}%`,
+                    value: `Target: ${targetPct}%`,
                     position: 'top',
-                    fill: '#f59e0b',
+                    fill: TARGET_LINE,
                     fontSize: 11,
+                    fontWeight: 600,
                   }}
                 />
 
                 {/* Current sample size reference */}
                 <ReferenceLine
                   y={isCox ? currentEvents : currentSampleSize}
-                  stroke="#8b5cf6"
+                  stroke={MARKER_LINE}
                   strokeDasharray="4 4"
-                  strokeWidth={2}
+                  strokeWidth={1.5}
                   label={{
                     value: `Current: ${isCox ? currentEvents : currentSampleSize.toLocaleString()}`,
                     position: 'right',
-                    fill: '#8b5cf6',
+                    fill: MARKER_LINE,
                     fontSize: 11,
+                    fontWeight: 600,
                   }}
                 />
 
@@ -408,10 +411,10 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                     dataKey={isCox ? `events_${scenario.proteinCount}` : `n_${scenario.proteinCount}`}
                     name={isCox ? `events_${scenario.proteinCount}` : `n_${scenario.proteinCount}`}
                     stroke={scenario.color.hex}
-                    strokeWidth={3}
-                    dot={{ r: 4, fill: scenario.color.hex }}
+                    strokeWidth={2.25}
+                    dot={{ r: 3.5, fill: scenario.color.hex, stroke: '#fff', strokeWidth: 1.5 }}
                     isAnimationActive={false}
-                    activeDot={{ r: 6, fill: scenario.color.hex, stroke: '#fff', strokeWidth: 2 }}
+                    activeDot={{ r: 5, fill: scenario.color.hex, stroke: '#fff', strokeWidth: 2 }}
                   />
                 ))}
               </LineChart>
@@ -423,12 +426,12 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
         {/* Forest Plot */}
         {activeViz === 'forest-plot' && (
           <div>
-            <p className="text-sm text-gray-600 mb-4">
-              Minimum detectable {effectLabel} for {(targetPower * 100).toFixed(0)}% power across protein counts
+            <p className="mb-4 text-sm text-ink-soft">
+              Minimum detectable {effectLabel} for {targetPct}% power across protein counts
             </p>
 
             {forestPlotData.length === 0 && (
-              <p className="p-6 text-center text-sm text-gray-500 bg-gray-50 rounded-lg">
+              <p className="inset-panel p-6 text-center text-sm text-ink-soft">
                 No finite minimum detectable effect for the current parameters —
                 check the sample-size / events inputs.
               </p>
@@ -440,40 +443,45 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                 data={forestPlotData}
                 layout="vertical"
                 margin={{ top: 20, right: 40, left: 120, bottom: 20 }}
+                barCategoryGap="30%"
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+                <CartesianGrid stroke={CHART_GRID} horizontal={false} />
 
                 <XAxis
                   type="number"
                   domain={isBetaEffect ? [0, 'auto'] : [1, 'auto']}
                   tickFormatter={(value) => value.toFixed(decimals)}
+                  axisLine={{ stroke: CHART_AXIS }}
+                  tickLine={{ stroke: CHART_AXIS }}
                   label={{
                     value: `Minimum Detectable ${effectLabel} (${effectSymbol})`,
                     position: 'insideBottom',
                     offset: -5,
-                    style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
+                    style: AXIS_LABEL_STYLE,
                   }}
-                  tick={{ fill: '#6b7280', fontSize: 11 }}
+                  tick={AXIS_TICK}
                 />
 
                 <YAxis
                   type="category"
                   dataKey="name"
-                  tick={{ fill: '#6b7280', fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={AXIS_TICK}
                   width={110}
                 />
 
-                <Tooltip content={<ForestTooltip effectSymbol={effectSymbol} decimals={decimals} />} />
+                <Tooltip content={<ForestTooltip effectSymbol={effectSymbol} decimals={decimals} />} cursor={{ fill: 'rgba(20, 47, 58, 0.04)' }} />
 
                 {/* Reference line at null effect */}
                 <ReferenceLine
                   x={isBetaEffect ? 0 : 1}
-                  stroke="#9ca3af"
-                  strokeWidth={2}
+                  stroke={NULL_LINE}
+                  strokeWidth={1.5}
                   label={{
                     value: 'Null',
                     position: 'top',
-                    fill: '#6b7280',
+                    fill: NULL_LINE,
                     fontSize: 10,
                   }}
                 />
@@ -481,18 +489,19 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                 {/* Current effect size reference */}
                 <ReferenceLine
                   x={currentEffectSize}
-                  stroke="#8b5cf6"
+                  stroke={MARKER_LINE}
                   strokeDasharray="4 4"
-                  strokeWidth={2}
+                  strokeWidth={1.5}
                   label={{
                     value: `Input ${effectSymbol}`,
                     position: 'top',
-                    fill: '#8b5cf6',
+                    fill: MARKER_LINE,
                     fontSize: 10,
+                    fontWeight: 600,
                   }}
                 />
 
-                <Bar dataKey="effect" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+                <Bar dataKey="effect" radius={[0, 4, 4, 0]} isAnimationActive={false} maxBarSize={28}>
                   {forestPlotData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -506,20 +515,20 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
         {/* Power Contour / Grid */}
         {activeViz === 'power-contour' && (
           <div>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="mb-4 text-sm text-ink-soft">
               Power across {effectLabel} and {isCox ? 'events' : 'sample size'} combinations
               (using {scenarios[0]?.proteinCount.toLocaleString() || 'selected'} proteins, α ≈ {scenarios[0]?.alpha.toExponential(2)})
             </p>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="scroll-region" tabIndex={0} role="region" aria-label={`Power grid: ${effectLabel} by ${isCox ? 'events' : 'sample size'}`}>
+              <table className="data-table">
                 <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-3 py-2 text-left font-semibold text-gray-700 border-b border-gray-200">
+                  <tr>
+                    <th className="is-sticky">
                       {effectSymbol}
                     </th>
                     {powerContourData.sampleValues.map((n) => (
-                      <th key={n} className="px-3 py-2 text-center font-semibold text-gray-700 border-b border-gray-200">
+                      <th key={n} className="text-center">
                         {isCox ? `d=${n}` : `n=${n.toLocaleString()}`}
                       </th>
                     ))}
@@ -527,15 +536,15 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                 </thead>
                 <tbody>
                   {powerContourData.data.map((row, rowIndex) => (
-                    <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                      <td className="px-3 py-2 font-medium text-gray-900 border-b border-gray-100">
+                    <tr key={rowIndex}>
+                      <td className="is-sticky font-semibold text-ink">
                         {row.effectLabel}
                       </td>
                       {powerContourData.sampleValues.map((n) => {
                         const power = row[`power_${n}`] as number;
                         return (
-                          <td key={n} className="px-3 py-2 text-center border-b border-gray-100">
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${getPowerCellClasses(power)}`}>
+                          <td key={n} className="text-center">
+                            <span className={getPowerCellClasses(power)}>
                               {(power * 100).toFixed(0)}%
                             </span>
                           </td>
@@ -547,12 +556,12 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
               </table>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
-              <span className="px-2 py-0.5 rounded bg-green-100 text-green-800">≥{(targetPower * 100).toFixed(0)}% meets target</span>
+            <div className="table-legend mt-4">
+              <span className="status-badge status-badge--adequate">≥{targetPct}% meets target</span>
               {targetPower > 0.5 && (
-                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800">50%–{(targetPower * 100).toFixed(0)}% below target</span>
+                <span className="status-badge status-badge--marginal">50%–{targetPct}% below target</span>
               )}
-              <span className="px-2 py-0.5 rounded bg-red-100 text-red-800">&lt;50% underpowered</span>
+              <span className="status-badge status-badge--inadequate">&lt;50% underpowered</span>
             </div>
 
           </div>

@@ -66,63 +66,65 @@ export const PowerFormula: React.FC<PowerFormulaProps> = ({
   const definitions = definitionsFor(analysisType, studyDesign);
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 shadow-sm overflow-hidden">
-      <button
-        type="button"
-        aria-expanded={isExpanded}
-        aria-controls="power-formula-content"
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-blue-100/50 transition-colors"
-      >
-        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-          <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-          Statistical Formulas ({config.title})
-        </h2>
-        <svg
-          aria-hidden="true"
-          focusable="false"
-          className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+    <section className="assay-card overflow-hidden">
+      <h2 className="section-title">
+        <button
+          type="button"
+          aria-expanded={isExpanded}
+          aria-controls="power-formula-content"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="disclosure"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+          <span className="flex items-center gap-2.5">
+            <svg aria-hidden="true" focusable="false" className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Statistical Formulas ({config.title})
+          </span>
+          <svg
+            aria-hidden="true"
+            focusable="false"
+            className="disclosure__chevron"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </h2>
 
       <div
         id="power-formula-content"
         inert={!isExpanded}
-        className={`transition-all duration-300 ease-in-out ${
+        className={`disclosure-body ${
           isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
-        } overflow-hidden`}
+        }`}
       >
-        <div className="px-6 pb-6">
-          <div className="overflow-x-auto">
+        <div className="px-6 pb-6 pt-5">
+          <div className="scroll-region" tabIndex={0} role="region" aria-label="Statistical formulas">
             <div className="min-w-fit">
               {/* Power Formula */}
               <div className="mb-6">
-                <p className="text-sm text-gray-700 mb-2 font-medium">Power Formula:</p>
+                <p className="mb-2 text-sm font-semibold text-ink">Power formula</p>
                 <MathEquation
                   latex={config.mainFormula}
-                  className="text-center py-2"
+                  className="py-2 text-center"
                 />
               </div>
 
               {/* Minimum Detectable Effect Size */}
-              <div className="mb-6 bg-amber-50/50 rounded-lg p-4 border border-amber-100">
-                <p className="text-sm text-gray-700 mb-2 font-medium">{config.minEffectLabel}:</p>
+              <div className="inset-panel mb-6">
+                <p className="mb-2 text-sm font-semibold text-ink">{config.minEffectLabel}</p>
                 <MathEquation latex={config.minEffectFormula} className="text-center" />
-                <p className="text-xs text-gray-500 mt-2 text-center">
+                <p className="mt-2 text-center text-xs text-ink-soft">
                   where z<sub>β</sub> = Φ<sup>-1</sup>(target power)
                 </p>
               </div>
 
               {/* Variable Definitions */}
-              <div className="border-t border-blue-200 pt-4">
-                <p className="text-sm text-gray-600 mb-3 font-medium">Where:</p>
+              <div className="border-t border-line-soft pt-4">
+                <p className="mb-3 text-sm font-semibold text-ink">Where</p>
                 <MathEquation
                   latex={definitions}
                   className="text-sm"
@@ -132,6 +134,6 @@ export const PowerFormula: React.FC<PowerFormulaProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };

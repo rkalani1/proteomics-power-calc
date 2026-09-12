@@ -39,17 +39,17 @@ const SortIndicator: React.FC<{
 }> = ({ field, sortField, sortDirection }) => {
   if (sortField !== field) {
     return (
-      <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg aria-hidden="true" focusable="false" className="h-4 w-4 text-line" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
       </svg>
     );
   }
   return sortDirection === 'asc' ? (
-    <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg aria-hidden="true" focusable="false" className="h-4 w-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
     </svg>
   ) : (
-    <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg aria-hidden="true" focusable="false" className="h-4 w-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
     </svg>
   );
@@ -135,25 +135,23 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-gray-200">
+    <section className="assay-card overflow-hidden">
+      <div className="border-b border-line-soft px-6 py-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Power Comparison Table
-            </h2>
-          </div>
+          <h2 className="section-title">
+            <svg aria-hidden="true" focusable="false" className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Power Comparison Table
+          </h2>
 
           <div className="flex items-center gap-2">
-            <label htmlFor="min-power-filter" className="text-sm text-gray-600">Min Power:</label>
+            <label htmlFor="min-power-filter" className="text-sm text-ink-soft">Min Power:</label>
             <select
               id="min-power-filter"
               value={filterMinPower}
               onChange={(e) => setFilterMinPower(Number(e.target.value))}
-              className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="field-select text-sm"
             >
               <option value={0}>All</option>
               <option value={0.5}>≥50%</option>
@@ -165,9 +163,9 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
+      <div className="scroll-region" tabIndex={0} role="region" aria-label="Power comparison table">
+        <table className="data-table">
+          <thead>
             <tr>
               <th
                 onClick={() => handleSort('effect')}
@@ -175,7 +173,7 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
                 tabIndex={0}
                 aria-sort={ariaSortFor('effect')}
                 aria-label={`Sort by ${effectLabel}`}
-                className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 focus:bg-gray-100 transition-colors"
+                className="is-sortable"
               >
                 <div className="flex items-center gap-2">
                   {effectLabel}
@@ -190,35 +188,36 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
                   tabIndex={0}
                   aria-sort={ariaSortFor(`power_${scenario.proteinCount}`)}
                   aria-label={`Sort by power for ${scenario.proteinCount.toLocaleString()} proteins`}
-                  className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 focus:bg-gray-100 transition-colors"
+                  className="is-sortable"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1.5">
                       <span
-                        className="w-2 h-2 rounded-full"
+                        className="series-dot"
                         style={{ backgroundColor: scenario.color.hex }}
+                        aria-hidden="true"
                       ></span>
                       {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
                     </span>
                     <SortIndicator field={`power_${scenario.proteinCount}`} sortField={sortField} sortDirection={sortDirection} />
                   </div>
-                  <div className="text-xs font-normal text-gray-500">
+                  <div className="text-xs font-normal text-ink-muted">
                     α≈{scenario.alpha.toExponential(2)}
                   </div>
                 </th>
               ))}
               {scenarios.length >= 2 && (
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                <th>
                   Power Loss
-                  <div className="text-xs font-normal text-gray-500">
+                  <div className="text-xs font-normal text-ink-muted">
                     (first → last)
                   </div>
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
-            {processedData.map((row, index) => {
+          <tbody>
+            {processedData.map((row) => {
               // Calculate power loss (first scenario vs last scenario)
               const firstPower = row[`power_${scenarios[0].proteinCount}`] ?? 0;
               const lastPower = row[`power_${scenarios[scenarios.length - 1].proteinCount}`] ?? 0;
@@ -232,20 +231,17 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
                 : row.effect > 1;
 
               return (
-                <tr
-                  key={row.effect}
-                  className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-indigo-50/50 transition-colors`}
-                >
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <tr key={row.effect}>
+                  <td className="font-semibold text-ink">
                     {row.effect.toFixed(decimals)}
                   </td>
                   {scenarios.map((scenario) => (
-                    <td key={scenario.proteinCount} className="px-4 py-3 text-sm">
+                    <td key={scenario.proteinCount}>
                       {formatPower(row[`power_${scenario.proteinCount}`] ?? 0)}
                     </td>
                   ))}
                   {scenarios.length >= 2 && (
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="text-ink-soft">
                       {showPowerLoss ? `-${powerLoss}%` : '—'}
                     </td>
                   )}
@@ -257,20 +253,20 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
       </div>
 
       {processedData.length === 0 && (
-        <div className="p-8 text-center text-gray-500">
+        <div className="p-8 text-center text-sm text-ink-soft">
           No data matches the current filter criteria.
         </div>
       )}
 
-      <div className="p-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-        Showing {processedData.length} of {data.length} rows •
-        <span className="text-green-700 ml-2">≥{targetPct}% meets target</span> •
+      <div className="table-legend border-t border-line-soft bg-paper px-6 py-3">
+        <span>Showing {processedData.length} of {data.length} rows</span>
+        <span className="status-text--adequate">≥{targetPct}% meets target</span>
         {targetPower > 0.5 && (
-          <><span className="text-amber-700 ml-2">50%–{targetPct}% below target</span> •</>
+          <span className="status-text--marginal">50%–{targetPct}% below target</span>
         )}
-        <span className="text-red-700 ml-2">&lt;50% underpowered</span>
+        <span className="status-text--inadequate">&lt;50% underpowered</span>
       </div>
-    </div>
+    </section>
   );
 };
 

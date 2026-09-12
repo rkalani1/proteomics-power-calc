@@ -149,18 +149,18 @@ const RScriptBuilder: React.FC<RScriptInput> = (props) => {
       : 'Synced with calculator';
 
   return (
-    <section className="r-script-builder bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="px-6 py-5 border-b border-gray-200">
+    <section className="r-script-builder assay-card overflow-hidden">
+      <div className="border-b border-line-soft px-6 py-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-700">Reproducible analysis</p>
-            <h2 className="mt-1 text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <p className="section-kicker">Reproducible analysis</p>
+            <h2 className="section-title mt-1">
+              <svg aria-hidden="true" focusable="false" className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l-3 3 3 3m8-6l3 3-3 3m-3-9l-2 12" />
               </svg>
               Generate an editable R script
             </h2>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="section-subtitle">
               Replicate the current framework, study parameters, results, and sensitivity analyses in base R.
             </p>
           </div>
@@ -170,7 +170,7 @@ const RScriptBuilder: React.FC<RScriptInput> = (props) => {
           </span>
         </div>
 
-        <div className="mt-4 rounded-lg border border-teal-100 bg-teal-50/70 px-4 py-3 text-sm text-teal-950">
+        <div className="note note--brand mt-4 block">
           <span className="font-semibold">{formatAnalysisType(visibleMetadata.analysisType)}</span>
           <span aria-hidden="true"> · </span>
           {formatStudyDesign(visibleMetadata.studyDesign)}
@@ -182,21 +182,21 @@ const RScriptBuilder: React.FC<RScriptInput> = (props) => {
       </div>
 
       {generation.error && (
-        <div role="alert" className="mx-6 mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div role="alert" className="note note--danger mx-6 mt-5 block">
           {generation.error}
         </div>
       )}
 
       {showChangedNotice && (
-        <div role="alert" className="mx-6 mt-5 flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:flex-row sm:items-center sm:justify-between">
+        <div role="alert" className="note note--gold mx-6 mt-5 flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <strong>Calculator settings changed.</strong> Your custom artifact keeps its original analysis, filename, generator options, and edits until you replace it.
+            <strong className="inline">Calculator settings changed.</strong> Your custom artifact keeps its original analysis, filename, generator options, and edits until you replace it.
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={keepEdits} className="rounded-md border border-amber-300 bg-white px-3 py-2 font-medium hover:bg-amber-100">
+            <button type="button" onClick={keepEdits} className="btn btn-secondary btn-sm">
               Keep my edits
             </button>
-            <button type="button" onClick={replaceWithCurrentInputs} className="rounded-md bg-amber-800 px-3 py-2 font-medium text-white hover:bg-amber-900">
+            <button type="button" onClick={replaceWithCurrentInputs} className="btn btn-primary btn-sm">
               Replace with updated script
             </button>
           </div>
@@ -206,8 +206,8 @@ const RScriptBuilder: React.FC<RScriptInput> = (props) => {
       <div className="r-script-builder-grid px-6 py-6">
         <aside className="r-script-options" aria-label="R script contents">
           <div>
-            <h3 className="text-sm font-semibold text-gray-800">Include in this script</h3>
-            <p className="mt-1 text-xs leading-5 text-gray-500">
+            <h3 className="text-sm font-semibold text-ink">Include in this script</h3>
+            <p className="mt-1 text-xs leading-5 text-ink-muted">
               {isDirty
                 ? `Selections apply on regeneration. This custom artifact retains its ${selectedOptionCount(customArtifact.sourceOptions)} original optional selections.`
                 : 'Selections regenerate code from the calculator values shown above.'}
@@ -231,7 +231,7 @@ const RScriptBuilder: React.FC<RScriptInput> = (props) => {
             </label>
           ))}
 
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-xs leading-5 text-gray-600">
+          <div className="inset-panel px-3 py-3 text-xs leading-5 text-ink-soft">
             Uses base R only. The page creates code in your browser; it does not upload data or run R.
           </div>
         </aside>
@@ -239,17 +239,17 @@ const RScriptBuilder: React.FC<RScriptInput> = (props) => {
         <div className="min-w-0">
           <div className="r-script-toolbar">
             <div className="min-w-0">
-              <label htmlFor="generated-r-script" className="block text-sm font-semibold text-gray-800">
-                Generated R script <span className="font-normal text-gray-500">(editable)</span>
+              <label htmlFor="generated-r-script" className="block text-sm font-semibold text-ink">
+                Generated R script <span className="font-normal text-ink-muted">(editable)</span>
               </label>
-              <p id="r-script-instructions" className="mt-1 truncate text-xs text-gray-500">{filename}</p>
+              <p id="r-script-instructions" className="mt-1 truncate text-xs text-ink-muted">{filename}</p>
             </div>
             <div className="r-script-actions">
-              <button type="button" onClick={replaceWithCurrentInputs} disabled={!generation.script} className="r-script-action secondary">
+              <button type="button" onClick={replaceWithCurrentInputs} disabled={!generation.script} className="btn btn-secondary btn-sm">
                 Regenerate from inputs
               </button>
-              <button type="button" onClick={copyScript} disabled={!script} className="r-script-action secondary">Copy R script</button>
-              <button type="button" onClick={downloadScript} disabled={!script} className="r-script-action primary">Download .R</button>
+              <button type="button" onClick={copyScript} disabled={!script} className="btn btn-secondary btn-sm">Copy R script</button>
+              <button type="button" onClick={downloadScript} disabled={!script} className="btn btn-primary btn-sm">Download .R</button>
             </div>
           </div>
 
@@ -277,11 +277,11 @@ const RScriptBuilder: React.FC<RScriptInput> = (props) => {
           />
 
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <p id="r-script-trust" className="max-w-2xl text-xs leading-5 text-gray-500">
+            <p id="r-script-trust" className="max-w-2xl text-xs leading-5 text-ink-muted">
               Generated locally in your browser. Review the code before using it for an analysis, then run it in R or RStudio.
             </p>
             {visibleFeedback && (
-              <p role={visibleFeedback.kind === 'error' ? 'alert' : 'status'} aria-live="polite" className={`text-xs font-medium ${visibleFeedback.kind === 'error' ? 'text-red-700' : 'text-teal-700'}`}>
+              <p role={visibleFeedback.kind === 'error' ? 'alert' : 'status'} aria-live="polite" className={`text-xs font-semibold ${visibleFeedback.kind === 'error' ? 'text-danger-800' : 'text-good-800'}`}>
                 {visibleFeedback.message}
               </p>
             )}

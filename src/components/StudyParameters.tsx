@@ -92,31 +92,27 @@ export const StudyParameters: React.FC<StudyParametersProps> = ({
   effectDecimals,
 }) => {
   return (
-    <section className="assay-parameters bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-        <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <section className="assay-parameters assay-card assay-card--accent assay-card--padded">
+      <h2 className="section-title mb-4">
+        <svg aria-hidden="true" focusable="false" className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
         </svg>
         Study Parameters
       </h2>
 
       {/* Standardization Assumption Note */}
-      <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-        <div className="flex items-start gap-3">
-          <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div>
-            <p className="text-sm font-medium text-amber-800">Assumption: Standardized Protein Levels</p>
-            <p className="text-xs text-amber-700 mt-1">
-              All calculations assume protein levels are <strong>standardized</strong> (mean = 0, variance = 1).
-              Effect sizes are interpreted per 1 standard deviation increase in protein level.
-            </p>
-          </div>
+      <div className="note note--gold mb-6">
+        <svg aria-hidden="true" focusable="false" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <strong>Assumption: standardized protein levels</strong>
+          All calculations assume protein levels are standardized (mean = 0, variance = 1).
+          Effect sizes are interpreted per 1 standard deviation increase in protein level.
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="parameters-grid grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
         {/* Sample Size - shown for models sized by total n. Cox power depends on
             the number of EVENTS, not total n, so the slider is hidden for Cox to
             avoid an inert control (and, in case-cohort, a third size slider that
@@ -300,39 +296,29 @@ export const StudyParameters: React.FC<StudyParametersProps> = ({
 
         {/* Multiple Testing Correction */}
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Multiple Testing Correction
-            </label>
-            <div className="grid grid-cols-2 gap-2">
+          <fieldset className="analysis-method-selector">
+            <legend className="field-label">Multiple Testing Correction</legend>
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Multiple testing correction">
               <button
                 type="button"
                 aria-pressed={correctionMethod === 'fdr'}
                 onClick={() => setCorrectionMethod('fdr')}
-                className={`p-2.5 rounded-lg border-2 text-left transition-all ${
-                  correctionMethod === 'fdr'
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
-                    : 'border-gray-200 hover:border-indigo-200 hover:bg-gray-50'
-                }`}
+                className="option-tile"
               >
-                <div className="font-medium text-sm">FDR (BH)</div>
-                <div className="text-xs text-gray-500">False Discovery Rate</div>
+                <span className="option-tile__label">FDR (BH)</span>
+                <span className="option-tile__meta">False Discovery Rate</span>
               </button>
               <button
                 type="button"
                 aria-pressed={correctionMethod === 'bonferroni'}
                 onClick={() => setCorrectionMethod('bonferroni')}
-                className={`p-2.5 rounded-lg border-2 text-left transition-all ${
-                  correctionMethod === 'bonferroni'
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
-                    : 'border-gray-200 hover:border-indigo-200 hover:bg-gray-50'
-                }`}
+                className="option-tile"
               >
-                <div className="font-medium text-sm">Bonferroni</div>
-                <div className="text-xs text-gray-500">Family-Wise Error Rate</div>
+                <span className="option-tile__label">Bonferroni</span>
+                <span className="option-tile__meta">Family-Wise Error Rate</span>
               </button>
             </div>
-          </div>
+          </fieldset>
           <Slider
             label={correctionMethod === 'fdr' ? 'FDR Threshold (q)' : 'FWER Alpha (α)'}
             value={fdrQ}

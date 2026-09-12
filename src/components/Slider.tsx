@@ -12,6 +12,10 @@ interface SliderProps {
   decimals?: number;
 }
 
+// Track colours (brand-500 fill on a line-grey rest) mirror the tokens in index.css.
+const TRACK_FILL = '#2f8f91';
+const TRACK_REST = '#d4dfdf';
+
 export const Slider: React.FC<SliderProps> = ({
   label,
   value,
@@ -79,9 +83,9 @@ export const Slider: React.FC<SliderProps> = ({
   const percentage = ((value - min) / (max - min)) * 100;
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
-        <label htmlFor={rangeId} className="text-sm font-medium text-gray-700">{label}</label>
+    <div className="space-y-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <label htmlFor={rangeId} className="min-w-0 flex-1 text-sm font-semibold leading-snug text-ink">{label}</label>
         <input
           type="text"
           inputMode="decimal"
@@ -92,7 +96,7 @@ export const Slider: React.FC<SliderProps> = ({
           onKeyDown={handleKeyDown}
           aria-label={`${label} (exact value)`}
           aria-describedby={descId}
-          className="w-28 px-2 py-1.5 text-right text-sm font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          className="slider-value-input ml-auto"
         />
       </div>
       <input
@@ -105,16 +109,16 @@ export const Slider: React.FC<SliderProps> = ({
         onChange={(e) => onChange(Number(e.target.value))}
         aria-valuetext={valueText}
         aria-describedby={descId}
-        className="w-full h-2 rounded-lg appearance-none cursor-pointer slider-thumb"
+        className="slider-thumb"
         style={{
-          background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${percentage}%, #e2e8f0 ${percentage}%, #e2e8f0 100%)`
+          background: `linear-gradient(to right, ${TRACK_FILL} 0%, ${TRACK_FILL} ${percentage}%, ${TRACK_REST} ${percentage}%, ${TRACK_REST} 100%)`
         }}
       />
-      <div className="flex justify-between text-xs text-gray-500">
+      <div className="flex justify-between text-xs text-ink-muted">
         <span>{decimals > 0 ? min.toFixed(decimals) : min.toLocaleString()}{unit}</span>
         <span>{decimals > 0 ? max.toFixed(decimals) : max.toLocaleString()}{unit}</span>
       </div>
-      {description && <p id={descId} className="text-xs text-gray-500">{description}</p>}
+      {description && <p id={descId} className="text-xs leading-relaxed text-ink-soft">{description}</p>}
     </div>
   );
 };

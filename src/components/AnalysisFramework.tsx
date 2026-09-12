@@ -23,6 +23,9 @@ interface AnalysisFrameworkProps {
   SCENARIO_COLORS: { bg: string; text: string; light: string; border: string; hex: string }[];
 }
 
+const PROTEIN_PRESETS = [1, 100, 1000, 3000, 5000, 7000];
+const QUICK_ADD_PRESETS = [1, 50, 100, 500, 1000, 3000, 5000, 7000];
+
 export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
   analysisType,
   studyDesign,
@@ -135,19 +138,21 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
     removeProteinCount(count);
   };
 
+  const atScenarioLimit = proteinCounts.length >= 6;
+
   return (
-    <section className="assay-framework bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <h2 id="setup-heading" tabIndex={-1} className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-        <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <section className="assay-framework assay-card assay-card--accent assay-card--padded">
+      <h2 id="setup-heading" tabIndex={-1} className="section-title mb-5">
+        <svg aria-hidden="true" focusable="false" className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
         </svg>
         Analysis Framework
       </h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="analysis-method-columns">
         {/* Analysis Type */}
         <fieldset className="analysis-method-selector">
-          <legend className="block text-sm font-medium text-gray-700 mb-2">Analysis Type</legend>
+          <legend className="field-label">Analysis Type</legend>
           <div className="analysis-method-grid" role="group" aria-label="Analysis type">
             {ANALYSIS_TYPE_OPTIONS.map((option) => (
               <button
@@ -157,14 +162,10 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 aria-label={`${option.label}: ${option.description}`}
                 title={option.label}
                 onClick={() => handleAnalysisTypeChange(option.value)}
-                className={`analysis-method-option p-3 rounded-lg border-2 text-left transition-all ${
-                  analysisType === option.value
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
-                    : 'border-gray-200 hover:border-indigo-200 hover:bg-gray-50'
-                }`}
+                className="option-tile"
               >
-                <div className="font-medium text-sm">{option.label}</div>
-                <div className="text-xs text-gray-500 mt-1">{option.description}</div>
+                <span className="option-tile__label">{option.label}</span>
+                <span className="option-tile__meta">{option.description}</span>
               </button>
             ))}
           </div>
@@ -172,8 +173,8 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
 
         {/* Study Design */}
         <fieldset className="analysis-method-selector">
-          <legend className="block text-sm font-medium text-gray-700 mb-2">Study Design</legend>
-          <div className="grid grid-cols-1 gap-2" role="group" aria-label="Study design">
+          <legend className="field-label">Study Design</legend>
+          <div className="analysis-method-grid" role="group" aria-label="Study design">
             {STUDY_DESIGN_OPTIONS[analysisType].map((option) => (
               <button
                 key={option.value}
@@ -181,14 +182,10 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 aria-pressed={studyDesign === option.value}
                 aria-label={`${option.label}: ${option.description}`}
                 onClick={() => setStudyDesign(option.value)}
-                className={`p-3 rounded-lg border-2 text-left transition-all ${
-                  studyDesign === option.value
-                    ? 'border-purple-500 bg-purple-50 text-purple-900'
-                    : 'border-gray-200 hover:border-purple-200 hover:bg-gray-50'
-                }`}
+                className="option-tile"
               >
-                <div className="font-medium text-sm">{option.label}</div>
-                <div className="text-xs text-gray-500 mt-1">{option.description}</div>
+                <span className="option-tile__label">{option.label}</span>
+                <span className="option-tile__meta">{option.description}</span>
               </button>
             ))}
           </div>
@@ -196,26 +193,23 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
       </div>
 
       {/* Protein Count */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
-        <div className="flex items-center justify-between mb-3">
+      <div className="mt-6 border-t border-line-soft pt-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
           {/* Point the label at whichever input is rendered for the current
               mode so it never references a non-existent element. */}
           <label
             htmlFor={comparisonMode ? 'protein-scenario-input' : 'protein-count-input'}
-            className="block text-sm font-medium text-gray-700"
+            className="text-sm font-semibold text-ink"
           >
             Number of Proteins
           </label>
           <button
+            type="button"
             onClick={() => setComparisonMode(!comparisonMode)}
             aria-pressed={comparisonMode}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-              comparisonMode
-                ? 'bg-indigo-100 text-indigo-700 border border-indigo-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            className="toggle-button"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg aria-hidden="true" focusable="false" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             {comparisonMode ? 'Comparison On' : 'Compare Scenarios'}
@@ -225,7 +219,7 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
         {!comparisonMode ? (
           /* Single protein count mode */
           <div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3">
               <input
                 id="protein-count-input"
                 type="number"
@@ -235,9 +229,9 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 aria-describedby="protein-count-constraints protein-count-normalization"
                 onChange={(e) => handleProteinCountChange(e.target.value)}
                 onBlur={handleProteinCountBlur}
-                className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="field-input w-32"
               />
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-ink-soft">
                 Effective α ≈ {calculateEffectiveAlpha(fdrQ, proteinCount, correctionMethod).toExponential(2)}
               </span>
             </div>
@@ -253,17 +247,15 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
             >
               {normalizationMessage}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="text-xs text-gray-500 mr-2">Presets:</span>
-              {[1, 100, 1000, 3000, 5000, 7000].map(n => (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-xs text-ink-muted">Presets:</span>
+              {PROTEIN_PRESETS.map(n => (
                 <button
                   key={n}
+                  type="button"
                   onClick={() => setProteinCount(n)}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
-                    proteinCount === n
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700'
-                  }`}
+                  aria-pressed={proteinCount === n}
+                  className="chip-button"
                 >
                   {n.toLocaleString()}
                 </button>
@@ -273,14 +265,14 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
         ) : (
           /* Comparison mode */
           <div>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="mb-4 text-xs leading-relaxed text-ink-soft">
               Compare power across different protein counts (e.g., targeted panel vs. proteome-wide).
             </p>
 
             {/* Current protein counts */}
             <div
               id="scenario-comparison-summary"
-              className="flex flex-wrap gap-2 mb-4"
+              className="mb-4 flex flex-wrap gap-2"
               tabIndex={-1}
               aria-label={`Comparing ${proteinCounts.length} scenarios`}
             >
@@ -289,24 +281,25 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 return (
                   <div
                     key={count}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${color.border} ${color.light}`}
+                    className={`scenario-pill ${color.border} ${color.light} ${color.text}`}
                   >
-                    <span className={`w-3 h-3 rounded-full ${color.bg}`}></span>
-                    <span className={`font-medium ${color.text}`}>
+                    <span className={`scenario-pill__dot ${color.bg}`} aria-hidden="true"></span>
+                    <span>
                       {count.toLocaleString()} protein{count !== 1 ? 's' : ''}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs font-normal text-ink-soft">
                       (α≈{calculateEffectiveAlpha(fdrQ, count, correctionMethod).toExponential(2)})
                     </span>
                     {proteinCounts.length > 1 && (
                       <button
+                        type="button"
                         onClick={() => handleRemoveScenario(count)}
                         data-remove-scenario={count}
                         aria-label={`Remove ${count.toLocaleString()} protein scenario`}
-                        className="ml-1 text-gray-400 hover:text-red-500 transition-colors"
+                        className="scenario-pill__remove"
                         title={`Remove ${count.toLocaleString()} protein scenario`}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg aria-hidden="true" focusable="false" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
@@ -317,7 +310,7 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
             </div>
 
             {/* Add new protein count */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 id="protein-scenario-input"
                 type="number"
@@ -329,34 +322,36 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 placeholder="Enter protein count..."
                 aria-label="Add a protein-count scenario"
                 aria-describedby={scenarioError ? 'protein-scenario-error' : undefined}
-                className="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="field-input w-48"
               />
               <button
+                type="button"
                 onClick={addManualScenario}
-                disabled={!newProteinCount || proteinCounts.length >= 6}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                disabled={!newProteinCount || atScenarioLimit}
+                className="btn btn-primary"
               >
                 Add
               </button>
-              {proteinCounts.length >= 6 && (
-                <span className="text-xs text-amber-600">Maximum 6 scenarios</span>
+              {atScenarioLimit && (
+                <span className="text-xs font-medium text-warn-800">Maximum 6 scenarios</span>
               )}
             </div>
             {scenarioError && (
-              <p id="protein-scenario-error" className="mt-2 text-xs text-red-600" role="status" aria-live="polite">
+              <p id="protein-scenario-error" className="mt-2 text-xs font-medium text-danger-800" role="status" aria-live="polite">
                 {scenarioError}
               </p>
             )}
 
             {/* Quick add presets */}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="text-xs text-gray-500 mr-2">Quick add:</span>
-              {[1, 50, 100, 500, 1000, 3000, 5000, 7000].filter(n => !proteinCounts.includes(n)).slice(0, 5).map(n => (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-xs text-ink-muted">Quick add:</span>
+              {QUICK_ADD_PRESETS.filter(n => !proteinCounts.includes(n)).slice(0, 5).map(n => (
                 <button
                   key={n}
+                  type="button"
                   onClick={() => addQuickScenario(n)}
-                  disabled={proteinCounts.length >= 6}
-                  className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-indigo-100 hover:text-indigo-700 disabled:opacity-50 transition-colors"
+                  disabled={atScenarioLimit}
+                  className="chip-button"
                 >
                   {n.toLocaleString()}
                 </button>

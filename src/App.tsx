@@ -276,6 +276,7 @@ function App() {
   const activateSection = (sectionId: (typeof WORKFLOW_SECTIONS)[number]['id']) => {
     const section = document.getElementById(`${sectionId}-section`);
     if (!section) return;
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     activatedSectionRef.current = sectionId;
     if (activatedSectionReleaseRef.current !== null) {
       window.clearTimeout(activatedSectionReleaseRef.current);
@@ -285,7 +286,7 @@ function App() {
       activatedSectionReleaseRef.current = null;
     }, 900);
     setCurrentSection(sectionId);
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    section.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
     window.setTimeout(() => {
       setCurrentSection(sectionId);
       const heading = section.querySelector<HTMLElement>('h2, h1');
@@ -381,10 +382,6 @@ function App() {
     covariateR2,
   ]);
 
-  // Slider is defined at module scope (see top of file) so it keeps a stable
-  // component identity across App re-renders. Defining it inline here would
-  // remount it on every state change, breaking drag interactions and focus.
-
   return (
     <div className="assay-shell min-h-screen">
       <Header
@@ -412,7 +409,7 @@ function App() {
         </div>
       </nav>
 
-      <main className="assay-workspace max-w-[100rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="assay-workspace mx-auto max-w-[100rem] px-4 py-6 sm:px-6 lg:px-8">
         <div className="assay-inputs">
           <div id="setup-section" className="workflow-section">
           <AnalysisFramework
