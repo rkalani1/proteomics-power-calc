@@ -71,23 +71,20 @@ try {
 
   // 2. POWER_STATUS style maps
   console.log('\n2. POWER_STATUS style maps');
-  ok(F.POWER_STATUS_COLORS.adequate === '#10b981', 'POWER_STATUS_COLORS adequate color');
-  ok(F.POWER_STATUS_COLORS.marginal === '#f59e0b', 'POWER_STATUS_COLORS marginal color');
-  ok(F.POWER_STATUS_COLORS.inadequate === '#ef4444', 'POWER_STATUS_COLORS inadequate color');
+  ok(F.POWER_STATUS_COLORS.adequate === '#1e7a3c', 'POWER_STATUS_COLORS adequate color');
+  ok(F.POWER_STATUS_COLORS.marginal === '#b7791f', 'POWER_STATUS_COLORS marginal color');
+  ok(F.POWER_STATUS_COLORS.inadequate === '#b3323f', 'POWER_STATUS_COLORS inadequate color');
 
-  ok(F.POWER_STATUS_TEXT_CLASSES.adequate === 'text-green-600 font-semibold', 'POWER_STATUS_TEXT_CLASSES adequate class');
-  ok(F.POWER_STATUS_TEXT_CLASSES.marginal === 'text-amber-600', 'POWER_STATUS_TEXT_CLASSES marginal class');
-  ok(F.POWER_STATUS_TEXT_CLASSES.inadequate === 'text-red-600', 'POWER_STATUS_TEXT_CLASSES inadequate class');
-  ok(F.POWER_STATUS_TEXT_CLASSES.adequate.includes('text-green-600'), 'POWER_STATUS_TEXT_CLASSES adequate includes text-green-600');
-  ok(F.POWER_STATUS_TEXT_CLASSES.marginal.includes('text-amber-600'), 'POWER_STATUS_TEXT_CLASSES marginal includes text-amber-600');
-  ok(F.POWER_STATUS_TEXT_CLASSES.inadequate.includes('text-red-600'), 'POWER_STATUS_TEXT_CLASSES inadequate includes text-red-600');
+  ok(F.POWER_STATUS_TEXT_CLASSES.adequate === 'status-text--adequate', 'POWER_STATUS_TEXT_CLASSES adequate class');
+  ok(F.POWER_STATUS_TEXT_CLASSES.marginal === 'status-text--marginal', 'POWER_STATUS_TEXT_CLASSES marginal class');
+  ok(F.POWER_STATUS_TEXT_CLASSES.inadequate === 'status-text--inadequate', 'POWER_STATUS_TEXT_CLASSES inadequate class');
+  ok(new Set(Object.values(F.POWER_STATUS_TEXT_CLASSES)).size === 3, 'POWER_STATUS_TEXT_CLASSES are distinct per status');
 
-  ok(F.POWER_STATUS_BG_CLASSES.adequate === 'bg-green-100 text-green-800', 'POWER_STATUS_BG_CLASSES adequate class');
-  ok(F.POWER_STATUS_BG_CLASSES.marginal === 'bg-amber-100 text-amber-800', 'POWER_STATUS_BG_CLASSES marginal class');
-  ok(F.POWER_STATUS_BG_CLASSES.inadequate === 'bg-red-100 text-red-800', 'POWER_STATUS_BG_CLASSES inadequate class');
-  ok(F.POWER_STATUS_BG_CLASSES.adequate.includes('bg-green-100'), 'POWER_STATUS_BG_CLASSES adequate includes bg-green-100');
-  ok(F.POWER_STATUS_BG_CLASSES.marginal.includes('bg-amber-100'), 'POWER_STATUS_BG_CLASSES marginal includes bg-amber-100');
-  ok(F.POWER_STATUS_BG_CLASSES.inadequate.includes('bg-red-100'), 'POWER_STATUS_BG_CLASSES inadequate includes bg-red-100');
+  ok(F.POWER_STATUS_BG_CLASSES.adequate === 'status-badge status-badge--adequate', 'POWER_STATUS_BG_CLASSES adequate class');
+  ok(F.POWER_STATUS_BG_CLASSES.marginal === 'status-badge status-badge--marginal', 'POWER_STATUS_BG_CLASSES marginal class');
+  ok(F.POWER_STATUS_BG_CLASSES.inadequate === 'status-badge status-badge--inadequate', 'POWER_STATUS_BG_CLASSES inadequate class');
+  ok(Object.values(F.POWER_STATUS_BG_CLASSES).every(c => c.startsWith('status-badge ')), 'POWER_STATUS_BG_CLASSES share the base badge class');
+  ok(new Set(Object.values(F.POWER_STATUS_BG_CLASSES)).size === 3, 'POWER_STATUS_BG_CLASSES are distinct per status');
 
   // 3. getParameterDescription — PR fixture (events=400, n=1000, …)
   console.log('\n3. getParameterDescription (PR fixture)');

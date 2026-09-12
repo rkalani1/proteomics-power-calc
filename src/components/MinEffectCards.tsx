@@ -57,31 +57,45 @@ export function MinEffectCards({
   targetPower,
 }: MinEffectCardsProps) {
   const isBetaModel = analysisType === 'linear' || analysisType === 'gee';
+  const seContext = analysisType === 'cox'
+    ? studyDesign === 'case-cohort'
+      ? `${events} events, subcohort ${subcohortSize}/${totalCohort}`
+      : studyDesign === 'nested-case-control'
+      ? `${events} events, ${matchingRatio}:1 matching`
+      : `${events} events`
+    : analysisType === 'linear'
+    ? `n = ${sampleSize}`
+    : analysisType === 'gee'
+    ? `n = ${sampleSize} obs, m = ${clusterSize}, ICC = ${icc.toFixed(2)}, DE = ${calculateDesignEffect(clusterSize, icc).toFixed(2)}`
+    : (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
+    ? `${numCases} cases, ${numControls} controls`
+    : `n = ${sampleSize}, prev = ${(prevalence * 100).toFixed(0)}%`;
+
   return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-        <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <section className="assay-card assay-card--padded">
+      <h2 className="section-title mb-4">
+        <svg aria-hidden="true" focusable="false" className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         Minimum Detectable {effectConfig.label} for {(targetPower * 100).toFixed(0)}% Power
       </h2>
 
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${scenarioResults.length > 2 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-4`}>
+      <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${scenarioResults.length > 2 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
         {scenarioResults.map((scenario) => (
           <div
             key={scenario.proteinCount}
-            className={`p-4 rounded-lg border ${scenario.color.border} ${scenario.color.light}`}
+            className={`rounded-[10px] border p-4 ${scenario.color.border} ${scenario.color.light}`}
           >
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`w-3 h-3 rounded-full ${scenario.color.bg}`}></span>
-              <span className={`text-sm font-medium ${scenario.color.text}`}>
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className={`series-dot ${scenario.color.bg}`} aria-hidden="true"></span>
+              <span className={`text-sm font-semibold ${scenario.color.text}`}>
                 {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
               </span>
             </div>
-            <div className={`text-2xl font-bold ${scenario.color.text}`}>
+            <div className="text-2xl font-bold tracking-tight text-ink">
               {isBetaModel ? `|${effectConfig.symbol}|` : effectConfig.symbol} ≥ {scenario.minEffect.toFixed(effectDecimals)}
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-ink-soft">
               Effective α ≈ {scenario.alpha.toExponential(2)}
             </p>
           </div>
@@ -89,21 +103,21 @@ export function MinEffectCards({
       </div>
 
       {isBetaModel ? (
-        <p className="mt-3 text-xs text-gray-500">
+        <p className="mt-3 text-xs leading-relaxed text-ink-soft">
           Detectability is symmetric about zero: a {effectConfig.symbol} of −x is exactly as detectable
           as +x, so the threshold applies to the magnitude |{effectConfig.symbol}|.
         </p>
       ) : (
-        <p className="mt-3 text-xs text-gray-500">
+        <p className="mt-3 text-xs leading-relaxed text-ink-soft">
           Detectability is symmetric on the log scale: a minimum detectable {effectConfig.symbol} of x is
           equivalent to a protective {effectConfig.symbol} of 1/x (e.g. {effectConfig.symbol} 1.25 ↔ 0.80).
         </p>
       )}
 
       {scenarioResults.length >= 2 && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="flex items-center gap-4 text-sm text-gray-600">
-            <span className="font-medium">Effect Size Inflation:</span>
+        <div className="mt-4 border-t border-line-soft pt-4">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-soft">
+            <span className="font-semibold text-ink">Effect size inflation:</span>
             {(() => {
               const first = scenarioResults[0];
               const last = scenarioResults[scenarioResults.length - 1];
@@ -115,9 +129,9 @@ export function MinEffectCards({
                 ? (first.minEffect > 0 ? ((last.minEffect / first.minEffect) - 1) * 100 : 0)
                 : calculateInflation(first.minEffect, last.minEffect);
               return (
-                <span className="text-amber-600 font-semibold">
+                <span className="font-semibold text-warn-800">
                   {isFinite(inflation) ? `~${inflation.toFixed(1)}%` : 'N/A'}
-                  <span className="font-normal text-gray-500 ml-2">
+                  <span className="ml-2 font-normal text-ink-soft">
                     ({first.proteinCount.toLocaleString()} → {last.proteinCount.toLocaleString()} proteins)
                   </span>
                 </span>
@@ -127,29 +141,15 @@ export function MinEffectCards({
         </div>
       )}
 
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span className="font-medium">
-            {analysisType === 'linear' || analysisType === 'gee' ? 'SE(β)' : `SE(log ${effectConfig.symbol})`}:
+      <div className="mt-4 border-t border-line-soft pt-4">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-soft">
+          <span className="font-semibold text-ink">
+            {isBetaModel ? 'SE(β)' : `SE(log ${effectConfig.symbol})`}:
           </span>
-          <span className="text-purple-600 font-semibold">
+          <span className="font-semibold text-brand-700">
             {isFinite(standardError) ? standardError.toFixed(4) : '∞'}
           </span>
-          <span className="text-gray-500">
-            {analysisType === 'cox'
-              ? studyDesign === 'case-cohort'
-                ? `(${events} events, subcohort ${subcohortSize}/${totalCohort})`
-                : studyDesign === 'nested-case-control'
-                ? `(${events} events, ${matchingRatio}:1 matching)`
-                : `(${events} events)`
-              : analysisType === 'linear'
-              ? `(n = ${sampleSize})`
-              : analysisType === 'gee'
-              ? `(n = ${sampleSize} obs, m = ${clusterSize}, ICC = ${icc.toFixed(2)}, DE = ${calculateDesignEffect(clusterSize, icc).toFixed(2)})`
-              : (studyDesign === 'case-control' || studyDesign === 'nested-case-control')
-              ? `(${numCases} cases, ${numControls} controls)`
-              : `(n = ${sampleSize}, prev = ${(prevalence * 100).toFixed(0)}%)`}
-          </span>
+          <span className="text-ink-soft">({seContext})</span>
         </div>
       </div>
     </section>

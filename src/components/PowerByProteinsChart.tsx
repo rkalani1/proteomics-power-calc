@@ -15,6 +15,13 @@ import { getParameterDescription } from '../utils/formatters';
 import { usePowerChartData } from '../hooks/usePowerChartData';
 import { getPowerStatus, POWER_STATUS_BG_CLASSES } from '../utils/formatters';
 import { DISPLAY_EFFECT_GRIDS } from '../constants/analysisGrids';
+import {
+  AXIS_LABEL_STYLE,
+  AXIS_TICK,
+  CHART_AXIS,
+  CHART_GRID,
+  TARGET_LINE,
+} from '../constants/chartTheme';
 
 type ScaleType = 'linear' | 'log';
 
@@ -59,24 +66,25 @@ const ProteinsTooltip: React.FC<{
   const effectiveAlpha = payload[0]?.payload?.alphaMulti ?? calculateEffectiveAlpha(fdrQ, label || 1, correctionMethod);
 
   return (
-    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3 max-h-64 overflow-y-auto">
-      <p className="font-semibold text-gray-800 mb-2">
+    <div className="chart-tooltip max-h-64 overflow-y-auto">
+      <p className="chart-tooltip__title">
         {label?.toLocaleString()} protein{label !== 1 ? 's' : ''} tested
       </p>
-      <p className="text-xs text-gray-500 mb-2">
+      <p className="chart-tooltip__meta mb-2">
         α ≈ {effectiveAlpha.toExponential(2)}
       </p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         {payload.map((entry, index) => {
           const es = entry.dataKey.replace('es_', '');
           return (
-            <p key={index} className="text-sm flex items-center gap-1">
+            <p key={index} className="chart-tooltip__row">
               <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
+                className="series-dot"
                 style={{ backgroundColor: entry.color }}
+                aria-hidden="true"
               />
-              <span className="text-gray-600">{effectSymbol} {es}:</span>
-              <span className="font-medium" style={{ color: entry.color }}>
+              <span className="text-ink-soft">{effectSymbol} {es}:</span>
+              <span className="chart-tooltip__value">
                 {(entry.value * 100).toFixed(0)}%
               </span>
             </p>
@@ -137,10 +145,10 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
   const formatPowerCell = (power: number) => {
     const percentage = (power * 100).toFixed(0);
     const status = getPowerStatus(power, targetPower);
-    const bgColor = POWER_STATUS_BG_CLASSES[status];
+    const badgeClass = POWER_STATUS_BG_CLASSES[status];
 
     return (
-      <span className={`px-2 py-0.5 rounded text-xs font-medium ${bgColor}`}>
+      <span className={badgeClass}>
         {percentage}%
       </span>
     );
@@ -169,52 +177,50 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
     covariateR2,
   });
 
+  const targetPct = (targetPower * 100).toFixed(0);
+
   return (
     <div className="space-y-6">
       {/* Sensitivity Table */}
-      <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+      <section className="assay-card assay-card--padded">
         <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <h2 className="section-title">
+            <svg aria-hidden="true" focusable="false" className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M9 7v13M4 12h16" />
             </svg>
             Power Sensitivity: {effectSymbol} × Number of Proteins
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="section-subtitle">
             Power (%) for each combination ({correctionMethod === 'fdr' ? 'FDR q' : 'FWER α'} = {fdrQ}, {parameterDescription})
           </p>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="scroll-region" tabIndex={0} role="region" aria-label={`Power sensitivity table: ${effectSymbol} by number of proteins`}>
+          <table className="data-table">
             <thead>
-              <tr className="border-b-2 border-gray-200">
-                <th className="px-2 py-2 text-left text-gray-700 font-semibold bg-gray-50 sticky left-0">
+              <tr>
+                <th className="is-sticky">
                   # Proteins
                 </th>
                 {effectSizes.map((es) => (
-                  <th
-                    key={es}
-                    className="px-2 py-2 text-center font-semibold"
-                    style={{ color: effectColors[es] }}
-                  >
-                    {effectSymbol}={formatEffectSize(es)}
+                  <th key={es} className="text-center">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="series-dot" style={{ backgroundColor: effectColors[es] }} aria-hidden="true"></span>
+                      {effectSymbol}={formatEffectSize(es)}
+                    </span>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {sensitivityTableData.map((row, idx) => (
-                <tr
-                  key={row.proteins}
-                  className={`border-b border-gray-100 ${idx % 2 === 0 ? '' : 'bg-gray-50/50'}`}
-                >
-                  <td className="px-2 py-2 font-medium text-gray-800 bg-gray-50 sticky left-0">
+              {sensitivityTableData.map((row) => (
+                <tr key={row.proteins}>
+                  <td className="is-sticky font-semibold text-ink">
                     {row.proteins.toLocaleString()}
                   </td>
                   {effectSizes.map((es) => (
-                    <td key={es} className="px-2 py-2 text-center">
+                    <td key={es} className="text-center">
                       {formatPowerCell(row[`es_${es}`])}
                     </td>
                   ))}
@@ -224,33 +230,27 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
           </table>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">≥{(targetPower * 100).toFixed(0)}% (meets target)</span>
-          </div>
+        <div className="table-legend mt-3">
+          <span className="status-badge status-badge--adequate">≥{targetPct}% (meets target)</span>
           {/* At the 50% minimum target the "below target" band is empty, so skip it */}
           {targetPower > 0.5 && (
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-xs">50%–{(targetPower * 100).toFixed(0)}% (below target)</span>
-            </div>
+            <span className="status-badge status-badge--marginal">50%–{targetPct}% (below target)</span>
           )}
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded bg-red-100 text-red-800 text-xs">&lt;50% (underpowered)</span>
-          </div>
+          <span className="status-badge status-badge--inadequate">&lt;50% (underpowered)</span>
         </div>
       </section>
 
       {/* Power vs Number of Proteins Chart with Scale Toggle */}
-      <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+      <section className="assay-card assay-card--padded">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <h2 className="section-title">
+              <svg aria-hidden="true" focusable="false" className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
               </svg>
               Power vs Number of Proteins
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="section-subtitle">
               {scaleType === 'linear'
                 ? 'Linear scale (1-1,000 proteins)'
                 : 'Logarithmic scale (1-5,000 proteins)'}
@@ -258,26 +258,18 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
           </div>
 
           {/* Scale Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1" role="group" aria-label="Chart scale">
+          <div className="segmented" role="group" aria-label="Chart scale">
             <button
+              type="button"
               onClick={() => setScaleType('linear')}
               aria-pressed={scaleType === 'linear'}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                scaleType === 'linear'
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
             >
               Linear
             </button>
             <button
+              type="button"
               onClick={() => setScaleType('log')}
               aria-pressed={scaleType === 'log'}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                scaleType === 'log'
-                  ? 'bg-white text-indigo-700 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
             >
               Log
             </button>
@@ -289,7 +281,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
             data={scaleType === 'linear' ? linearChartData : logChartData}
             margin={{ top: 20, right: 84, left: 20, bottom: 40 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid stroke={CHART_GRID} vertical={false} />
 
             <XAxis
               dataKey="proteins"
@@ -300,26 +292,30 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
                 ? [1, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
                 : [1, 10, 100, 1000, 5000]}
               tickFormatter={(value) => value.toLocaleString()}
+              axisLine={{ stroke: CHART_AXIS }}
+              tickLine={{ stroke: CHART_AXIS }}
               label={{
                 value: `Number of Proteins Tested${scaleType === 'log' ? ' (log scale)' : ''}`,
                 position: 'insideBottom',
                 offset: -5,
-                style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
+                style: AXIS_LABEL_STYLE,
               }}
-              tick={{ fill: '#6b7280', fontSize: 11 }}
+              tick={AXIS_TICK}
             />
 
             <YAxis
               domain={[0, 1]}
               tickCount={11}
               tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+              axisLine={false}
+              tickLine={false}
               label={{
                 value: 'Statistical Power',
                 angle: -90,
                 position: 'insideLeft',
-                style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
+                style: AXIS_LABEL_STYLE,
               }}
-              tick={{ fill: '#6b7280', fontSize: 11 }}
+              tick={AXIS_TICK}
             />
 
             <Tooltip content={<ProteinsTooltip fdrQ={fdrQ} effectSymbol={effectSymbol} correctionMethod={correctionMethod} />} />
@@ -327,24 +323,26 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
             <Legend
               verticalAlign="top"
               height={36}
+              iconType="plainline"
               formatter={(value) => {
                 // Match the table headers' formatting (e.g. "HR=2.0", not "HR 2").
                 const es = Number(value.replace('es_', ''));
-                return <span className="text-xs text-gray-700">{effectSymbol}={formatEffectSize(es)}</span>;
+                return <span className="text-xs text-ink-soft">{effectSymbol}={formatEffectSize(es)}</span>;
               }}
             />
 
             {/* Target power reference line */}
             <ReferenceLine
               y={targetPower}
-              stroke="#8b5cf6"
+              stroke={TARGET_LINE}
               strokeDasharray="8 4"
-              strokeWidth={2}
+              strokeWidth={1.5}
               label={{
-                value: `Target: ${(targetPower * 100).toFixed(0)}%`,
+                value: `Target: ${targetPct}%`,
                 position: 'right',
-                fill: '#8b5cf6',
-                fontSize: 10,
+                fill: TARGET_LINE,
+                fontSize: 11,
+                fontWeight: 600,
               }}
             />
 
@@ -359,19 +357,19 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
-                activeDot={{ r: 4, fill: effectColors[es], stroke: '#fff', strokeWidth: 1 }}
+                activeDot={{ r: 4, fill: effectColors[es], stroke: '#fff', strokeWidth: 1.5 }}
               />
             ))}
           </LineChart>
         </ResponsiveContainer>
 
-        <div className="mt-2 flex flex-wrap gap-4 text-xs text-gray-500">
-          <div className="flex items-center gap-2">
-            <div aria-hidden="true" className="w-6 border-t-2 border-dashed border-purple-500"></div>
-            <span>Target power ({(targetPower * 100).toFixed(0)}%)</span>
+        <div className="chart-legend-note">
+          <div style={{ color: TARGET_LINE }}>
+            <span aria-hidden="true" className="chart-legend-swatch"></span>
+            <span className="text-ink-soft">Target power ({targetPct}%)</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500">Toggle between Linear/Log scale above</span>
+          <div>
+            <span>Lighter curves are smaller effects; darker curves are larger effects. Toggle the scale above.</span>
           </div>
         </div>
       </section>

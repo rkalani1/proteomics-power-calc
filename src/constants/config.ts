@@ -11,13 +11,20 @@ export const ANALYSIS_TYPE_OPTIONS: { value: AnalysisType; label: string; descri
   { value: 'gee', label: 'GEE/Mixed Effects', description: 'Clustered/longitudinal data (Beta with ICC)' },
 ];
 
+/**
+ * Categorical palette for protein-count scenarios. Slots are assigned in this
+ * fixed order (never cycled) and the hex values were validated for
+ * colour-vision-deficiency separation between neighbours; the wash/line/ink
+ * companions are defined as --color-scenario-N-* tokens in index.css. `hex`
+ * is the chart mark colour; `text` is a darker AA-contrast ink for labels.
+ */
 export const SCENARIO_COLORS = [
-  { bg: 'bg-cyan-600', text: 'text-cyan-800', light: 'bg-cyan-50', border: 'border-cyan-200', hex: '#0891b2' },
-  { bg: 'bg-blue-500', text: 'text-blue-700', light: 'bg-blue-50', border: 'border-blue-200', hex: '#3b82f6' },
-  { bg: 'bg-purple-500', text: 'text-purple-700', light: 'bg-purple-50', border: 'border-purple-200', hex: '#8b5cf6' },
-  { bg: 'bg-orange-500', text: 'text-orange-700', light: 'bg-orange-50', border: 'border-orange-200', hex: '#f97316' },
-  { bg: 'bg-pink-500', text: 'text-pink-700', light: 'bg-pink-50', border: 'border-pink-200', hex: '#ec4899' },
-  { bg: 'bg-teal-500', text: 'text-teal-700', light: 'bg-teal-50', border: 'border-teal-200', hex: '#14b8a6' },
+  { bg: 'bg-scenario-1', text: 'text-scenario-1-ink', light: 'bg-scenario-1-wash', border: 'border-scenario-1-line', hex: '#2a78d6' },
+  { bg: 'bg-scenario-2', text: 'text-scenario-2-ink', light: 'bg-scenario-2-wash', border: 'border-scenario-2-line', hex: '#eb6834' },
+  { bg: 'bg-scenario-3', text: 'text-scenario-3-ink', light: 'bg-scenario-3-wash', border: 'border-scenario-3-line', hex: '#1baf7a' },
+  { bg: 'bg-scenario-4', text: 'text-scenario-4-ink', light: 'bg-scenario-4-wash', border: 'border-scenario-4-line', hex: '#eda100' },
+  { bg: 'bg-scenario-5', text: 'text-scenario-5-ink', light: 'bg-scenario-5-wash', border: 'border-scenario-5-line', hex: '#e87ba4' },
+  { bg: 'bg-scenario-6', text: 'text-scenario-6-ink', light: 'bg-scenario-6-wash', border: 'border-scenario-6-line', hex: '#008300' },
 ];
 
 export const EFFECT_SIZE_CONFIG: Record<AnalysisType, {

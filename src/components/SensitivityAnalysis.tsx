@@ -19,6 +19,16 @@ import {
   SENSITIVITY_RATIO_EFFECT_GRID,
   SENSITIVITY_SAMPLE_SIZE_GRID,
 } from '../constants/analysisGrids';
+import { SCENARIO_COLORS } from '../constants/config';
+import {
+  AXIS_LABEL_STYLE,
+  AXIS_TICK,
+  CHART_AXIS,
+  CHART_GRID,
+  MARKER_LINE,
+  SINGLE_SERIES,
+  TARGET_LINE,
+} from '../constants/chartTheme';
 
 
 interface SensitivityAnalysisProps {
@@ -49,21 +59,30 @@ const SensitivityTooltip: React.FC<{
 }> = ({ active, payload, label, axisLabel, selectedVariable }) => {
   if (!active || !payload || !payload.length) return null;
 
+  const seriesLabel = (name: string) => {
+    if (name === 'power') return 'Power';
+    const count = parseInt(name.split('_')[1]);
+    return Number.isFinite(count)
+      ? `${count.toLocaleString()} protein${count !== 1 ? 's' : ''}`
+      : name;
+  };
+
   return (
-    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
-      <p className="font-semibold text-gray-800 mb-2">
+    <div className="chart-tooltip">
+      <p className="chart-tooltip__title">
         {axisLabel}: {selectedVariable === 'effectSize'
           ? Number(label).toFixed(2)
           : Number(label).toLocaleString()}
       </p>
       {payload.map((entry, index) => (
-        <p key={index} className="text-sm flex items-center gap-2">
+        <p key={index} className="chart-tooltip__row">
           <span
-            className="w-3 h-3 rounded-full"
+            className="series-dot"
             style={{ backgroundColor: entry.color }}
+            aria-hidden="true"
           />
-          <span className="text-gray-600">{entry.name}:</span>
-          <span className="font-medium" style={{ color: entry.color }}>
+          <span className="text-ink-soft">{seriesLabel(entry.name)}:</span>
+          <span className="chart-tooltip__value">
             {(entry.value * 100).toFixed(1)}%
           </span>
         </p>
@@ -89,40 +108,40 @@ const SensitivityControls: React.FC<SensitivityControlsProps> = ({
   isExpanded,
   onToggle,
 }) => (
-  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={isExpanded}
-      aria-controls="sensitivity-content"
-      className="flex items-center gap-2 text-left"
-    >
-      <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-        <svg aria-hidden="true" focusable="false" className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <h2 className="section-title">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-controls="sensitivity-content"
+        className="disclosure disclosure--inline"
+      >
+        <svg aria-hidden="true" focusable="false" className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
-        Sensitivity Analysis
-      </h2>
-      <svg
-        aria-hidden="true"
-        focusable="false"
-        className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
-    </button>
+        <span>Sensitivity Analysis</span>
+        <svg
+          aria-hidden="true"
+          focusable="false"
+          className="disclosure__chevron"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+    </h2>
 
     {isExpanded && (
       <div className="flex items-center gap-2">
-        <label htmlFor="sensitivity-vary" className="text-sm text-gray-600">Vary:</label>
+        <label htmlFor="sensitivity-vary" className="text-sm text-ink-soft">Vary:</label>
         <select
           id="sensitivity-vary"
           value={activeVariable}
           onChange={(e) => setSelectedVariable(e.target.value as SensitivityVariable)}
-          className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className="field-select text-sm"
         >
           {analysisType === 'cox' && (
             <option value="events">Number of Events</option>
@@ -148,7 +167,9 @@ interface SensitivityChartProps {
   targetPower: number;
 }
 
-const SENSITIVITY_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f97316', '#ec4899', '#14b8a6'];
+// Scenario series keep the same colour here as in every other chart so a
+// protein count is recognisable across the page.
+const seriesColor = (index: number) => SCENARIO_COLORS[index % SCENARIO_COLORS.length].hex;
 
 const SensitivityChart: React.FC<SensitivityChartProps> = ({
   activeVariable,
@@ -161,7 +182,7 @@ const SensitivityChart: React.FC<SensitivityChartProps> = ({
 }) => (
   <ResponsiveContainer width="100%" height={350}>
     <LineChart data={sensitivityData} margin={{ top: 20, right: 84, left: 20, bottom: 40 }}>
-      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+      <CartesianGrid stroke={CHART_GRID} vertical={false} />
 
       <XAxis
         dataKey="x"
@@ -173,66 +194,73 @@ const SensitivityChart: React.FC<SensitivityChartProps> = ({
             ? value.toFixed(analysisType === 'linear' || analysisType === 'gee' ? 2 : 1)
             : value.toLocaleString()
         }
+        axisLine={{ stroke: CHART_AXIS }}
+        tickLine={{ stroke: CHART_AXIS }}
         label={{
           value: getAxisLabel(),
           position: 'insideBottom',
           offset: -10,
-          style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
+          style: AXIS_LABEL_STYLE,
         }}
-        tick={{ fill: '#6b7280', fontSize: 11 }}
+        tick={AXIS_TICK}
       />
 
       <YAxis
         domain={[0, 1]}
         tickCount={11}
         tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+        axisLine={false}
+        tickLine={false}
         label={{
           value: 'Statistical Power',
           angle: -90,
           position: 'insideLeft',
-          style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
+          style: AXIS_LABEL_STYLE,
         }}
-        tick={{ fill: '#6b7280', fontSize: 11 }}
+        tick={AXIS_TICK}
       />
 
       <Tooltip content={<SensitivityTooltip axisLabel={getAxisLabel()} selectedVariable={activeVariable} />} />
 
       <ReferenceLine
         y={targetPower}
-        stroke="#f59e0b"
+        stroke={TARGET_LINE}
         strokeDasharray="8 4"
-        strokeWidth={2}
+        strokeWidth={1.5}
         label={{
           value: `Target: ${(targetPower * 100).toFixed(0)}%`,
           position: 'right',
-          fill: '#f59e0b',
+          fill: TARGET_LINE,
           fontSize: 11,
+          fontWeight: 600,
         }}
       />
 
       <ReferenceLine
         x={getCurrentValue()}
-        stroke="#8b5cf6"
+        stroke={MARKER_LINE}
         strokeDasharray="4 4"
-        strokeWidth={2}
+        strokeWidth={1.5}
         label={{
           value: 'Current',
           position: 'top',
-          fill: '#8b5cf6',
+          fill: MARKER_LINE,
           fontSize: 11,
+          fontWeight: 600,
         }}
       />
 
       <Legend
         verticalAlign="top"
         height={36}
+        iconType="plainline"
         formatter={(value: string) => {
           if (activeVariable === 'proteinCount') {
-            return <span className="text-sm text-gray-700">Power</span>;
+            return <span className="text-sm text-ink-soft">Power</span>;
           }
           const count = parseInt(value.split('_')[1]);
           return (
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-ink-soft">
               {count.toLocaleString()} protein{count !== 1 ? 's' : ''}
             </span>
           );
@@ -244,11 +272,11 @@ const SensitivityChart: React.FC<SensitivityChartProps> = ({
           type="monotone"
           dataKey="power"
           name="power"
-          stroke="#6366f1"
-          strokeWidth={3}
-          dot={{ r: 4, fill: '#6366f1' }}
+          stroke={SINGLE_SERIES}
+          strokeWidth={2.25}
+          dot={{ r: 3.5, fill: SINGLE_SERIES, stroke: '#fff', strokeWidth: 1.5 }}
           isAnimationActive={false}
-          activeDot={{ r: 6, fill: '#6366f1', stroke: '#fff', strokeWidth: 2 }}
+          activeDot={{ r: 5, fill: SINGLE_SERIES, stroke: '#fff', strokeWidth: 2 }}
         />
       ) : (
         proteinCounts.map((count, index) => (
@@ -257,11 +285,11 @@ const SensitivityChart: React.FC<SensitivityChartProps> = ({
             type="monotone"
             dataKey={`power_${count}`}
             name={`power_${count}`}
-            stroke={SENSITIVITY_COLORS[index % SENSITIVITY_COLORS.length]}
+            stroke={seriesColor(index)}
             strokeWidth={2}
             dot={false}
             isAnimationActive={false}
-            activeDot={{ r: 5, fill: SENSITIVITY_COLORS[index % SENSITIVITY_COLORS.length], stroke: '#fff', strokeWidth: 2 }}
+            activeDot={{ r: 5, fill: seriesColor(index), stroke: '#fff', strokeWidth: 2 }}
           />
         ))
       )}
@@ -406,7 +434,7 @@ const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
   };
 
   return (
-    <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+    <section className="assay-card assay-card--padded">
       <SensitivityControls
         activeVariable={activeVariable}
         analysisType={analysisType}

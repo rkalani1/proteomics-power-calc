@@ -10,6 +10,14 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
+import {
+  AXIS_LABEL_STYLE,
+  AXIS_TICK,
+  CHART_AXIS,
+  CHART_GRID,
+  MARKER_LINE,
+  TARGET_LINE,
+} from '../constants/chartTheme';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
 
@@ -43,9 +51,8 @@ interface MultiScenarioPowerChartProps {
 }
 
 // Dash patterns per scenario index so up to six curves stay distinguishable
-// without relying on color alone (the palette's cyan/teal and blue/purple pairs
-// are not separable under common color-vision deficiencies). The first series
-// stays solid; the rest cycle through distinct patterns.
+// without relying on color alone. The first series stays solid; the rest
+// cycle through distinct patterns.
 const SCENARIO_DASHES: Array<string | undefined> = [undefined, '9 4', '3 3', '12 4 3 4', '6 3', '2 5'];
 
 // Tooltip for the power-vs-effect curves. Defined at module scope to keep a
@@ -69,8 +76,8 @@ const PowerCurveTooltip: React.FC<{
   if (!active || !payload || !payload.length) return null;
 
   return (
-    <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3">
-      <p className="font-semibold text-gray-800 mb-2">
+    <div className="chart-tooltip">
+      <p className="chart-tooltip__title">
         {effectLabel}: {Number(label).toFixed(decimals)}
       </p>
       {payload.map((entry, index) => {
@@ -79,19 +86,20 @@ const PowerCurveTooltip: React.FC<{
         const scenario = scenarioDict[proteinCount];
 
         return (
-          <p key={index} className="text-sm flex items-center gap-2">
+          <p key={index} className="chart-tooltip__row">
             <span
-              className="w-3 h-3 rounded-full"
+              className="series-dot"
               style={{ backgroundColor: entry.color }}
+              aria-hidden="true"
             />
-            <span className="text-gray-600">
+            <span className="text-ink-soft">
               {proteinCount.toLocaleString()} protein{proteinCount !== 1 ? 's' : ''}:
             </span>
-            <span className="font-medium" style={{ color: entry.color }}>
+            <span className="chart-tooltip__value">
               {(entry.value * 100).toFixed(1)}%
             </span>
             {scenario && (
-              <span className="text-xs text-gray-500">
+              <span className="chart-tooltip__meta">
                 (α≈{scenario.alpha.toExponential(2)})
               </span>
             )}
@@ -152,15 +160,15 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
   const inputMarkerVisible = inputEffect >= currentRangeMin && inputEffect <= currentRangeMax;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <section className="assay-card assay-card--padded">
       <div className="mb-4">
-        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-          <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <h2 className="section-title">
+          <svg aria-hidden="true" focusable="false" className="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
           </svg>
           Power vs {effectLabel}
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="section-subtitle">
           Comparing {scenarios.length} scenario{scenarios.length !== 1 ? 's' : ''}: {scenarios.map(s =>
             `${s.proteinCount.toLocaleString()} protein${s.proteinCount !== 1 ? 's' : ''}`
           ).join(', ')}
@@ -176,7 +184,7 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
           data={visibleData}
           margin={{ top: 20, right: 84, left: 20, bottom: 40 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <CartesianGrid stroke={CHART_GRID} vertical={false} />
 
           <XAxis
             dataKey="effect"
@@ -184,26 +192,30 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
             domain={[currentRangeMin, currentRangeMax]}
             tickCount={11}
             tickFormatter={(value) => value.toFixed(isBetaEffect ? 2 : 1)}
+            axisLine={{ stroke: CHART_AXIS }}
+            tickLine={{ stroke: CHART_AXIS }}
             label={{
               value: `${effectLabel} (${effectSymbol})`,
               position: 'insideBottom',
               offset: -10,
-              style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
+              style: AXIS_LABEL_STYLE,
             }}
-            tick={{ fill: '#6b7280', fontSize: 11 }}
+            tick={AXIS_TICK}
           />
 
           <YAxis
             domain={[0, 1]}
             tickCount={11}
             tickFormatter={(value) => `${(value * 100).toFixed(0)}%`}
+            axisLine={false}
+            tickLine={false}
             label={{
               value: 'Statistical Power',
               angle: -90,
               position: 'insideLeft',
-              style: { textAnchor: 'middle', fill: '#6b7280', fontSize: 12 },
+              style: AXIS_LABEL_STYLE,
             }}
-            tick={{ fill: '#6b7280', fontSize: 11 }}
+            tick={AXIS_TICK}
           />
 
           <Tooltip content={<PowerCurveTooltip effectLabel={effectLabel} decimals={decimals} scenarios={scenarios} />} />
@@ -211,10 +223,11 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
           <Legend
             verticalAlign="top"
             height={36}
+            iconType="plainline"
             formatter={(value: string) => {
               const proteinCount = parseInt(value.split('_')[1]);
               return (
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-ink-soft">
                   {proteinCount.toLocaleString()} protein{proteinCount !== 1 ? 's' : ''}
                 </span>
               );
@@ -224,13 +237,13 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
           {/* Target power reference line */}
           <ReferenceLine
             y={targetPower}
-            stroke="#f59e0b"
+            stroke={TARGET_LINE}
             strokeDasharray="8 4"
-            strokeWidth={2}
+            strokeWidth={1.5}
             label={{
               value: `Target: ${(targetPower * 100).toFixed(0)}%`,
               position: 'right',
-              fill: '#f59e0b',
+              fill: TARGET_LINE,
               fontSize: 11,
               fontWeight: 600,
             }}
@@ -240,13 +253,13 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
           {inputMarkerVisible && (
             <ReferenceLine
               x={inputEffect}
-              stroke="#8b5cf6"
+              stroke={MARKER_LINE}
               strokeDasharray="4 4"
-              strokeWidth={2}
+              strokeWidth={1.5}
               label={{
                 value: `${effectSymbol}=${inputEffect.toFixed(decimals)}`,
                 position: 'top',
-                fill: '#8b5cf6',
+                fill: MARKER_LINE,
                 fontSize: 11,
                 fontWeight: 600,
               }}
@@ -261,11 +274,11 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
               dataKey={`power_${scenario.proteinCount}`}
               name={`power_${scenario.proteinCount}`}
               stroke={scenario.color.hex}
-              strokeWidth={3}
+              strokeWidth={2.25}
               strokeDasharray={SCENARIO_DASHES[index % SCENARIO_DASHES.length]}
               dot={false}
               isAnimationActive={false}
-              activeDot={{ r: 6, fill: scenario.color.hex, stroke: '#fff', strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: scenario.color.hex, stroke: '#fff', strokeWidth: 2 }}
             />
           ))}
 
@@ -333,6 +346,7 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
           <p role="status" aria-live="polite" aria-atomic="true">{rangeSummary}</p>
           <button
             type="button"
+            className="btn btn-secondary btn-sm"
             onClick={() => {
               setRange({ min: xMin, max: xMax, domainMin: xMin, domainMax: xMax });
             }}
@@ -343,22 +357,22 @@ const MultiScenarioPowerChart: React.FC<MultiScenarioPowerChartProps> = ({
         </div>
       </fieldset>
 
-      <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
-        <div className="flex items-center gap-2">
-          <div aria-hidden="true" className="w-6 border-t-2 border-dashed border-amber-500"></div>
-          <span>Target power threshold ({(targetPower * 100).toFixed(0)}%)</span>
+      <div className="chart-legend-note">
+        <div style={{ color: TARGET_LINE }}>
+          <span aria-hidden="true" className="chart-legend-swatch"></span>
+          <span className="text-ink-soft">Target power threshold ({(targetPower * 100).toFixed(0)}%)</span>
         </div>
         {inputMarkerVisible && (
-          <div className="flex items-center gap-2">
-            <div aria-hidden="true" className="w-6 border-t-2 border-dashed border-purple-500"></div>
-            <span>Input {effectSymbol} = {inputEffect.toFixed(decimals)}</span>
+          <div style={{ color: MARKER_LINE }}>
+            <span aria-hidden="true" className="chart-legend-swatch"></span>
+            <span className="text-ink-soft">Input {effectSymbol} = {inputEffect.toFixed(decimals)}</span>
           </div>
         )}
-        <div className="flex items-center gap-2">
-          <span className="text-gray-500">Use the labelled range controls to zoom the chart.</span>
+        <div>
+          <span>Use the labelled range controls to zoom the chart.</span>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

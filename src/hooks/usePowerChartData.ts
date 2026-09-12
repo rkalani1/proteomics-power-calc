@@ -5,6 +5,7 @@ import {
   POWER_CHART_LINEAR_GRID,
   POWER_CHART_LOG_GRID,
 } from '../constants/analysisGrids';
+import { EFFECT_SIZE_RAMP } from '../constants/chartTheme';
 
 // Pre-compute the unique counts across all visualizations
 const ALL_COUNTS: readonly number[] = Object.freeze(
@@ -25,15 +26,12 @@ export function usePowerChartData({
   correctionMethod,
   calculatePower,
 }: UsePowerChartDataParams) {
-  // Color palette for effect size curves
+  // Effect sizes are ordered, so they take a single-hue lightness ramp
+  // (smallest effect lightest, largest darkest) rather than a rainbow.
   const effectColors = useMemo(() => {
     const colors: Record<number, string> = {};
-    const colorScale = [
-      '#991b1b', '#dc2626', '#ea580c', '#d97706', '#ca8a04',
-      '#65a30d', '#16a34a', '#0d9488', '#0284c7', '#2563eb',
-    ];
     effectSizes.forEach((es, idx) => {
-      colors[es] = colorScale[idx];
+      colors[es] = EFFECT_SIZE_RAMP[Math.min(idx, EFFECT_SIZE_RAMP.length - 1)];
     });
     return colors;
   }, [effectSizes]);

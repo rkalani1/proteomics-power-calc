@@ -225,18 +225,18 @@ export const generatePrintHTML = (data: ExportData): string => {
         <meta charSet="utf-8" />
         <title>Power Analysis Summary</title>
         <style>{`
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; line-height: 1.6; }
-          h1 { color: #4f46e5; margin-bottom: 5px; }
-          h2 { color: #6b7280; font-size: 1.1em; margin-top: 30px; border-bottom: 2px solid #e5e7eb; padding-bottom: 5px; }
-          .timestamp { color: #9ca3af; font-size: 0.9em; margin-bottom: 30px; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #142f3a; line-height: 1.6; }
+          h1 { color: #17656f; margin-bottom: 5px; }
+          h2 { color: #49616a; font-size: 1.1em; margin-top: 30px; border-bottom: 2px solid #d4dfdf; padding-bottom: 5px; }
+          .timestamp { color: #6b8089; font-size: 0.9em; margin-bottom: 30px; }
           table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-          th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-          th { background: #f9fafb; font-weight: 600; }
+          th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e6eded; }
+          th { background: #fbfcfa; font-weight: 600; }
           .param-table td:first-child { font-weight: 500; width: 40%; }
-          .power-good { color: #059669; font-weight: 600; }
-          .power-marginal { color: #d97706; }
-          .power-low { color: #dc2626; }
-          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 0.85em; color: #6b7280; }
+          .power-good { color: #155f30; font-weight: 600; }
+          .power-marginal { color: #7c4f0d; }
+          .power-low { color: #8c2531; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #d4dfdf; font-size: 0.85em; color: #49616a; }
           @media print { body { margin: 20px; } }
         `}</style>
       </head>
