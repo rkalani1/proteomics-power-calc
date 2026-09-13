@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
               </p>
             </div>
           </div>
-          <div className="assay-header-desktop-chips" aria-label="Current setup">
+          <div className="assay-header-desktop-chips" role="group" aria-label="Current setup">
             <span className="assay-chip assay-chip--analysis">{analysisLabel}</span>
             <span className="assay-chip assay-chip--design">{designLabel}</span>
             <span className="assay-chip assay-chip--scope">{scopeLabel}</span>

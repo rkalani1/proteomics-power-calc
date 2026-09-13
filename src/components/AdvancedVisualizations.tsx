@@ -28,6 +28,7 @@ import {
   CHART_GRID,
   MARKER_LINE,
   NULL_LINE,
+  NULL_LINE_LABEL,
   TARGET_LINE,
 } from '../constants/chartTheme';
 
@@ -481,7 +482,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
                   label={{
                     value: 'Null',
                     position: 'top',
-                    fill: NULL_LINE,
+                    fill: NULL_LINE_LABEL,
                     fontSize: 10,
                   }}
                 />

@@ -112,7 +112,7 @@ export const StudyParameters: React.FC<StudyParametersProps> = ({
         </div>
       </div>
 
-      <div className="parameters-grid grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
+      <div className="parameters-grid">
         {/* Sample Size - shown for models sized by total n. Cox power depends on
             the number of EVENTS, not total n, so the slider is hidden for Cox to
             avoid an inert control (and, in case-cohort, a third size slider that
