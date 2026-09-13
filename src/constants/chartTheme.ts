@@ -15,6 +15,8 @@ export const TARGET_LINE = '#9a6b1c';
 export const MARKER_LINE = '#142f3a';
 /** Solid line at the null effect (HR/OR/RR = 1, beta = 0). */
 export const NULL_LINE = '#9fb1b1';
+/** Label ink for the null rule: the rule itself may be light, its text may not. */
+export const NULL_LINE_LABEL = '#49616a';
 /** Colour for a chart that carries a single series. */
 export const SINGLE_SERIES = '#17656f';
 

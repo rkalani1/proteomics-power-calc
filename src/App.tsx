@@ -239,6 +239,35 @@ function App() {
 
   const currentScenario = scenarioResults.find(result => result.proteinCount === proteinCount) ?? scenarioResults[0];
 
+  // Publish the live heights of the sticky header and section rail as CSS
+  // custom properties. The rail and the sticky input rail are positioned from
+  // these, so the offsets stay correct at every width and in the header's
+  // compact and setup-panel-open states, where its height changes.
+  useEffect(() => {
+    const root = document.documentElement;
+    const header = document.querySelector<HTMLElement>('.assay-header');
+    const rail = document.querySelector<HTMLElement>('.section-rail');
+    if (!header || !rail) return;
+
+    const publishHeights = () => {
+      root.style.setProperty('--assay-header-h', `${Math.round(header.getBoundingClientRect().height)}px`);
+      root.style.setProperty('--assay-rail-h', `${Math.round(rail.getBoundingClientRect().height)}px`);
+    };
+
+    publishHeights();
+    // ResizeObserver is unavailable in the server-render test environment.
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(publishHeights) : null;
+    observer?.observe(header);
+    observer?.observe(rail);
+    window.addEventListener('resize', publishHeights);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', publishHeights);
+      root.style.removeProperty('--assay-header-h');
+      root.style.removeProperty('--assay-rail-h');
+    };
+  }, []);
+
   useEffect(() => {
     const updateCurrentSection = () => {
       if (activatedSectionRef.current) {
