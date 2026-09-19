@@ -259,6 +259,16 @@ const References: React.FC<ReferencesProps> = ({ analysisType, studyDesign }) =>
         }`}
       >
         <div className="px-6 pb-6 pt-5">
+          <h3 className="mb-2 text-sm font-semibold text-ink">Methodological notes</h3>
+          <ul className="method-notes mb-6">
+            <li>Protein levels are standardized to mean 0 and variance 1, so every effect is expressed per 1 SD increase in protein level.</li>
+            <li>Power uses a two-sided large-sample (Wald) approximation, Power = Φ(λ − z₁₋α/₂) + Φ(−λ − z₁₋α/₂), with λ = |effect| / σ on the log or linear scale.</li>
+            <li>R²ₓ is the proportion of protein variance explained by adjustment covariates; it inflates every standard error by 1/√(1 − R²ₓ).</li>
+            <li>Benjamini–Hochberg FDR is planned with a conservative per-test α ≈ q/m; realized BH power is typically higher. Bonferroni uses α/m exactly, where m is the number of proteins tested.</li>
+            <li>Modified Poisson power uses a conservative naive-Poisson standard error, so power is slightly understated for common outcomes.</li>
+            <li>GEE and mixed-effects power divide the effective sample size by the design effect 1 + (m − 1) × ICC for clusters of size m.</li>
+            <li>Results are methodological planning estimates, not medical, regulatory, or statistical-consulting advice.</li>
+          </ul>
           <h3 className="mb-3 text-sm font-semibold text-ink">Key References</h3>
           <ol className="space-y-3">
             {relevantReferences.map((ref, index) => (

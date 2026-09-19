@@ -43,6 +43,10 @@ Use aggregate or synthetic planning assumptions in the public demo. Do not paste
 
 - **Results Tables**: Sortable/filterable power comparison tables
 
+- **Planning Statement**: a protocol-ready methods paragraph composed from the
+  current inputs and results, with one-click copy for grant applications and
+  statistical analysis plans
+
 - **Export Options**: CSV download, PDF printing, and summary copying
 
 - **Editable R Script Generator**: Create, customize, copy, and download a

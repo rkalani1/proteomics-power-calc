@@ -69,6 +69,21 @@ try {
   ok(F.getPowerStatus(0.65, 0.8, 0.7) === 'inadequate', 'Honors custom marginalThreshold (0.65 < 0.7 is inadequate)');
   ok(F.getPowerStatus(0.7, 0.8, 0.7) === 'marginal', 'Honors custom marginalThreshold (0.7 >= 0.7 is marginal)');
 
+  // 1b. formatAlpha: scientific notation for per-test significance levels
+  console.log('\n1b. formatAlpha');
+  ok(F.formatAlpha(0.05) === '0.05', 'formatAlpha keeps plain decimals at or above 0.001 (0.05)');
+  ok(F.formatAlpha(0.0125) === '0.0125', 'formatAlpha keeps three significant digits for decimals (0.0125)');
+  ok(F.formatAlpha(0.001) === '0.001', 'formatAlpha treats 0.001 as the last plain decimal');
+  ok(F.formatAlpha(0.00001) === '1.00 × 10⁻⁵', 'formatAlpha renders 1e-5 as 1.00 × 10⁻⁵');
+  ok(F.formatAlpha(0.00005) === '5.00 × 10⁻⁵', 'formatAlpha renders 5e-5 as 5.00 × 10⁻⁵');
+  ok(F.formatAlpha(0.05 / 7000) === '7.14 × 10⁻⁶', 'formatAlpha rounds the mantissa to three significant digits');
+  ok(F.formatAlpha(0.0009996) === '1.00 × 10⁻³', 'formatAlpha carries a mantissa that rounds to 10 into the exponent');
+  ok(F.formatAlpha(0.00001, 2) === '1.0 × 10⁻⁵', 'formatAlpha honours a custom significant-digit count');
+  ok(F.formatAlpha(0) === '—' && F.formatAlpha(NaN) === '—', 'formatAlpha returns a dash for non-positive or non-finite input');
+  ok(F.toSuperscript(-12) === '⁻¹²', 'toSuperscript converts digits and the minus sign');
+  ok(F.formatAnalysisType('poisson') === 'Modified Poisson Regression', 'formatAnalysisType is exported from formatters');
+  ok(F.formatStudyDesign('nested-case-control') === 'Nested Case-Control', 'formatStudyDesign is exported from formatters');
+
   // 2. POWER_STATUS style maps
   console.log('\n2. POWER_STATUS style maps');
   ok(F.POWER_STATUS_COLORS.adequate === '#1e7a3c', 'POWER_STATUS_COLORS adequate color');

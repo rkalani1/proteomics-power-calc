@@ -1,4 +1,5 @@
 import type { AnalysisType } from '../utils/statistics';
+import { formatAlpha } from '../utils/formatters';
 
 type EffectConfig = {
   symbol: string;
@@ -86,7 +87,7 @@ export function PowerAtInputCards({
                   {scenario.proteinCount.toLocaleString()} protein{scenario.proteinCount !== 1 ? 's' : ''}
                 </span>
               </div>
-              <span className="text-xs text-ink-soft">Effective α ≈ {scenario.alpha.toExponential(2)}</span>
+              <span className="text-xs text-ink-soft">Effective α ≈ {formatAlpha(scenario.alpha)}</span>
             </div>
             <div className={`power-result-value power-result-value--${statusTone} text-3xl font-bold tracking-tight`}>
               {(scenario.powerAtInput * 100).toFixed(1)}%

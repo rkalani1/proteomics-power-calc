@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { getPowerStatus, POWER_STATUS_BG_CLASSES } from '../utils/formatters';
+import { formatAlpha, getPowerStatus, POWER_STATUS_BG_CLASSES } from '../utils/formatters';
 import {
   LineChart,
   Line,
@@ -128,7 +128,7 @@ const ForestTooltip: React.FC<{
         <span className="chart-tooltip__value">{data.effect.toFixed(decimals)}</span>
       </p>
       <p className="chart-tooltip__meta">
-        α ≈ {data.alpha.toExponential(1)}
+        α ≈ {formatAlpha(data.alpha)}
       </p>
     </div>
   );
@@ -518,7 +518,7 @@ const AdvancedVisualizations: React.FC<AdvancedVisualizationsProps> = ({
           <div>
             <p className="mb-4 text-sm text-ink-soft">
               Power across {effectLabel} and {isCox ? 'events' : 'sample size'} combinations
-              (using {scenarios[0]?.proteinCount.toLocaleString() || 'selected'} proteins, α ≈ {scenarios[0]?.alpha.toExponential(2)})
+              (using {scenarios[0]?.proteinCount.toLocaleString() || 'selected'} proteins, α ≈ {scenarios[0] ? formatAlpha(scenarios[0].alpha) : '—'})
             </p>
 
             <div className="scroll-region" tabIndex={0} role="region" aria-label={`Power grid: ${effectLabel} by ${isCox ? 'events' : 'sample size'}`}>

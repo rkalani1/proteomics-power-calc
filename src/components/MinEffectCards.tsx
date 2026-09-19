@@ -1,4 +1,5 @@
 import { calculateDesignEffect, calculateInflation, type AnalysisType, type StudyDesign } from '../utils/statistics';
+import { formatAlpha } from '../utils/formatters';
 
 type EffectConfig = {
   label: string;
@@ -96,7 +97,7 @@ export function MinEffectCards({
               {isBetaModel ? `|${effectConfig.symbol}|` : effectConfig.symbol} ≥ {scenario.minEffect.toFixed(effectDecimals)}
             </div>
             <p className="mt-1 text-xs text-ink-soft">
-              Effective α ≈ {scenario.alpha.toExponential(2)}
+              Effective α ≈ {formatAlpha(scenario.alpha)}
             </p>
           </div>
         ))}

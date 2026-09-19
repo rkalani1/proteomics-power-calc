@@ -18,6 +18,7 @@ import {
   MARKER_LINE,
   TARGET_LINE,
 } from '../constants/chartTheme';
+import { formatAlpha } from '../utils/formatters';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
 
@@ -100,7 +101,7 @@ const PowerCurveTooltip: React.FC<{
             </span>
             {scenario && (
               <span className="chart-tooltip__meta">
-                (α≈{scenario.alpha.toExponential(2)})
+                (α ≈ {formatAlpha(scenario.alpha)})
               </span>
             )}
           </p>

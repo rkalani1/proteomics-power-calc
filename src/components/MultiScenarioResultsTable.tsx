@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { getPowerStatus, POWER_STATUS_TEXT_CLASSES } from '../utils/formatters';
+import { formatAlpha, getPowerStatus, POWER_STATUS_TEXT_CLASSES } from '../utils/formatters';
 
 type AnalysisType = 'cox' | 'linear' | 'logistic' | 'poisson' | 'gee';
 
@@ -202,7 +202,7 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
                     <SortIndicator field={`power_${scenario.proteinCount}`} sortField={sortField} sortDirection={sortDirection} />
                   </div>
                   <div className="text-xs font-normal text-ink-muted">
-                    α≈{scenario.alpha.toExponential(2)}
+                    α ≈ {formatAlpha(scenario.alpha)}
                   </div>
                 </th>
               ))}
@@ -242,7 +242,7 @@ const MultiScenarioResultsTable: React.FC<MultiScenarioResultsTableProps> = ({
                   ))}
                   {scenarios.length >= 2 && (
                     <td className="text-ink-soft">
-                      {showPowerLoss ? `-${powerLoss}%` : '—'}
+                      {showPowerLoss ? `−${powerLoss}%` : '—'}
                     </td>
                   )}
                 </tr>
