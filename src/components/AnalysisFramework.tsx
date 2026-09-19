@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { AnalysisType, StudyDesign } from '../utils/statistics';
+import { formatAlpha } from '../utils/formatters';
 
 interface AnalysisFrameworkProps {
   analysisType: AnalysisType;
@@ -232,7 +233,7 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                 className="field-input w-32"
               />
               <span className="text-sm text-ink-soft">
-                Effective α ≈ {calculateEffectiveAlpha(fdrQ, proteinCount, correctionMethod).toExponential(2)}
+                Effective α ≈ {formatAlpha(calculateEffectiveAlpha(fdrQ, proteinCount, correctionMethod))}
               </span>
             </div>
             <p id="protein-count-constraints" className="protein-count-helper">
@@ -288,7 +289,7 @@ export const AnalysisFramework: React.FC<AnalysisFrameworkProps> = ({
                       {count.toLocaleString()} protein{count !== 1 ? 's' : ''}
                     </span>
                     <span className="text-xs font-normal text-ink-soft">
-                      (α≈{calculateEffectiveAlpha(fdrQ, count, correctionMethod).toExponential(2)})
+                      (α ≈ {formatAlpha(calculateEffectiveAlpha(fdrQ, count, correctionMethod))})
                     </span>
                     {proteinCounts.length > 1 && (
                       <button

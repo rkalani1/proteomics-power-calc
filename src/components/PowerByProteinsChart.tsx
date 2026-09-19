@@ -13,7 +13,7 @@ import {
 import { calculateEffectiveAlpha, type CorrectionMethod, type AnalysisType, type StudyDesign } from '../utils/statistics';
 import { getParameterDescription } from '../utils/formatters';
 import { usePowerChartData } from '../hooks/usePowerChartData';
-import { getPowerStatus, POWER_STATUS_BG_CLASSES } from '../utils/formatters';
+import { formatAlpha, getPowerStatus, POWER_STATUS_BG_CLASSES } from '../utils/formatters';
 import { DISPLAY_EFFECT_GRIDS } from '../constants/analysisGrids';
 import {
   AXIS_LABEL_STYLE,
@@ -71,7 +71,7 @@ const ProteinsTooltip: React.FC<{
         {label?.toLocaleString()} protein{label !== 1 ? 's' : ''} tested
       </p>
       <p className="chart-tooltip__meta mb-2">
-        α ≈ {effectiveAlpha.toExponential(2)}
+        α ≈ {formatAlpha(effectiveAlpha)}
       </p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         {payload.map((entry, index) => {
@@ -201,7 +201,7 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
             <thead>
               <tr>
                 <th className="is-sticky">
-                  # Proteins
+                  Proteins tested (m)
                 </th>
                 {effectSizes.map((es) => (
                   <th key={es} className="text-center">
@@ -252,8 +252,8 @@ const PowerByProteinsChart: React.FC<PowerByProteinsChartProps> = ({
             </h2>
             <p className="section-subtitle">
               {scaleType === 'linear'
-                ? 'Linear scale (1-1,000 proteins)'
-                : 'Logarithmic scale (1-5,000 proteins)'}
+                ? 'Linear scale (1–1,000 proteins)'
+                : 'Logarithmic scale (1–5,000 proteins)'}
             </p>
           </div>
 

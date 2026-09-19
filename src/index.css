@@ -1470,6 +1470,36 @@
     box-shadow: 0 0 0 3px rgba(47, 143, 145, 0.18);
   }
 
+  /* Protocol-ready methods paragraph */
+  .planning-statement__text {
+    margin: 0;
+    padding: 1rem 1.2rem;
+    color: var(--color-ink);
+    background: var(--color-paper);
+    border-left: 3px solid var(--color-brand-500);
+    border-radius: 0 10px 10px 0;
+    font-family: var(--font-serif);
+    font-size: 1rem;
+    line-height: 1.7;
+    text-wrap: pretty;
+    user-select: text;
+  }
+
+  /* Methodological notes list */
+  .method-notes {
+    display: grid;
+    gap: 0.4rem;
+    padding-left: 1.15rem;
+    color: var(--color-ink-soft);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    list-style: disc;
+  }
+
+  .method-notes li::marker {
+    color: var(--color-brand-400);
+  }
+
   /* Reference list */
   .reference-item {
     padding-left: 1rem;
@@ -1852,8 +1882,25 @@
     .section-rail,
     .assay-current-setup,
     .export-actions,
-    .desktop-result-summary {
+    .desktop-result-summary,
+    .disclosure__chevron,
+    .chart-range-controls,
+    .segmented,
+    .planning-statement .btn,
+    .r-script-actions {
       display: none !important;
+    }
+
+    /* Collapsed methods panels open on paper so formulas and references print. */
+    .disclosure-body {
+      max-height: none !important;
+      opacity: 1 !important;
+      overflow: visible !important;
+    }
+
+    .planning-statement__text {
+      border-left-color: #000000;
+      background: #ffffff;
     }
 
     .assay-shell {
@@ -1898,4 +1945,9 @@
       background: #ffffff;
     }
   }
+}
+
+/* Paged output: a generous, uniform margin for printed reports. */
+@page {
+  margin: 14mm;
 }

@@ -1,5 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { type CorrectionMethod, type AnalysisType, type StudyDesign } from './statistics';
+import { formatAnalysisType, formatStudyDesign } from './formatters';
+
+// Re-exported so existing consumers keep importing the labels from here.
+export { formatAnalysisType, formatStudyDesign };
 
 export interface ScenarioResult {
   proteinCount: number;
@@ -33,28 +37,6 @@ export interface ExportData {
   effectLabel: string;
   tableData: Array<Record<string, number>>;
 }
-
-export const formatAnalysisType = (type: AnalysisType): string => {
-  const map: Record<AnalysisType, string> = {
-    cox: 'Cox Proportional Hazards',
-    linear: 'Linear Regression',
-    logistic: 'Logistic Regression',
-    poisson: 'Modified Poisson Regression',
-    gee: 'GEE/Mixed Effects',
-  };
-  return map[type];
-};
-
-export const formatStudyDesign = (design: StudyDesign): string => {
-  const map: Record<StudyDesign, string> = {
-    cohort: 'Cohort',
-    'case-control': 'Case-Control',
-    'cross-sectional': 'Cross-Sectional',
-    'case-cohort': 'Case-Cohort',
-    'nested-case-control': 'Nested Case-Control',
-  };
-  return map[design];
-};
 
 export const generateCSV = (data: ExportData): string => {
   const {

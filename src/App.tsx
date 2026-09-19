@@ -13,6 +13,7 @@ import { AnalysisFramework } from './components/AnalysisFramework';
 import { StudyParameters } from './components/StudyParameters';
 import { MinEffectCards } from './components/MinEffectCards';
 import { PowerAtInputCards } from './components/PowerAtInputCards';
+import PlanningStatement from './components/PlanningStatement';
 import {
   calculateEffectiveAlpha,
   // Multi-model imports
@@ -555,6 +556,31 @@ function App() {
           effectSize={effectSize}
           scenarioResults={scenarioResults}
           targetPower={targetPower}
+          />
+
+        {/* Protocol-ready methods paragraph for the current design */}
+          <PlanningStatement
+          analysisType={analysisType}
+          studyDesign={studyDesign}
+          scenarios={scenarioResults}
+          effectSize={effectSize}
+          targetPower={targetPower}
+          fdrQ={fdrQ}
+          correctionMethod={correctionMethod}
+          sampleSize={sampleSize}
+          events={events}
+          prevalence={prevalence}
+          residualSD={residualSD}
+          numCases={numCases}
+          numControls={numControls}
+          subcohortSize={subcohortSize}
+          totalCohort={totalCohort}
+          matchingRatio={matchingRatio}
+          clusterSize={clusterSize}
+          icc={icc}
+          covariateR2={covariateR2}
+          effectSymbol={effectConfig.symbol}
+          effectLabel={effectConfig.label}
           />
 
         {/* Power Chart - multi-scenario comparison */}

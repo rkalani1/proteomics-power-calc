@@ -1,5 +1,56 @@
 import type { AnalysisType, StudyDesign } from './statistics';
 
+const SUPERSCRIPT: Record<string, string> = {
+  '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '-': '⁻',
+};
+
+/** Render an integer (or digit string) with Unicode superscript characters. */
+export const toSuperscript = (value: number | string): string =>
+  String(value).split('').map(ch => SUPERSCRIPT[ch] ?? ch).join('');
+
+/**
+ * Format a per-test significance level the way it is written in a methods
+ * section: plain decimals down to 0.001 (0.05, 0.0125), scientific notation
+ * with a true multiplication sign and superscript exponent below that
+ * (1.00 × 10⁻⁵). `significant` controls the digits shown in either form.
+ */
+export function formatAlpha(alpha: number, significant = 3): string {
+  if (!Number.isFinite(alpha) || alpha <= 0) return '—';
+  if (alpha >= 0.001) return String(Number(alpha.toPrecision(significant)));
+  const exponent = Math.floor(Math.log10(alpha));
+  let mantissa = Number((alpha / 10 ** exponent).toFixed(significant - 1));
+  let power = exponent;
+  if (mantissa >= 10) {
+    mantissa /= 10;
+    power += 1;
+  }
+  return `${mantissa.toFixed(significant - 1)} × 10${toSuperscript(power)}`;
+}
+
+/** Human-readable model name. */
+export const formatAnalysisType = (type: AnalysisType): string => {
+  const map: Record<AnalysisType, string> = {
+    cox: 'Cox Proportional Hazards',
+    linear: 'Linear Regression',
+    logistic: 'Logistic Regression',
+    poisson: 'Modified Poisson Regression',
+    gee: 'GEE/Mixed Effects',
+  };
+  return map[type];
+};
+
+/** Human-readable study design name. */
+export const formatStudyDesign = (design: StudyDesign): string => {
+  const map: Record<StudyDesign, string> = {
+    cohort: 'Cohort',
+    'case-control': 'Case-Control',
+    'cross-sectional': 'Cross-Sectional',
+    'case-cohort': 'Case-Cohort',
+    'nested-case-control': 'Nested Case-Control',
+  };
+  return map[design];
+};
+
 export type PowerStatus = 'adequate' | 'marginal' | 'inadequate';
 
 /**
