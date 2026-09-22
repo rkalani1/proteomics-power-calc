@@ -1951,3 +1951,145 @@
 @page {
   margin: 14mm;
 }
+
+/* Visual finish only. Screen scope preserves reports; the component layer
+   leaves scenario/status utilities and all responsive layout rules in charge. */
+@layer components {
+  @media screen {
+    :root {
+      --color-ink: #173247;
+      --color-ink-soft: #435e72;
+      --color-ink-muted: #526b7d;
+      --color-line: #cfdae4;
+      --color-line-soft: #e4ebf1;
+      --color-paper: #f7f9fc;
+      --color-canvas: #edf2f7;
+      --radius-card: 16px;
+      --shadow-card: 0 2px 4px rgba(22, 48, 70, 0.025), 0 14px 32px -22px rgba(22, 48, 70, 0.25);
+      --shadow-float: 0 8px 24px -14px rgba(22, 48, 70, 0.28);
+    }
+
+    .assay-shell {
+      background:
+        radial-gradient(ellipse 1100px 620px at 80% 0, rgba(80, 139, 183, 0.08), transparent 78%),
+        var(--color-canvas);
+      background-size: auto;
+    }
+    .assay-header {
+      background: linear-gradient(115deg, #112b3e, #193e4e);
+      border-bottom-color: #254c5f;
+      box-shadow: 0 6px 24px -16px rgba(12, 36, 53, 0.5);
+    }
+    .assay-header-rule { background: #77c9c0; }
+    .assay-header h1 { color: #f6fafc; }
+    .assay-header-tagline { color: #c0d2df; }
+    .assay-mark {
+      color: #b5f0e6;
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: inset 0 0 0 1px rgba(200, 231, 242, 0.28);
+    }
+    .assay-header .assay-chip--analysis {
+      color: #bcebe3;
+      background: #244b56;
+      border-color: #52757b;
+    }
+    .assay-header .assay-chip--design {
+      color: #dbe7f1;
+      background: #294859;
+      border-color: #607786;
+    }
+    .assay-header .assay-chip--scope {
+      color: #f1e2b7;
+      background: #3d4c50;
+      border-color: #858572;
+    }
+    .assay-current-setup {
+      color: #d6f6ee;
+      background: #244b56;
+      border-color: #63828b;
+    }
+    .assay-current-setup:focus-visible {
+      outline-color: #b5f0e6;
+    }
+    .section-rail {
+      background: rgba(255, 255, 255, 0.97);
+      box-shadow: 0 6px 18px -14px rgba(22, 48, 70, 0.2);
+    }
+    .section-rail button[aria-current="location"], .btn-primary {
+      box-shadow: 0 3px 7px -4px rgba(15, 63, 71, 0.5), inset 0 1px rgba(255, 255, 255, 0.12);
+    }
+    .assay-card {
+      background-image: linear-gradient(160deg, #ffffff, #fcfdff);
+    }
+    .assay-card--accent {
+      border-top-color: var(--color-brand-600);
+    }
+    .option-tile {
+      border-radius: 12px;
+      background: #fcfdff;
+    }
+    .option-tile[aria-pressed="true"] {
+      background: #e7f2f2;
+      border-color: #4e8a90;
+      box-shadow: inset 3px 0 var(--color-brand-600), 0 2px 6px -4px rgba(15, 63, 71, 0.3);
+    }
+    .option-tile:not(:disabled):hover {
+      background: var(--color-brand-50);
+    }
+    .field-input, .field-select {
+      background-color: #fcfdff;
+    }
+    .slider-value-input {
+      background: #f0f7f8;
+      border-color: #9cbdc5;
+    }
+    .power-result-card {
+      border-radius: 12px;
+      box-shadow: inset 0 1px #ffffff, 0 3px 12px -9px rgba(22, 48, 70, 0.22);
+    }
+    .desktop-result-summary {
+      background: #f6fbfc;
+      border-color: #c1d6de;
+      border-left-color: var(--color-brand-600);
+      box-shadow: var(--shadow-float);
+    }
+    .planning-statement__text {
+      background: #f2f7fa;
+      border-radius: 0 12px 12px 0;
+    }
+    .data-table th {
+      background: #edf3f7;
+    }
+    .data-table tbody tr:nth-child(even) td:not(.is-sticky) {
+      background: #f7f9fc;
+    }
+    .data-table tbody tr:hover td:not(.is-sticky) {
+      background: var(--color-brand-50);
+    }
+    .r-script-editor {
+      background: #f5f8fc;
+      color: #213d53;
+    }
+    .chart-range-controls, .inset-panel {
+      border-color: var(--color-line);
+    }
+  }
+
+  /* Section navigation clears the sticky result summary as well as the two
+     header bars. This changes the scroll landing point, not document layout. */
+  @media screen and (min-width: 1280px) {
+    .assay-results .workflow-section {
+      scroll-margin-top: calc(var(--assay-header-h) + var(--assay-rail-h) + 5rem);
+    }
+  }
+
+  /* Retain the existing high-contrast preference above decorative borders. */
+  @media screen and (prefers-contrast: more) {
+    .assay-card, .option-tile, .field-input, .field-select, .power-result-card,
+    .option-tile[aria-pressed="true"], .option-tile:not(:disabled):hover,
+    .field-input:hover, .field-input:focus, .field-select:hover, .field-select:focus,
+    .slider-value-input, .slider-value-input:hover, .slider-value-input:focus {
+      border-color: var(--color-ink);
+    }
+  }
+}
